@@ -1,0 +1,26 @@
+meta:
+  name: "Pub Quiz Night: Week 4"
+  author: "QuizMaster99"
+  default_timer: 30
+
+rounds:
+  - name: "Round 1: General Knowledge"
+    questions:
+      - id: "q1"
+        type: "choice"
+        text: "What is the capital of Australia?"
+        options: ["Sydney", "Melbourne", "Canberra", "Perth"]
+        answer: 2
+
+      - id: "q2"
+        type: "choice"
+        text: "Which planet is known as the Red Planet?"
+        options: ["Venus", "Mars", "Jupiter", "Saturn"]
+        answer: 1
+
+  - name: "Round 2: Music (Fill in Blank)"
+    questions:
+      - id: "q3"
+        type: "input"
+        text: "Complete the lyric: 'Is this the real life? Is this just _____?'"
+        answer: ["fantasy", "fantsy"]
