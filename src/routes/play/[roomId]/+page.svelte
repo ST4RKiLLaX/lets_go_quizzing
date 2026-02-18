@@ -2,7 +2,8 @@
   import { page } from '$app/stores';
   import { createSocket } from '$lib/socket.js';
   import { getOrCreatePlayerId } from '$lib/socket.js';
-  import { onMount } from 'svelte';
+  import { useCountdown } from '$lib/timer.js';
+  import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
 
@@ -12,10 +13,19 @@
     players: Array<{ id: string; name: string; emoji: string; score: number }>;
     currentRoundIndex: number;
     currentQuestionIndex: number;
-    submissions: Array<{ playerId: string; questionId: string }>;
+    submissions: Array<{ playerId: string; questionId: string; answerIndex?: number }>;
+    timerEndsAt?: number;
   }
 
   let state: SerializedState | null = null;
+  let countdown: ReturnType<typeof useCountdown> | null = null;
+
+  $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
+  $: {
+    countdown?.destroy?.();
+    countdown = useCountdown(timerEndsAt);
+  }
+  onDestroy(() => countdown?.destroy?.());
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
   let emoji = '👤';
@@ -57,12 +67,62 @@
     );
   }
 
+  let submitError = '';
+  let selectedAnswer: { questionId: string; answerIndex: number } | null = null;
+  let selectedInput: string | null = null;
+
+  $: currentQuestionKey =
+    state?.type === 'Question'
+      ? `${state.currentRoundIndex}-${state.currentQuestionIndex}`
+      : '';
+  let prevQuestionKey = '';
+  $: {
+    const key = currentQuestionKey;
+    if (key && key !== prevQuestionKey) {
+      prevQuestionKey = key;
+      selectedAnswer = null;
+      selectedInput = null;
+    }
+  }
+
   function submitChoice(questionId: string, answerIndex: number) {
-    socket?.emit('player:answer', { questionId, answerIndex }, () => {});
+    if (hasSubmitted(questionId) || selectedAnswer?.questionId === questionId) return;
+    submitError = '';
+    selectedAnswer = { questionId, answerIndex };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? { ...state, submissions: [...(state.submissions ?? []), { playerId, questionId, answerIndex }] }
+      : state;
+    socket?.emit('player:answer', { questionId, answerIndex }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedAnswer = null;
+        state =
+          state?.submissions != null
+            ? { ...state, submissions: state.submissions.filter((s) => !(s.playerId === playerId && s.questionId === questionId)) }
+            : state;
+      }
+    });
   }
 
   function submitInput(questionId: string, answerText: string) {
-    socket?.emit('player:answer', { questionId, answerText }, () => {});
+    if (hasSubmitted(questionId) || selectedInput === questionId) return;
+    submitError = '';
+    selectedInput = questionId;
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? { ...state, submissions: [...(state.submissions ?? []), { playerId, questionId }] }
+      : state;
+    socket?.emit('player:answer', { questionId, answerText }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedInput = null;
+        state =
+          state?.submissions != null
+            ? { ...state, submissions: state.submissions.filter((s) => !(s.playerId === playerId && s.questionId === questionId)) }
+            : state;
+      }
+    });
   }
 
   function hasSubmitted(questionId: string): boolean {
@@ -70,6 +130,14 @@
     return state?.submissions?.some(
       (s) => s.playerId === playerId && s.questionId === questionId
     ) ?? false;
+  }
+
+  function getSubmittedAnswerIndex(questionId: string): number | undefined {
+    const playerId = getOrCreatePlayerId();
+    const sub = state?.submissions?.find(
+      (s) => s.playerId === playerId && s.questionId === questionId
+    );
+    return sub?.answerIndex;
   }
 
   function getCurrentQuestion() {
@@ -131,14 +199,20 @@
             {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
           </p>
           <p class="text-xl mb-6">{q.text}</p>
+          {#if state?.type === 'Question' && state.timerEndsAt && countdown}
+            <p class="text-pub-gold font-mono text-lg mb-4">{$countdown}s</p>
+          {/if}
           {#if q.type === 'choice'}
             <div class="space-y-2">
               {#each q.options ?? [] as opt, i}
                 <button
-                  class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50"
-                  disabled={hasSubmitted(q.id)}
+                  class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2"
+                  disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id}
                   on:click={() => submitChoice(q.id, i)}
                 >
+                  {#if (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+                    <span class="text-pub-gold" aria-hidden="true">●</span>
+                  {/if}
                   {opt}
                 </button>
               {/each}
@@ -177,8 +251,10 @@
             </form>
           {/if}
         {/if}
-        {#if hasSubmitted(getCurrentQuestion()?.id ?? '')}
+        {#if hasSubmitted(getCurrentQuestion()?.id ?? '') || selectedAnswer?.questionId === getCurrentQuestion()?.id || selectedInput === getCurrentQuestion()?.id}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
+        {:else if submitError}
+          <p class="mt-4 text-red-500">{submitError}</p>
         {/if}
       </div>
     {:else if state?.type === 'RevealAnswer'}
@@ -194,6 +270,10 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'input'}
+            <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
+              Correct: {(q.answer ?? []).filter(Boolean).join(' / ')}
+            </p>
           {/if}
         {/if}
         <p class="mt-6 text-pub-muted">Waiting for next question...</p>

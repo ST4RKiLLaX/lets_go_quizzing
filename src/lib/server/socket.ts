@@ -103,6 +103,31 @@ export function initSocket(httpServer: import('http').Server): Server {
       io.to(roomId).emit('room:update', { state: serializeState(next) });
     });
 
+    socket.on('host:join', (payload: { roomId: string; password?: string }, ack) => {
+      const { roomId, password } = payload ?? {};
+      if (!roomId) {
+        ack?.({ error: 'roomId required' });
+        return;
+      }
+      if (!roomExists(roomId)) {
+        ack?.({ error: 'Room not found' });
+        return;
+      }
+      if (requireHostPassword()) {
+        const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
+        const hasValidPassword = password && password === process.env.HOST_PASSWORD;
+        if (!hasValidCookie && !hasValidPassword) {
+          ack?.({ error: 'Invalid password' });
+          return;
+        }
+      }
+      socket.join(roomId);
+      socket.data.role = 'host';
+      socket.data.roomId = roomId;
+      const state = getRoom(roomId)!;
+      ack?.({ state: serializeState(state) });
+    });
+
     socket.on('host:get_state', (payload: { roomId: string }, ack) => {
       const roomId = payload?.roomId ?? socket.data.roomId;
       if (!roomId) {
@@ -155,7 +180,9 @@ export function initSocket(httpServer: import('http').Server): Server {
         saveHistory(next);
       }
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      const serialized = serializeState(next);
+      io.to(roomId).emit('state:update', { state: serialized });
+      socket.emit('state:update', { state: serialized });
     });
 
     socket.on('host:stop_timer', (_, ack) => {
@@ -253,7 +280,10 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = { ...state, submissions };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      io.to(roomId).emit('room:update', { state: serializeState(next) });
+      const serialized = serializeState(next);
+      io.to(roomId).emit('room:update', { state: serialized });
+      io.to(roomId).emit('state:update', { state: serialized });
+      socket.emit('room:update', { state: serialized });
     });
 
     socket.on('disconnect', () => {

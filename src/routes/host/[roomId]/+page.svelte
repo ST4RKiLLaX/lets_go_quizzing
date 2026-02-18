@@ -1,7 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { socketStore } from '$lib/stores/socket.js';
-  import { onMount } from 'svelte';
+  import { useCountdown } from '$lib/timer.js';
+  import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
 
@@ -12,21 +13,49 @@
     currentRoundIndex: number;
     currentQuestionIndex: number;
     wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number }>;
+    submissions: Array<{ playerId: string; questionId: string }>;
+    timerEndsAt?: number;
   }
 
   let state: SerializedState | null = null;
+  let joinError = '';
+  let hostRejoinPassword = '';
+  let countdown: ReturnType<typeof useCountdown> | null = null;
+
+  $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
+  $: {
+    countdown?.destroy?.();
+    countdown = useCountdown(timerEndsAt);
+  }
+  onDestroy(() => countdown?.destroy?.());
   let socket: import('socket.io-client').Socket | null = null;
+
+  function doHostJoin(password?: string) {
+    joinError = '';
+    socket?.emit('host:join', { roomId, password }, (ack: { state?: SerializedState; error?: string }) => {
+      if (ack?.state) {
+        state = ack.state;
+        hostRejoinPassword = '';
+      }
+      if (ack?.error) {
+        joinError = ack.error;
+        state = null;
+      }
+    });
+  }
 
   onMount(() => {
     socket = socketStore.get() ?? socketStore.connect();
-    socket.emit('host:get_state', { roomId }, (ack: { state?: SerializedState }) => {
-      if (ack?.state) state = ack.state;
-    });
+    doHostJoin();
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
     socket.on('room:update', (payload: { state: SerializedState }) => {
-      state = payload.state;
+      const incoming = payload?.state;
+      if (!incoming) return;
+      const incomingQ = incoming.currentQuestionIndex ?? -1;
+      const currentQ = state?.currentQuestionIndex ?? -1;
+      if (incomingQ >= currentQ) state = incoming;
     });
   });
 
@@ -92,12 +121,16 @@
       </div>
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-6">
+        {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()}
           <p class="text-pub-muted text-sm mb-2">
             {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
           </p>
           <p class="text-xl mb-6">{q.text}</p>
+          {#if state?.type === 'Question' && state.timerEndsAt && countdown}
+            <p class="text-pub-gold font-mono text-lg mb-4">{$countdown}s</p>
+          {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-2">
               {#each q.options ?? [] as opt, i}
@@ -106,7 +139,20 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
+            <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
+              Correct: {(q.answer ?? []).filter(Boolean).join(' / ')}
+            </p>
           {/if}
+        {/if}
+        {/key}
+
+        {#if state?.type === 'Question' && state.submissions}
+          {@const currentQ = getCurrentQuestion()}
+          {@const submitted = state.submissions.filter((s) => s.questionId === currentQ?.id)}
+          <p class="text-pub-muted text-sm mt-4">
+            {submitted.length} of {(state.players ?? []).length} submitted
+          </p>
         {/if}
 
         <div class="flex gap-4 mt-6">
@@ -181,6 +227,27 @@
           <a href="/" class="text-pub-accent hover:underline">Back to home</a>
         </div>
       </div>
+    {:else if joinError === 'Invalid password'}
+      <div class="bg-pub-darker rounded-lg p-6">
+        <p class="text-pub-muted mb-4">Re-enter password to join host view</p>
+        <form
+          class="flex gap-2"
+          on:submit|preventDefault={() => doHostJoin(hostRejoinPassword)}
+        >
+          <input
+            type="password"
+            bind:value={hostRejoinPassword}
+            placeholder="Password"
+            class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+          />
+          <button type="submit" class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90">
+            Join
+          </button>
+        </form>
+      </div>
+    {:else if joinError}
+      <p class="text-red-500">{joinError}</p>
+      <a href="/" class="mt-4 text-pub-accent hover:underline block">Back to home</a>
     {:else}
       <p class="text-pub-muted">Connecting...</p>
     {/if}
