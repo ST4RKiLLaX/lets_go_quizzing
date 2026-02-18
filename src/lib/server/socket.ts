@@ -28,11 +28,18 @@ export function initSocket(httpServer: import('http').Server): Server {
   });
 
   io.on('connection', (socket) => {
-    socket.on('host:create', (payload: { quizFilename: string }, ack) => {
-      const { quizFilename } = payload ?? {};
+    socket.on('host:create', (payload: { quizFilename: string; password?: string }, ack) => {
+      const { quizFilename, password } = payload ?? {};
       if (!quizFilename) {
         ack?.({ error: 'quizFilename required' });
         return;
+      }
+      const hostPassword = process.env.HOST_PASSWORD;
+      if (hostPassword) {
+        if (!password || password !== hostPassword) {
+          ack?.({ error: 'Invalid password' });
+          return;
+        }
       }
       try {
         const roomId = createRoom(quizFilename, socket.id);

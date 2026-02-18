@@ -1,24 +1,49 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { socketStore } from '$lib/stores/socket.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
   let roomId = '';
+  let hostPassword = '';
+  let passwordError = '';
+  let creating = false;
+
   $: quizzes = $page.data.quizzes ?? [];
+  $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
   $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0];
 
   function startAsHost() {
     mode = 'host';
+    passwordError = '';
   }
 
   function startAsPlayer() {
     mode = 'play';
   }
 
-  function goToHost() {
+  function createRoom() {
     if (!quizFilename) return;
-    goto(`/host/create?quiz=${encodeURIComponent(quizFilename)}`);
+    if (hostPasswordRequired && !hostPassword.trim()) {
+      passwordError = 'Password required';
+      return;
+    }
+    passwordError = '';
+    creating = true;
+    const socket = socketStore.get() ?? socketStore.connect();
+    socket.emit(
+      'host:create',
+      { quizFilename, password: hostPasswordRequired ? hostPassword : undefined },
+      (ack: { roomId?: string; error?: string }) => {
+        creating = false;
+        if (ack?.roomId) {
+          goto(`/host/${ack.roomId}`);
+        } else {
+          passwordError = ack?.error ?? 'Failed to create room';
+        }
+      }
+    );
   }
 
   function goToPlay() {
@@ -60,11 +85,27 @@
           <option value={q}>{q}</option>
         {/each}
       </select>
+      {#if hostPasswordRequired}
+        <div>
+          <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
+          <input
+            id="host-password"
+            type="password"
+            bind:value={hostPassword}
+            placeholder="Enter host password"
+            class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+          />
+          {#if passwordError}
+            <p class="mt-1 text-sm text-red-400">{passwordError}</p>
+          {/if}
+        </div>
+      {/if}
       <button
-        class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-        on:click={goToHost}
+        class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+        on:click={createRoom}
+        disabled={creating}
       >
-        Create Room
+        {creating ? 'Creating...' : 'Create Room'}
       </button>
       <button
         class="w-full text-pub-muted hover:text-white"
