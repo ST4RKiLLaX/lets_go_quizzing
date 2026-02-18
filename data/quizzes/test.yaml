@@ -1,0 +1,16 @@
+meta:
+  name: test
+  author: tester
+  default_timer: 30
+rounds:
+  - name: Round 1
+    questions:
+      - id: q1
+        type: choice
+        text: My name is...
+        options:
+          - Slim Shady
+          - Turdboy
+          - Jack
+          - Blah
+        answer: 0

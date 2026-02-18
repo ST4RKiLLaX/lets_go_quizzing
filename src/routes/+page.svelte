@@ -9,41 +9,72 @@
   let hostPassword = '';
   let passwordError = '';
   let creating = false;
+  let hostAuthenticated = false;
 
   $: quizzes = $page.data.quizzes ?? [];
   $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
   $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0];
 
-  function startAsHost() {
+  async function startAsHost() {
     mode = 'host';
     passwordError = '';
+    if (hostPasswordRequired) {
+      const res = await fetch('/api/auth/check', { credentials: 'include' });
+      const data = await res.json();
+      hostAuthenticated = data.authenticated ?? false;
+    }
   }
 
   function startAsPlayer() {
     mode = 'play';
   }
 
-  function createRoom() {
+  async function createRoom() {
     if (!quizFilename) return;
-    if (hostPasswordRequired && !hostPassword.trim()) {
-      passwordError = 'Password required';
-      return;
-    }
     passwordError = '';
     creating = true;
-    const socket = socketStore.get() ?? socketStore.connect();
-    socket.emit(
-      'host:create',
-      { quizFilename, password: hostPasswordRequired ? hostPassword : undefined },
-      (ack: { roomId?: string; error?: string }) => {
-        creating = false;
-        if (ack?.roomId) {
-          goto(`/host/${ack.roomId}`);
-        } else {
-          passwordError = ack?.error ?? 'Failed to create room';
+    if (hostPasswordRequired) {
+      const checkRes = await fetch('/api/auth/check', { credentials: 'include' });
+      const { authenticated } = await checkRes.json();
+      if (!authenticated) {
+        if (!hostPassword.trim() && !hostAuthenticated) {
+          passwordError = 'Password required';
+          creating = false;
+          return;
+        }
+        const loginRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: hostPassword }),
+          credentials: 'include',
+        });
+        if (!loginRes.ok) {
+          const data = await loginRes.json();
+          passwordError = data.error ?? 'Invalid password';
+          creating = false;
+          return;
         }
       }
-    );
+    }
+    const payload: { quizFilename: string; password?: string } = { quizFilename };
+    if (hostPasswordRequired && hostPassword.trim()) {
+      payload.password = hostPassword;
+    }
+    const hasPassword = !!payload.password;
+    const socket = hasPassword ? (socketStore.get() ?? socketStore.connect()) : socketStore.connect();
+    const onAck = (ack: { roomId?: string; error?: string }) => {
+      creating = false;
+      if (ack?.roomId) {
+        goto(`/host/${ack.roomId}`);
+      } else {
+        passwordError = ack?.error ?? 'Failed to create room';
+      }
+    };
+    if (socket.connected) {
+      socket.emit('host:create', payload, onAck);
+    } else {
+      socket.once('connect', () => socket.emit('host:create', payload, onAck));
+    }
   }
 
   function goToPlay() {
@@ -56,22 +87,34 @@
 <div class="min-h-screen flex flex-col items-center justify-center p-6">
   <h1 class="text-4xl font-bold text-pub-gold mb-2">Lets Go Quizzing</h1>
   <p class="text-pub-muted mb-8">The Markdown of Quiz Apps</p>
-  <a href="/creator" class="mb-6 text-pub-muted hover:text-white text-sm">Create or edit quizzes →</a>
+  {#if hostPasswordRequired}
+    <a href="/creator" class="mb-6 text-pub-muted hover:text-white text-sm">Create or edit quizzes →</a>
+  {:else}
+    <span class="mb-6 text-pub-muted text-sm">Create or edit quizzes (disabled)</span>
+  {/if}
 
   {#if mode === 'choose'}
-    <div class="flex gap-4">
-      <button
-        class="px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-        on:click={startAsHost}
-      >
-        Host a Game
-      </button>
+    <div class="flex flex-col gap-4 items-center">
+      {#if !hostPasswordRequired}
+        <p class="text-amber-500 text-sm text-center max-w-md">
+          Hosting and quiz creation are disabled. Set HOST_PASSWORD to enable.
+        </p>
+      {/if}
+      <div class="flex gap-4">
+        <button
+          class="px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          on:click={startAsHost}
+          disabled={!hostPasswordRequired}
+        >
+          Host a Game
+        </button>
       <button
         class="px-6 py-3 bg-pub-darker rounded-lg font-medium hover:opacity-90 border border-pub-muted"
         on:click={startAsPlayer}
       >
         Join a Game
       </button>
+      </div>
     </div>
   {:else if mode === 'host'}
     <div class="w-full max-w-md space-y-4">
@@ -85,7 +128,7 @@
           <option value={q}>{q}</option>
         {/each}
       </select>
-      {#if hostPasswordRequired}
+      {#if hostPasswordRequired && !hostAuthenticated}
         <div>
           <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
           <input
@@ -99,6 +142,8 @@
             <p class="mt-1 text-sm text-red-400">{passwordError}</p>
           {/if}
         </div>
+      {:else if hostAuthenticated}
+        <p class="text-sm text-green-400">Authenticated</p>
       {/if}
       <button
         class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"

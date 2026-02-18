@@ -14,6 +14,7 @@ import {
 } from './state-machine.js';
 import { scoreSubmissions } from './scoring.js';
 import { loadQuiz } from './parser.js';
+import { isAuthenticated, requireHostPassword } from './auth.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -34,9 +35,11 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'quizFilename required' });
         return;
       }
-      const hostPassword = process.env.HOST_PASSWORD;
-      if (hostPassword) {
-        if (!password || password !== hostPassword) {
+      if (requireHostPassword()) {
+        const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
+        const hasValidPassword =
+          password && password === process.env.HOST_PASSWORD;
+        if (!hasValidCookie && !hasValidPassword) {
           ack?.({ error: 'Invalid password' });
           return;
         }

@@ -10,6 +10,10 @@ function createSocketStore() {
     subscribe,
     get: () => get(store),
     connect(): Socket {
+      const existing = get(store);
+      if (existing) {
+        existing.disconnect();
+      }
       const socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
       set(socket);
       return socket;

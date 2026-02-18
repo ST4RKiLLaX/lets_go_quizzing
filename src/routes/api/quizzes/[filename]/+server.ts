@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { loadQuizRaw, saveQuiz } from '$lib/server/quiz-storage.js';
 import type { Quiz } from '$lib/server/parser.js';
+import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
 
 export async function GET({ params }) {
   const filename = params.filename;
@@ -16,6 +17,9 @@ export async function GET({ params }) {
 }
 
 export async function PUT({ params, request }) {
+  if (requireHostPassword() && !isAuthenticated(request.headers.get('cookie') ?? undefined)) {
+    return json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const filename = params.filename;
   if (!filename) {
     return json({ error: 'Filename required' }, { status: 400 });
