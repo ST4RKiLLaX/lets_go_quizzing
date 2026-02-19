@@ -64,7 +64,7 @@ When running behind Nginx, Cloudflare, or another reverse proxy:
 
 - **ORIGIN** (production only, **required**): Comma-separated list of allowed origins for Socket.io CORS. Example: `ORIGIN=https://quiz.example.com,https://www.quiz.example.com`
 - **X-Forwarded-Proto**: Your proxy must set this to `https` when terminating TLS, so the app can issue Secure cookies correctly.
-- **X-Forwarded-For**: Your proxy must forward the real client IP. Set `ADDRESS_HEADER=x-forwarded-for` so SvelteKit uses it for rate limiting and logging.
+- **X-Forwarded-For**: Your proxy must forward the real client IP. Set `ADDRESS_HEADER=x-forwarded-for` so both REST and Socket.io use the real client IP for rate limiting and logging.
 - **ROOM_ID_LEN** (optional): Room ID length (4–12 chars, default 6). Increase for higher entropy if needed.
 
 Example with Nginx: `proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $remote_addr;`

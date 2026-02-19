@@ -15,6 +15,7 @@ import {
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
 import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth.js';
+import { getClientAddressFromSocket } from './address.js';
 import {
   checkPlayerJoinRateLimit,
   checkHostCreateRateLimit,
@@ -51,7 +52,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Hosting disabled' });
         return;
       }
-      if (!checkHostCreateRateLimit(socket.handshake.address)) {
+      if (!checkHostCreateRateLimit(getClientAddressFromSocket(socket))) {
         ack?.({ error: 'Too many attempts' });
         return;
       }
@@ -60,7 +61,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const hasValidPassword =
         password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
       if (!hasValidCookie && !hasValidPassword) {
-        console.warn(`[auth] host:create auth failed from ${socket.handshake.address}`);
+        console.warn(`[auth] host:create auth failed from ${getClientAddressFromSocket(socket)}`);
         ack?.({ error: 'Invalid password' });
         return;
       }
@@ -83,7 +84,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'roomId required' });
         return;
       }
-      if (!checkPlayerJoinRateLimit(socket.handshake.address)) {
+      if (!checkPlayerJoinRateLimit(getClientAddressFromSocket(socket))) {
         ack?.({ error: 'Too many attempts' });
         return;
       }
@@ -141,7 +142,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Hosting disabled' });
         return;
       }
-      if (!checkHostJoinRateLimit(socket.handshake.address)) {
+      if (!checkHostJoinRateLimit(getClientAddressFromSocket(socket))) {
         ack?.({ error: 'Too many attempts' });
         return;
       }
@@ -149,7 +150,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const hostPwd = process.env.HOST_PASSWORD;
       const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
       if (!hasValidCookie && !hasValidPassword) {
-        console.warn(`[auth] host:join auth failed from ${socket.handshake.address}`);
+        console.warn(`[auth] host:join auth failed from ${getClientAddressFromSocket(socket)}`);
         ack?.({ error: 'Invalid password' });
         return;
       }
@@ -166,7 +167,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'roomId required' });
         return;
       }
-      if (!checkHostGetStateRateLimit(socket.handshake.address)) {
+      if (!checkHostGetStateRateLimit(getClientAddressFromSocket(socket))) {
         ack?.({ error: 'Too many attempts' });
         return;
       }
