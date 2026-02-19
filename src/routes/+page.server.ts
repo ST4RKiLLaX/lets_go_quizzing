@@ -1,4 +1,4 @@
-import { listQuizzes } from '$lib/server/parser.js';
+import { listQuizzes } from '$lib/server/storage/parser.js';
 
 export async function load() {
   return {

@@ -1,4 +1,4 @@
-import { loadQuizRaw } from '$lib/server/quiz-storage.js';
+import { loadQuizRaw } from '$lib/server/storage/quiz-storage.js';
 
 export async function load({ params, parent }) {
   const { authenticated } = await parent();

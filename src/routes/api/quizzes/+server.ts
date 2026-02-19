@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { listQuizzes } from '$lib/server/parser.js';
-import { saveQuiz, generateFilenameFromTitle } from '$lib/server/quiz-storage.js';
-import type { Quiz } from '$lib/server/parser.js';
+import { listQuizzes } from '$lib/server/storage/parser.js';
+import { saveQuiz, generateFilenameFromTitle } from '$lib/server/storage/quiz-storage.js';
+import type { Quiz } from '$lib/server/storage/parser.js';
 import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
 
 export async function GET() {

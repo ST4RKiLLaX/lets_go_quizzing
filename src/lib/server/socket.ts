@@ -5,15 +5,15 @@ import {
   getRoom,
   setRoom,
   roomExists,
-} from './rooms.js';
+} from './game/rooms.js';
 import {
   transition,
   createInitialState,
   type GameState,
   type GameEvent,
-} from './state-machine.js';
-import { scoreSubmissions } from './scoring.js';
-import { loadQuiz } from './parser.js';
+} from './game/state-machine.js';
+import { scoreSubmissions } from './game/scoring.js';
+import { loadQuiz } from './storage/parser.js';
 import { isAuthenticated, requireHostPassword } from './auth.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';

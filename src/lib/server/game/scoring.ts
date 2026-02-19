@@ -1,6 +1,6 @@
 import { compareTwoStrings } from 'string-similarity';
 import type { GameState, AnswerSubmission } from './state-machine.js';
-import type { ChoiceQuestion, InputQuestion } from './parser.js';
+import type { ChoiceQuestion, InputQuestion } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 

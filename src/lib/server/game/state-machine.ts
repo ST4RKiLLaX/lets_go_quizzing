@@ -1,4 +1,4 @@
-import type { Quiz, Question } from './parser.js';
+import type { Quiz, Question } from '../storage/parser.js';
 
 export type GameStateType =
   | 'Lobby'

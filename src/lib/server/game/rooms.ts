@@ -1,6 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import type { GameState } from './state-machine.js';
-import { loadQuiz } from './parser.js';
+import { loadQuiz } from '../storage/parser.js';
 
 const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4);
 
