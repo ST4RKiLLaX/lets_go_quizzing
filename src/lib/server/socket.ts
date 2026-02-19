@@ -170,7 +170,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Room not found' });
         return;
       }
-      if (state.type === 'RevealAnswer') {
+      // Score when transitioning TO RevealAnswer (answer displayed), not when leaving it
+      if (state.type === 'Question') {
         state = scoreSubmissions(state);
         setRoom(roomId, state);
       }
@@ -191,11 +192,14 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Unauthorized' });
         return;
       }
-      const state = getRoom(roomId);
+      let state = getRoom(roomId);
       if (!state) {
         ack?.({ error: 'Room not found' });
         return;
       }
+      // Score when revealing answer (Question → RevealAnswer)
+      state = scoreSubmissions(state);
+      setRoom(roomId, state);
       const next = transition(state, { type: 'STOP_TIMER' });
       setRoom(roomId, next);
       ack?.({ ok: true });
