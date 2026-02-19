@@ -4,10 +4,22 @@
   import type { SerializedState } from '$lib/types/game.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
+  import { generate } from 'lean-qr';
 
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
+  let qrCanvas: HTMLCanvasElement | null = null;
+
+  $: joinUrl =
+    typeof window !== 'undefined' ? window.location.origin + '/play/' + roomId : '';
+
+  $: if (state?.type === 'Lobby' && joinUrl && qrCanvas) {
+    generate(joinUrl).toCanvas(qrCanvas, {
+      on: [255, 255, 255, 255],
+      off: [26, 26, 46, 255],
+    });
+  }
   let countdown: ReturnType<typeof useCountdown> | null = null;
 
   $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
@@ -64,7 +76,14 @@
     {#if state?.type === 'Lobby'}
       <div class="text-center">
         <h2 class="text-3xl font-bold mb-6">Waiting for host to start</h2>
-        <p class="text-2xl text-pub-muted">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
+        <p class="text-2xl text-pub-muted mb-6">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
+        {#if joinUrl}
+          <p class="text-lg text-pub-muted mb-4">Scan to join</p>
+          <canvas
+            bind:this={qrCanvas}
+            class="mx-auto rounded-lg min-w-[256px] min-h-[256px] [image-rendering:pixelated]"
+          ></canvas>
+        {/if}
       </div>
     {:else if state?.type === 'Question'}
       <div class="bg-pub-darker rounded-lg p-8" data-question-id={getCurrentQuestion()?.id}>
