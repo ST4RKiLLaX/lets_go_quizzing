@@ -2,7 +2,8 @@ import { customAlphabet } from 'nanoid';
 import type { GameState } from './state-machine.js';
 import { loadQuiz } from '../storage/parser.js';
 
-const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4);
+const ROOM_ID_LEN = Math.max(4, Math.min(12, parseInt(process.env.ROOM_ID_LEN ?? '6', 10) || 6));
+const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', ROOM_ID_LEN);
 
 const rooms = new Map<string, GameState>();
 

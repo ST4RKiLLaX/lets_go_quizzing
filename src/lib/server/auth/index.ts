@@ -2,7 +2,20 @@ import { timingSafeEqual } from 'node:crypto';
 
 const SESSION_COOKIE = 'lgq_host_auth';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const tokens = new Map<string, number>(); // token -> expiry timestamp
+
+function cleanupExpiredTokens(): void {
+  const now = Date.now();
+  const toDelete: string[] = [];
+  for (const [token, expiry] of tokens.entries()) {
+    if (now > expiry) toDelete.push(token);
+  }
+  for (const token of toDelete) tokens.delete(token);
+}
+
+// Periodic cleanup to prevent unbounded memory growth
+setInterval(cleanupExpiredTokens, CLEANUP_INTERVAL_MS);
 
 export function verifyPasswordConstantTime(input: string, expected: string): boolean {
   if (typeof input !== 'string' || typeof expected !== 'string') return false;

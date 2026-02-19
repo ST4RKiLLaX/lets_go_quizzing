@@ -15,6 +15,12 @@ import {
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
 import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth.js';
+import {
+  checkPlayerJoinRateLimit,
+  checkHostCreateRateLimit,
+  checkHostJoinRateLimit,
+  checkHostGetStateRateLimit,
+} from './rate-limit.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -24,7 +30,13 @@ const PLAYER_ID_KEY = 'lgq_player_id';
 export function initSocket(httpServer: import('http').Server): Server {
   const io = new Server(httpServer, {
     cors: {
-      origin: true,
+      origin:
+        process.env.NODE_ENV === 'production'
+          ? (process.env.ORIGIN ?? 'https://localhost:3000')
+              .split(',')
+              .map((o) => o.trim())
+              .filter(Boolean)
+          : true,
     },
   });
 
@@ -35,16 +47,22 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'quizFilename required' });
         return;
       }
-      if (requireHostPassword()) {
-        const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
-        const hostPwd = process.env.HOST_PASSWORD;
-        const hasValidPassword =
-          password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
-        if (!hasValidCookie && !hasValidPassword) {
-          console.warn(`[auth] host:create auth failed from ${socket.handshake.address}`);
-          ack?.({ error: 'Invalid password' });
-          return;
-        }
+      if (!requireHostPassword()) {
+        ack?.({ error: 'Hosting disabled' });
+        return;
+      }
+      if (!checkHostCreateRateLimit(socket.handshake.address)) {
+        ack?.({ error: 'Too many attempts' });
+        return;
+      }
+      const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
+      const hostPwd = process.env.HOST_PASSWORD;
+      const hasValidPassword =
+        password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
+      if (!hasValidCookie && !hasValidPassword) {
+        console.warn(`[auth] host:create auth failed from ${socket.handshake.address}`);
+        ack?.({ error: 'Invalid password' });
+        return;
       }
       try {
         const roomId = createRoom(quizFilename, socket.id);
@@ -63,6 +81,10 @@ export function initSocket(httpServer: import('http').Server): Server {
       const { roomId, playerId } = payload ?? {};
       if (!roomId) {
         ack?.({ error: 'roomId required' });
+        return;
+      }
+      if (!checkPlayerJoinRateLimit(socket.handshake.address)) {
+        ack?.({ error: 'Too many attempts' });
         return;
       }
       if (!roomExists(roomId)) {
@@ -115,15 +137,21 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Room not found' });
         return;
       }
-      if (requireHostPassword()) {
-        const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
-        const hostPwd = process.env.HOST_PASSWORD;
-        const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
-        if (!hasValidCookie && !hasValidPassword) {
-          console.warn(`[auth] host:join auth failed from ${socket.handshake.address}`);
-          ack?.({ error: 'Invalid password' });
-          return;
-        }
+      if (!requireHostPassword()) {
+        ack?.({ error: 'Hosting disabled' });
+        return;
+      }
+      if (!checkHostJoinRateLimit(socket.handshake.address)) {
+        ack?.({ error: 'Too many attempts' });
+        return;
+      }
+      const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
+      const hostPwd = process.env.HOST_PASSWORD;
+      const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
+      if (!hasValidCookie && !hasValidPassword) {
+        console.warn(`[auth] host:join auth failed from ${socket.handshake.address}`);
+        ack?.({ error: 'Invalid password' });
+        return;
       }
       socket.join(roomId);
       socket.data.role = 'host';
@@ -136,6 +164,14 @@ export function initSocket(httpServer: import('http').Server): Server {
       const roomId = payload?.roomId ?? socket.data.roomId;
       if (!roomId) {
         ack?.({ error: 'roomId required' });
+        return;
+      }
+      if (!checkHostGetStateRateLimit(socket.handshake.address)) {
+        ack?.({ error: 'Too many attempts' });
+        return;
+      }
+      if (socket.data.role !== 'host' || socket.data.roomId !== roomId) {
+        ack?.({ error: 'Unauthorized' });
         return;
       }
       const state = getRoom(roomId);
@@ -318,7 +354,7 @@ export function initSocket(httpServer: import('http').Server): Server {
 function serializeState(state: GameState) {
   return {
     ...state,
-    players: Array.from(state.players.entries()).map(([id, p]) => ({ id, ...p })),
+    players: Array.from(state.players.entries()).map(([id, p]) => ({ ...p, id })),
   };
 }
 

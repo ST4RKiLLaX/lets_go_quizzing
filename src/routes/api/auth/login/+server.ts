@@ -18,7 +18,10 @@ export async function POST({ request, getClientAddress }) {
       return json({ error: 'Invalid password' }, { status: 401 });
     }
     const url = new URL(request.url);
-    const { cookie } = createSession({ secure: url.protocol === 'https:' });
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const isSecure =
+      forwardedProto === 'https' || url.protocol === 'https:';
+    const { cookie } = createSession({ secure: isSecure });
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: {

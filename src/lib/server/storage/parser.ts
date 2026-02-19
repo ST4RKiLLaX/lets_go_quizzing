@@ -31,10 +31,18 @@ const QuestionSchema = z.discriminatedUnion('type', [
   InputQuestionSchema,
 ]);
 
-const RoundSchema = z.object({
-  name: z.string(),
-  questions: z.array(QuestionSchema),
-});
+const RoundSchema = z
+  .object({
+    name: z.string(),
+    questions: z.array(QuestionSchema),
+  })
+  .refine(
+    (round) =>
+      round.questions.every((q) =>
+        q.type !== 'choice' || (q.answer >= 0 && q.answer < q.options.length)
+      ),
+    { message: 'choice answer must be less than options length' }
+  );
 
 const QuizMetaSchema = z.object({
   name: z.string(),

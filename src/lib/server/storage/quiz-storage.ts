@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { stringify } from 'yaml';
 import { loadQuiz, type Quiz } from './parser.js';
@@ -18,6 +18,9 @@ export function saveQuiz(quiz: Quiz, filename: string): void {
   }
   if (!/^[a-z0-9_.-]+\.(yaml|yml)$/i.test(filename)) {
     throw new Error('Invalid filename');
+  }
+  if (!existsSync(QUIZZES_DIR)) {
+    mkdirSync(QUIZZES_DIR, { recursive: true });
   }
   const path = join(QUIZZES_DIR, filename);
   const content = stringify(quiz, { lineWidth: 0 });
