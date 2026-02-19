@@ -46,17 +46,30 @@
 
   onMount(() => {
     socket = socketStore.get() ?? socketStore.connect();
-    doHostJoin();
-    socket.on('state:update', (payload: { state: SerializedState }) => {
+    let pwd: string | undefined;
+    try {
+      pwd = sessionStorage.getItem('lgq_host_password') ?? undefined;
+      // Don't remove - keep for creating new rooms after game ends
+    } catch {
+      /* ignore */
+    }
+    doHostJoin(pwd);
+    const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
-    });
-    socket.on('room:update', (payload: { state: SerializedState }) => {
+    };
+    const onRoomUpdate = (payload: { state: SerializedState }) => {
       const incoming = payload?.state;
       if (!incoming) return;
       const incomingQ = incoming.currentQuestionIndex ?? -1;
       const currentQ = state?.currentQuestionIndex ?? -1;
       if (incomingQ >= currentQ) state = incoming;
-    });
+    };
+    socket.on('state:update', onStateUpdate);
+    socket.on('room:update', onRoomUpdate);
+    return () => {
+      socket?.off('state:update', onStateUpdate);
+      socket?.off('room:update', onRoomUpdate);
+    };
   });
 
   function next() {
@@ -93,7 +106,8 @@
 </script>
 
 <div class="min-h-screen p-6">
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-4xl mx-auto flex gap-6">
+    <div class="flex-1 min-w-0">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-pub-gold">Host: {roomId}</h1>
       <p class="text-pub-muted text-sm">{state?.quiz?.meta?.name ?? 'Loading...'}</p>
@@ -112,12 +126,21 @@
             </div>
           {/each}
         </div>
-        <button
-          class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-          on:click={() => socket?.emit('host:start', {}, () => {})}
-        >
-          Start Game
-        </button>
+        <div class="flex gap-4">
+          <button
+            class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
+            on:click={() => socket?.emit('host:start', {}, () => {})}
+          >
+            Start Game
+          </button>
+          <button
+            type="button"
+            class="px-6 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+          >
+            Projector
+          </button>
+        </div>
       </div>
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-6">
@@ -155,7 +178,7 @@
           </p>
         {/if}
 
-        <div class="flex gap-4 mt-6">
+        <div class="flex gap-4 mt-6 flex-wrap">
           {#if state?.type === 'Question'}
             <button
               class="px-4 py-2 bg-amber-600 rounded-lg font-medium hover:opacity-90"
@@ -169,6 +192,13 @@
             on:click={next}
           >
             Next
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+          >
+            Projector
           </button>
         </div>
 
@@ -208,6 +238,13 @@
           >
             {state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
           </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+          >
+            Projector
+          </button>
         </div>
       </div>
     {:else if state?.type === 'End'}
@@ -223,8 +260,21 @@
             </li>
           {/each}
         </ol>
-        <div class="mt-6">
-          <a href="/" class="text-pub-accent hover:underline">Back to home</a>
+        <div class="mt-6 flex gap-4 flex-wrap">
+          <a
+            href="/?host=1"
+            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
+          >
+            New Game
+          </a>
+          <button
+            type="button"
+            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+          >
+            Projector
+          </button>
+          <a href="/" class="text-pub-accent hover:underline self-center">Back to home</a>
         </div>
       </div>
     {:else if joinError === 'Invalid password'}
@@ -250,6 +300,27 @@
       <a href="/" class="mt-4 text-pub-accent hover:underline block">Back to home</a>
     {:else}
       <p class="text-pub-muted">Connecting...</p>
+    {/if}
+    </div>
+    {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
+      <div class="w-64 flex-shrink-0">
+        <div class="bg-pub-darker rounded-lg p-4 sticky top-6">
+          <h3 class="text-sm font-semibold text-pub-muted mb-3">Leaderboard</h3>
+          <ol class="space-y-2 text-sm">
+            {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
+              <li class="flex items-center gap-2">
+                <span class="text-pub-gold font-bold w-6">#{i + 1}</span>
+                <span>{player.emoji}</span>
+                <span class="truncate">{player.name}</span>
+                <span class="ml-auto font-bold">{player.score}</span>
+              </li>
+            {/each}
+          </ol>
+          {#if (state.players ?? []).length === 0}
+            <p class="text-pub-muted text-sm">No players yet</p>
+          {/if}
+        </div>
+      </div>
     {/if}
   </div>
 </div>

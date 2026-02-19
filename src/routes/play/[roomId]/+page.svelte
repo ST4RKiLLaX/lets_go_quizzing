@@ -32,7 +32,12 @@
   let registered = false;
   let inputAnswer = '';
 
-  const EMOJI_OPTIONS = ['👤', '😀', '🎉', '🧠', '⭐', '🔥', '🚀', '🎯', '💡', '🏆'];
+  const EMOJI_OPTIONS = [
+    '👤', '😀', '😎', '🤓', '😇', '🥳', '🤩', '😊', '🙂', '😏',
+    '🎉', '🧠', '⭐', '🔥', '🚀', '🎯', '💡', '🏆', '🎮', '🎸',
+    '🐶', '🐱', '🦊', '🐻', '🐼', '🦁', '🐯', '🐸', '🦉', '🐙',
+    '🍕', '🍔', '☕', '🍩', '🌮', '🥑', '🍎', '🍋', '🌶️', '🍿',
+  ];
 
   onMount(() => {
     const playerId = getOrCreatePlayerId();
@@ -145,14 +150,22 @@
     const round = state.quiz?.rounds?.[state.currentRoundIndex];
     return round?.questions?.[state.currentQuestionIndex] ?? null;
   }
+
+  $: playerId = getOrCreatePlayerId();
+  $: myScore = state?.players?.find((p) => p.id === playerId)?.score ?? 0;
 </script>
 
 <div class="min-h-screen p-6">
   <div class="max-w-2xl mx-auto">
+    {#if registered && state}
+      <div class="flex justify-end items-center mb-4">
+        <span class="text-pub-gold font-bold">Your score: {myScore}</span>
+      </div>
+    {/if}
     {#if state?.type === 'Lobby' && !registered}
       <div class="bg-pub-darker rounded-lg p-6">
         <h2 class="text-xl font-bold mb-4">Join the quiz</h2>
-        <div class="space-y-4">
+        <form class="space-y-4" on:submit|preventDefault={register}>
           <div>
             <label for="player-name" class="block text-sm text-pub-muted mb-1">Your name</label>
             <input
@@ -165,11 +178,16 @@
           </div>
           <div>
             <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
-            <div class="flex gap-2 flex-wrap" role="group" aria-label="Pick an emoji">
+            <div
+              class="flex gap-2 overflow-x-auto flex-nowrap pb-2 -mx-1"
+              role="group"
+              aria-label="Pick an emoji"
+              style="scrollbar-width: thin;"
+            >
               {#each EMOJI_OPTIONS as e}
                 <button
                   type="button"
-                  class="text-2xl p-2 rounded {emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
+                  class="text-2xl p-2 rounded flex-shrink-0 {emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
                   on:click={() => (emoji = e)}
                 >
                   {e}
@@ -178,12 +196,12 @@
             </div>
           </div>
           <button
-            class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-            on:click={register}
+            type="submit"
+            class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90"
           >
             Join
           </button>
-        </div>
+        </form>
       </div>
     {:else if state?.type === 'Lobby'}
       <div class="bg-pub-darker rounded-lg p-6">

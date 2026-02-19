@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { io } from 'socket.io-client';
   import { socketStore } from '$lib/stores/socket.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
@@ -14,6 +15,14 @@
   $: quizzes = $page.data.quizzes ?? [];
   $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
   $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0];
+  $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
+    mode = 'host';
+    if (hostPasswordRequired) {
+      fetch('/api/auth/check', { credentials: 'include' }).then((r) => r.json()).then((d) => {
+        hostAuthenticated = d.authenticated ?? false;
+      });
+    }
+  }
 
   async function startAsHost() {
     mode = 'host';
@@ -60,20 +69,71 @@
     if (hostPasswordRequired && hostPassword.trim()) {
       payload.password = hostPassword;
     }
-    const hasPassword = !!payload.password;
-    const socket = hasPassword ? (socketStore.get() ?? socketStore.connect()) : socketStore.connect();
+    // Socket handshake may not include auth cookie; always try stored password when no password in form
+    if (hostPasswordRequired && !payload.password) {
+      try {
+        const stored = sessionStorage.getItem('lgq_host_password');
+        if (stored) payload.password = stored;
+      } catch {
+        /* ignore */
+      }
+    }
+    // When authenticated via cookie, use the existing socket from the store - its handshake
+    // already has the auth cookie. A fresh temp socket's handshake may not include it.
+    const existingSocket = hostAuthenticated ? socketStore.get() : null;
+    const useExisting = !!existingSocket?.connected;
+    const socket = useExisting ? existingSocket : io({ path: '/socket.io', transports: ['websocket', 'polling'] });
     const onAck = (ack: { roomId?: string; error?: string }) => {
       creating = false;
+      if (!useExisting) {
+        (socket as import('socket.io-client').Socket).disconnect();
+        (socket as import('socket.io-client').Socket).removeAllListeners();
+      }
       if (ack?.roomId) {
+        if (hostPasswordRequired && hostPassword.trim()) {
+          try {
+            sessionStorage.setItem('lgq_host_password', hostPassword);
+          } catch {
+            /* ignore */
+          }
+        }
         goto(`/host/${ack.roomId}`);
       } else {
         passwordError = ack?.error ?? 'Failed to create room';
       }
     };
+    const doEmit = () => {
+      socket.emit('host:create', payload, (ack: { roomId?: string; error?: string }) => {
+        if (ack?.roomId || ack?.error) {
+          onAck(ack);
+        } else {
+          creating = false;
+          passwordError = 'Connection lost. Please try again.';
+        }
+      });
+    };
+    const timeout = setTimeout(() => {
+      creating = false;
+      if (!useExisting) {
+        (socket as import('socket.io-client').Socket).disconnect();
+        (socket as import('socket.io-client').Socket).removeAllListeners();
+      }
+      passwordError = 'Connection timeout. Please try again.';
+    }, 15000);
     if (socket.connected) {
-      socket.emit('host:create', payload, onAck);
+      clearTimeout(timeout);
+      doEmit();
     } else {
-      socket.once('connect', () => socket.emit('host:create', payload, onAck));
+      socket.once('connect', () => {
+        clearTimeout(timeout);
+        doEmit();
+      });
+      socket.once('connect_error', () => {
+        clearTimeout(timeout);
+        creating = false;
+        (socket as import('socket.io-client').Socket).removeAllListeners();
+        passwordError = 'Connection failed. Please try again.';
+      });
     }
   }
 
@@ -87,12 +147,6 @@
 <div class="min-h-screen flex flex-col items-center justify-center p-6">
   <h1 class="text-4xl font-bold text-pub-gold mb-2">Lets Go Quizzing</h1>
   <p class="text-pub-muted mb-8">The Markdown of Quiz Apps</p>
-  {#if hostPasswordRequired}
-    <a href="/creator" class="mb-6 text-pub-muted hover:text-white text-sm">Create or edit quizzes →</a>
-  {:else}
-    <span class="mb-6 text-pub-muted text-sm">Create or edit quizzes (disabled)</span>
-  {/if}
-
   {#if mode === 'choose'}
     <div class="flex flex-col gap-4 items-center">
       {#if !hostPasswordRequired}
@@ -109,15 +163,28 @@
           Host a Game
         </button>
       <button
-        class="px-6 py-3 bg-pub-darker rounded-lg font-medium hover:opacity-90 border border-pub-muted"
+        class="px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90"
         on:click={startAsPlayer}
       >
         Join a Game
       </button>
       </div>
+      {#if hostPasswordRequired}
+        <a
+          href="/creator"
+          class="block mt-4 px-6 py-3 bg-pub-darker rounded-lg font-medium hover:opacity-90 border border-pub-muted text-center"
+        >
+          Create or edit quizzes
+        </a>
+      {:else}
+        <span class="block mt-4 text-pub-muted text-sm">Create or edit quizzes (disabled)</span>
+      {/if}
     </div>
   {:else if mode === 'host'}
-    <div class="w-full max-w-md space-y-4">
+    <form
+      class="w-full max-w-md space-y-4"
+      on:submit|preventDefault={createRoom}
+    >
       <label for="quiz-select" class="block text-sm text-pub-muted">Select Quiz</label>
       <select
         id="quiz-select"
@@ -146,21 +213,25 @@
         <p class="text-sm text-green-400">Authenticated</p>
       {/if}
       <button
+        type="submit"
         class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-        on:click={createRoom}
         disabled={creating}
       >
         {creating ? 'Creating...' : 'Create Room'}
       </button>
       <button
+        type="button"
         class="w-full text-pub-muted hover:text-white"
         on:click={() => (mode = 'choose')}
       >
         Back
       </button>
-    </div>
+    </form>
   {:else}
-    <div class="w-full max-w-md space-y-4">
+    <form
+      class="w-full max-w-md space-y-4"
+      on:submit|preventDefault={goToPlay}
+    >
       <label for="room-code" class="block text-sm text-pub-muted">Room Code</label>
       <input
         id="room-code"
@@ -171,17 +242,18 @@
         class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 uppercase"
       />
       <button
-        class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-        on:click={goToPlay}
+        type="submit"
+        class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90"
       >
         Join
       </button>
       <button
+        type="button"
         class="w-full text-pub-muted hover:text-white"
         on:click={() => (mode = 'choose')}
       >
         Back
       </button>
-    </div>
+    </form>
   {/if}
 </div>
