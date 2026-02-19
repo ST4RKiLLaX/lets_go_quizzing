@@ -1,21 +1,11 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { socketStore } from '$lib/stores/socket.js';
+  import type { SerializedState } from '$lib/types/game.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
-
-  interface SerializedState {
-    type: string;
-    quiz: { meta: { name: string }; rounds: Array<{ name: string; questions: Array<unknown> }> };
-    players: Array<{ id: string; name: string; emoji: string; score: number }>;
-    currentRoundIndex: number;
-    currentQuestionIndex: number;
-    wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number }>;
-    submissions: Array<{ playerId: string; questionId: string }>;
-    timerEndsAt?: number;
-  }
 
   let state: SerializedState | null = null;
   let joinError = '';
