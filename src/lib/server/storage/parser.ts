@@ -1,7 +1,13 @@
 import { parse as parseYaml } from 'yaml';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, relative } from 'path';
 import { z } from 'zod';
+
+const QUIZ_FILENAME_REGEX = /^[a-z0-9_.-]+\.(yaml|yml)$/i;
+
+export function isValidQuizFilename(filename: string): boolean {
+  return QUIZ_FILENAME_REGEX.test(filename);
+}
 
 const ChoiceQuestionSchema = z.object({
   id: z.string(),
@@ -56,8 +62,16 @@ export function parseQuizFile(filePath: string): Quiz {
 }
 
 export function loadQuiz(quizFilename: string, dataDir = 'data'): Quiz {
-  const path = join(process.cwd(), dataDir, 'quizzes', quizFilename);
-  return parseQuizFile(path);
+  if (!isValidQuizFilename(quizFilename)) {
+    throw new Error('Invalid filename');
+  }
+  const baseDir = resolve(process.cwd(), dataDir, 'quizzes');
+  const filePath = resolve(baseDir, quizFilename);
+  const rel = relative(baseDir, filePath);
+  if (rel.startsWith('..') || rel.includes('..')) {
+    throw new Error('Invalid filename');
+  }
+  return parseQuizFile(filePath);
 }
 
 export function listQuizzes(dataDir = 'data'): string[] {

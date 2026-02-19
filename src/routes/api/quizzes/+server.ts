@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { listQuizzes } from '$lib/server/storage/parser.js';
 import { saveQuiz, generateFilenameFromTitle } from '$lib/server/storage/quiz-storage.js';
-import type { Quiz } from '$lib/server/storage/parser.js';
+import { QuizSchema, type Quiz } from '$lib/server/storage/parser.js';
 import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function POST({ request }) {
   }
   try {
     const body = await request.json();
-    const quiz: Quiz = body.quiz;
+    const quiz = QuizSchema.parse(body.quiz);
     const filename = body.filename ?? generateFilenameFromTitle(quiz.meta.name);
     saveQuiz(quiz, filename);
     return json({ ok: true, filename });

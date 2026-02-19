@@ -14,7 +14,7 @@ import {
 } from './game/state-machine.js';
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
-import { isAuthenticated, requireHostPassword } from './auth.js';
+import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -37,9 +37,11 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
       if (requireHostPassword()) {
         const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
+        const hostPwd = process.env.HOST_PASSWORD;
         const hasValidPassword =
-          password && password === process.env.HOST_PASSWORD;
+          password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
         if (!hasValidCookie && !hasValidPassword) {
+          console.warn(`[auth] host:create auth failed from ${socket.handshake.address}`);
           ack?.({ error: 'Invalid password' });
           return;
         }
@@ -115,8 +117,10 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
       if (requireHostPassword()) {
         const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
-        const hasValidPassword = password && password === process.env.HOST_PASSWORD;
+        const hostPwd = process.env.HOST_PASSWORD;
+        const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
         if (!hasValidCookie && !hasValidPassword) {
+          console.warn(`[auth] host:join auth failed from ${socket.handshake.address}`);
           ack?.({ error: 'Invalid password' });
           return;
         }

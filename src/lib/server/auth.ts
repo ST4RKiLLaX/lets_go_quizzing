@@ -1,1 +1,6 @@
-export { createSession, isAuthenticated, requireHostPassword } from './auth/index.js';
+export {
+  createSession,
+  isAuthenticated,
+  requireHostPassword,
+  verifyPasswordConstantTime,
+} from './auth/index.js';

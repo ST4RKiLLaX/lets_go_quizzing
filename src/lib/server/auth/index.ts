@@ -1,6 +1,16 @@
+import { timingSafeEqual } from 'node:crypto';
+
 const SESSION_COOKIE = 'lgq_host_auth';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
 const tokens = new Map<string, number>(); // token -> expiry timestamp
+
+export function verifyPasswordConstantTime(input: string, expected: string): boolean {
+  if (typeof input !== 'string' || typeof expected !== 'string') return false;
+  const a = Buffer.from(input, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 function generateToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
@@ -16,11 +26,12 @@ function parseCookie(header: string | undefined): Record<string, string> {
   return out;
 }
 
-export function createSession(): { token: string; cookie: string } {
+export function createSession(options?: { secure?: boolean }): { token: string; cookie: string } {
   const token = generateToken();
   const expiry = Date.now() + SESSION_MAX_AGE * 1000;
   tokens.set(token, expiry);
-  const cookie = `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`;
+  const secure = options?.secure ? '; Secure' : '';
+  const cookie = `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${secure}`;
   return { token, cookie };
 }
 

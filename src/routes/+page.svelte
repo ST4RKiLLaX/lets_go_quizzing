@@ -90,6 +90,8 @@
         (socket as import('socket.io-client').Socket).removeAllListeners();
       }
       if (ack?.roomId) {
+        // Security: password stored in sessionStorage to allow creating new rooms after game end.
+        // Risk: plaintext in client; acceptable for single-user host devices. Avoid on shared PCs.
         if (hostPasswordRequired && hostPassword.trim()) {
           try {
             sessionStorage.setItem('lgq_host_password', hostPassword);

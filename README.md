@@ -46,6 +46,8 @@ When set:
 
 When not set, hosting and quiz creation are disabled. Joining games as a player remains open.
 
+**Security note:** The host password may be stored in browser sessionStorage to support creating new rooms after a game ends. It is stored in plaintext. Avoid using shared or public computers for hosting.
+
 ## Creating Quizzes
 
 Use the **Quiz Creator** at `/creator` to create and edit quizzes in the browser, or add YAML files manually to `data/quizzes/`. Example:
