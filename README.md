@@ -20,12 +20,34 @@ npm run start
 
 ## Docker
 
+### Docker Compose (recommended)
+
+One-time setup:
+
+```bash
+cp .env.example .env
+# Edit .env and set HOST_PASSWORD
+```
+
+Deploy or update:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Open http://localhost:3000 (or your server's address). Quizzes and history persist in `./data`.
+
+If you get permission errors writing to `data/`, run: `chown -R 1001:1001 data`
+
+### Docker run
+
 ```bash
 docker build -t lets-go-quizzing .
 docker run -p 3000:3000 lets-go-quizzing
 ```
 
-With host password (optional):
+With host password:
 
 ```bash
 docker run -e HOST_PASSWORD=yourpassword -p 3000:3000 lets-go-quizzing
