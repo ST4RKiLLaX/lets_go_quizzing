@@ -114,11 +114,12 @@
   function addInputAnswer(ri: number, qi: number) {
     const q = quiz.rounds[ri].questions[qi] as InputQuestion;
     if (q.type !== 'input') return;
+    const current = Array.isArray(q.answer) ? q.answer : [''];
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, answer: [...qu.answer, ''] } : qu)) }
+          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, answer: [...current, ''] } : qu)) }
           : r
       ),
     };
@@ -214,7 +215,7 @@
         <div class="mb-6 p-4 bg-pub-dark rounded-lg">
           <div class="flex gap-2 mb-2">
             <select
-              bind:value={question.type}
+              value={question.type}
               on:change={(e) => setQuestionType(ri, qi, (e.currentTarget.value as 'choice' | 'input'))}
               class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
             >
@@ -288,7 +289,7 @@
           {:else}
             <div class="space-y-2" role="group" aria-label="Accepted answers">
               <span class="block text-sm text-pub-muted">Accepted answers (for typos, add alternatives)</span>
-              {#each question.answer as ans, ai}
+              {#each (Array.isArray(question.answer) ? question.answer : ['']) as ans, ai}
                 <div class="flex gap-2">
                   <input
                     type="text"
