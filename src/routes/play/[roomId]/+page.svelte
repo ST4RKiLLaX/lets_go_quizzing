@@ -80,8 +80,12 @@
     }
   }
 
+  function timeExpired(): boolean {
+    return !!(state?.type === 'Question' && state.timerEndsAt && countdown && $countdown === 0);
+  }
+
   function submitChoice(questionId: string, answerIndex: number) {
-    if (hasSubmitted(questionId) || selectedAnswer?.questionId === questionId) return;
+    if (hasSubmitted(questionId) || selectedAnswer?.questionId === questionId || timeExpired()) return;
     submitError = '';
     selectedAnswer = { questionId, answerIndex };
     const playerId = getOrCreatePlayerId();
@@ -101,7 +105,7 @@
   }
 
   function submitInput(questionId: string, answerText: string) {
-    if (hasSubmitted(questionId) || selectedInput === questionId) return;
+    if (hasSubmitted(questionId) || selectedInput === questionId || timeExpired()) return;
     submitError = '';
     selectedInput = questionId;
     const playerId = getOrCreatePlayerId();
@@ -215,7 +219,7 @@
               {#each q.options ?? [] as opt, i}
                 <button
                   class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2"
-                  disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id}
+                  disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || timeExpired()}
                   on:click={() => submitChoice(q.id, i)}
                 >
                   {#if (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
@@ -229,7 +233,7 @@
             <form
               class="flex gap-2"
               on:submit|preventDefault={() => {
-                if (inputAnswer.trim() && !hasSubmitted(q.id)) {
+                if (inputAnswer.trim() && !hasSubmitted(q.id) && !timeExpired()) {
                   submitInput(q.id, inputAnswer.trim());
                   inputAnswer = '';
                 }
@@ -242,7 +246,7 @@
                 class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
                 on:keydown={(e) => {
                   if (e.key === 'Enter') {
-                    if (inputAnswer.trim()) {
+                    if (inputAnswer.trim() && !timeExpired()) {
                       submitInput(q.id, inputAnswer.trim());
                       inputAnswer = '';
                     }
@@ -252,7 +256,7 @@
               <button
                 type="submit"
                 class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                disabled={hasSubmitted(q.id) || !inputAnswer.trim()}
+                disabled={hasSubmitted(q.id) || !inputAnswer.trim() || timeExpired()}
               >
                 Submit
               </button>

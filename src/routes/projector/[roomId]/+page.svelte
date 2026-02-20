@@ -73,6 +73,9 @@
 
 <div class="min-h-screen p-8 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
+    {#if state?.quiz?.meta?.name}
+      <h1 class="text-5xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
+    {/if}
     {#if state?.type === 'Lobby'}
       <div class="text-center">
         <h2 class="text-3xl font-bold mb-6">Waiting for host to start</h2>

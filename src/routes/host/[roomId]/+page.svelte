@@ -74,8 +74,8 @@
     socket?.emit('host:show_leaderboard', {}, () => {});
   }
 
-  function override(playerId: string, questionId: string) {
-    socket?.emit('host:override', { playerId, questionId }, () => {});
+  function override(playerId: string, questionId: string, delta: number) {
+    socket?.emit('host:override', { playerId, questionId, delta }, () => {});
   }
 
   function getCurrentQuestion() {
@@ -192,17 +192,30 @@
           </button>
         </div>
 
-        {#if state?.type === 'RevealAnswer' && state.wrongAnswers?.length > 0}
+        {#if state?.type === 'RevealAnswer' && getCurrentQuestion()?.type === 'input' && state.wrongAnswers?.length > 0}
           <div class="mt-6 pt-6 border-t border-pub-muted">
-            <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (click to award)</h3>
+            <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">
               {#each state.wrongAnswers as wa}
-                <button
-                  class="px-3 py-1 bg-pub-dark rounded text-sm hover:bg-pub-accent/20"
-                  on:click={() => override(wa.playerId, wa.questionId)}
-                >
-                  {getWrongAnswerDisplay(wa)}
-                </button>
+                <div class="flex items-center gap-1 px-3 py-1 bg-pub-dark rounded text-sm">
+                  <span>{getWrongAnswerDisplay(wa)}</span>
+                  <button
+                    type="button"
+                    class="w-6 h-6 flex items-center justify-center rounded bg-green-600/80 hover:bg-green-600 text-white text-xs font-bold"
+                    on:click={() => override(wa.playerId, wa.questionId, 1)}
+                    title="Award point"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    class="w-6 h-6 flex items-center justify-center rounded bg-red-900/80 hover:bg-red-900 text-white text-xs font-bold"
+                    on:click={() => override(wa.playerId, wa.questionId, -1)}
+                    title="Remove point"
+                  >
+                    −
+                  </button>
+                </div>
               {/each}
             </div>
           </div>

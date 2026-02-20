@@ -264,7 +264,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       io.to(roomId).emit('state:update', { state: serializeState(next) });
     });
 
-    socket.on('host:override', (payload: { playerId: string; questionId: string }, ack) => {
+    socket.on('host:override', (payload: { playerId: string; questionId: string; delta?: number }, ack) => {
       const roomId = socket.data.roomId;
       if (!roomId || socket.data.role !== 'host') {
         ack?.({ error: 'Unauthorized' });
@@ -275,7 +275,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Room not found' });
         return;
       }
-      const { playerId, questionId } = payload ?? {};
+      const { playerId, questionId, delta = 1 } = payload ?? {};
       if (!playerId || !questionId) {
         ack?.({ error: 'playerId and questionId required' });
         return;
@@ -286,7 +286,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Player not found' });
         return;
       }
-      players.set(playerId, { ...player, score: player.score + 1 });
+      const newScore = Math.max(0, player.score + delta);
+      players.set(playerId, { ...player, score: newScore });
       const next = { ...state, players };
       setRoom(roomId, next);
       ack?.({ ok: true });
@@ -313,6 +314,10 @@ export function initSocket(httpServer: import('http').Server): Server {
       const existing = state.submissions.find((s) => s.playerId === playerId && s.questionId === questionId);
       if (existing) {
         ack?.({ error: 'Already submitted' });
+        return;
+      }
+      if (state.timerEndsAt != null && Date.now() > state.timerEndsAt) {
+        ack?.({ error: 'Time is up' });
         return;
       }
       const submissions = [...state.submissions, {
