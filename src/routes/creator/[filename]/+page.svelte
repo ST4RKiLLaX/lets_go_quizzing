@@ -33,7 +33,7 @@
       </p>
     </div>
     {#if quizData}
-      <QuizEditor bind:quiz onSave={handleSave} />
+      <QuizEditor bind:quiz onSave={handleSave} quizFilename={filename} />
     {:else}
       <p class="text-pub-muted">Loading...</p>
     {/if}

@@ -1,16 +1,32 @@
 meta:
-  name: test
-  author: tester
+  name: Test
+  author: JE
   default_timer: 30
 rounds:
   - name: Round 1
     questions:
       - id: q1
         type: choice
-        text: My name is...
+        text: Why?
+        image: q1.png
         options:
-          - Slim Shady
-          - Turdboy
-          - Jack
-          - Blah
+          - What?
+          - No
+          - Yes
+          - Maybe
+        answer: 0
+      - id: q1_2
+        type: input
+        text: Who?
+        answer:
+          - What?
+          - Never
+          - What
+      - id: q1_3
+        type: choice
+        text: When?
+        options:
+          - What
+          - What?
+          - Never
         answer: 0

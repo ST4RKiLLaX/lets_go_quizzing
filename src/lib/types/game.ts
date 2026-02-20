@@ -24,6 +24,7 @@ export interface SerializedWrongAnswer {
 export interface SerializedState {
   type: string;
   quiz: Quiz;
+  quizFilename?: string;
   players: SerializedPlayer[];
   currentRoundIndex: number;
   currentQuestionIndex: number;

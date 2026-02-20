@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
   import { generate } from 'lean-qr';
@@ -97,6 +98,12 @@
             {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
           </p>
           <p class="text-3xl mb-8">{q.text}</p>
+          {#if q.image}
+            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
+            {#if src}
+              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+            {/if}
+          {/if}
           {#if state.timerEndsAt && countdown}
             <p class="text-pub-gold font-mono text-2xl mb-6">{$countdown}s</p>
           {/if}
@@ -129,6 +136,12 @@
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()}
           <p class="text-2xl mb-6">{q.text}</p>
+          {#if q.image}
+            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
+            {#if src}
+              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+            {/if}
+          {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-3">
               {#each q.options ?? [] as opt, i}

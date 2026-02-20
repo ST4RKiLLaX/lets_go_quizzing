@@ -13,6 +13,7 @@ const ChoiceQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('choice'),
   text: z.string(),
+  image: z.string().optional(),
   options: z.array(z.string()),
   answer: z.number().int().min(0),
 });
@@ -21,6 +22,7 @@ const InputQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('input'),
   text: z.string(),
+  image: z.string().optional(),
   answer: z.union([z.string(), z.array(z.string())]).transform((v) =>
     Array.isArray(v) ? v : [v]
   ),

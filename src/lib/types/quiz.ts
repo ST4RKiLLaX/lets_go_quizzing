@@ -9,6 +9,7 @@ export interface ChoiceQuestion {
   id: string;
   type: 'choice';
   text: string;
+  image?: string;
   options: string[];
   answer: number;
 }
@@ -17,6 +18,7 @@ export interface InputQuestion {
   id: string;
   type: 'input';
   text: string;
+  image?: string;
   answer: string[];
 }
 

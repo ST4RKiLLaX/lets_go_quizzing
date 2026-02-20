@@ -10,8 +10,10 @@
   export let quiz: Quiz;
   export let onSave: (quiz: Quiz) => Promise<void>;
   export let saveLabel = 'Save';
+  export let quizFilename: string | undefined = undefined;
 
   let saving = false;
+  let uploadingFor: { ri: number; qi: number } | null = null;
   let error = '';
 
   function addRound() {
@@ -60,7 +62,7 @@
   function setQuestionType(ri: number, qi: number, type: 'choice' | 'input') {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
-    const base = { id: q.id, text: q.text };
+    const base = { id: q.id, text: q.text, image: q.image };
     const newQ: Question =
       type === 'choice'
         ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
@@ -148,6 +150,50 @@
     } finally {
       saving = false;
     }
+  }
+
+  async function handleImageUpload(ri: number, qi: number, file: File) {
+    if (!quizFilename) return;
+    uploadingFor = { ri, qi };
+    error = '';
+    try {
+      const formData = new FormData();
+      formData.append('quizFilename', quizFilename);
+      formData.append('questionId', quiz.rounds[ri].questions[qi].id);
+      formData.append('file', file);
+      const res = await fetch('/api/quizzes/images', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      const q = quiz.rounds[ri].questions[qi];
+      quiz = {
+        ...quiz,
+        rounds: quiz.rounds.map((r, i) =>
+          i === ri
+            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: data.filename } : qu)) }
+            : r
+        ),
+      };
+    } catch (e) {
+      error = String(e);
+    } finally {
+      uploadingFor = null;
+    }
+  }
+
+  function clearImage(ri: number, qi: number) {
+    const q = quiz.rounds[ri].questions[qi];
+    quiz = {
+      ...quiz,
+      rounds: quiz.rounds.map((r, i) =>
+        i === ri
+          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: undefined } : qu)) }
+          : r
+      ),
+    };
   }
 </script>
 
@@ -240,6 +286,45 @@
               rows="2"
               class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
             ></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Image (optional)</label>
+            <input
+              id="img-{ri}-{qi}"
+              type="text"
+              bind:value={question.image}
+              placeholder="https://... or leave empty"
+              class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
+            />
+            {#if quizFilename}
+              <div class="flex items-center gap-2">
+                <label for="upload-{ri}-{qi}" class="text-sm text-pub-muted">Or upload</label>
+                <input
+                  id="upload-{ri}-{qi}"
+                  type="file"
+                  accept="image/*"
+                  class="text-sm text-pub-muted"
+                  on:change={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (file) handleImageUpload(ri, qi, file);
+                    e.currentTarget.value = '';
+                  }}
+                  disabled={uploadingFor?.ri === ri && uploadingFor?.qi === qi}
+                />
+                {#if uploadingFor?.ri === ri && uploadingFor?.qi === qi}
+                  <span class="text-sm text-pub-muted">Uploading...</span>
+                {/if}
+              </div>
+            {/if}
+            {#if question.image}
+              <button
+                type="button"
+                class="mt-2 text-sm text-red-400 hover:text-red-300"
+                on:click={() => clearImage(ri, qi)}
+              >
+                Clear image
+              </button>
+            {/if}
           </div>
           {#if question.type === 'choice'}
             <div class="space-y-2" role="group" aria-label="Options (select correct)">
