@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* YAML editor schema hover tooltip - readable on dark theme */
+.cm-editor .cm6-json-schema-hover {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  max-width: 360px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.cm-editor .cm6-json-schema-hover--description {
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+.cm-editor .cm6-json-schema-hover--code {
+  color: #93c5fd;
+  font-family: monospace;
+}

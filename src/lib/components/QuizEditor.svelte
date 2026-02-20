@@ -6,15 +6,36 @@
     createEmptyQuiz,
     generateQuestionId,
   } from '$lib/types/quiz.js';
+  import YamlEditor from '$lib/components/YamlEditor.svelte';
+  import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
+  import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
 
   export let quiz: Quiz;
   export let onSave: (quiz: Quiz) => Promise<void>;
   export let saveLabel = 'Save';
   export let quizFilename: string | undefined = undefined;
 
+  let mode: 'form' | 'yaml' = 'form';
+  let yamlStr = '';
   let saving = false;
   let uploadingFor: { ri: number; qi: number } | null = null;
   let error = '';
+
+  function switchToYaml() {
+    error = '';
+    yamlStr = quizToYaml(quiz);
+    mode = 'yaml';
+  }
+
+  function switchToForm() {
+    error = '';
+    try {
+      quiz = yamlToQuiz(yamlStr);
+      mode = 'form';
+    } catch (e) {
+      error = String(e);
+    }
+  }
 
   function addRound() {
     quiz = {
@@ -144,7 +165,8 @@
     error = '';
     saving = true;
     try {
-      await onSave(quiz);
+      const toSave = mode === 'form' ? quiz : yamlToQuiz(yamlStr);
+      await onSave(toSave);
     } catch (e) {
       error = String(e);
     } finally {
@@ -202,6 +224,40 @@
     <div class="p-4 bg-red-900/50 rounded-lg text-red-200">{error}</div>
   {/if}
 
+  <div class="flex gap-2">
+    <button
+      type="button"
+      class="px-3 py-1 rounded text-sm {mode === 'form' ? 'bg-pub-accent text-white' : 'bg-pub-dark text-pub-muted hover:text-white'}"
+      on:click={() => mode === 'yaml' && switchToForm()}
+    >
+      Form
+    </button>
+    <button
+      type="button"
+      class="px-3 py-1 rounded text-sm {mode === 'yaml' ? 'bg-pub-accent text-white' : 'bg-pub-dark text-pub-muted hover:text-white'}"
+      on:click={() => mode === 'form' && switchToYaml()}
+    >
+      YAML
+    </button>
+  </div>
+
+  {#if mode === 'yaml'}
+    <YamlEditor
+      value={yamlStr}
+      onChange={(v) => (yamlStr = v)}
+      schema={QUIZ_JSON_SCHEMA}
+    />
+    <div class="flex gap-4">
+      <button
+        type="button"
+        class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+        on:click={handleSave}
+        disabled={saving}
+      >
+        {saving ? 'Saving...' : saveLabel}
+      </button>
+    </div>
+  {:else}
   <section class="bg-pub-darker rounded-lg p-6">
     <h2 class="text-lg font-semibold mb-4">Quiz info</h2>
     <div class="space-y-4">
@@ -414,20 +470,23 @@
   {/each}
 
   <div class="flex gap-4">
-    <button
-      type="button"
-      class="px-4 py-2 text-pub-muted hover:text-white"
-      on:click={() => addRound()}
-    >
-      + Add round
-    </button>
+    {#if mode === 'form'}
+      <button
+        type="button"
+        class="px-4 py-2 text-pub-muted hover:text-white"
+        on:click={() => addRound()}
+      >
+        + Add round
+      </button>
+    {/if}
     <button
       type="button"
       class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
       on:click={handleSave}
-      disabled={saving || !quiz.meta.name.trim()}
+      disabled={saving || (mode === 'form' && !quiz.meta.name.trim())}
     >
       {saving ? 'Saving...' : saveLabel}
     </button>
   </div>
+  {/if}
 </div>
