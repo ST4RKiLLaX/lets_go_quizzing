@@ -1,100 +1,85 @@
 # Let's Go Quizzing
+> *Now with 100% less database!*
 
-**The Markdown of Quiz Apps.** Text-based, portable, fast, and privacy-respecting. No database bloat, no tracking, no login walls.
+A blazingly fast, real-time multiplayer trivia app stripped to the studs. Built for anyone who wants to host a live game without wrestling with databases, tracking cookies, or login walls.
 
-## Quick Start
+## ✨ Core Features
+* ⚡ **True Real-Time Sync:** Powered entirely by WebSockets. No clunky API polling.
+* 🗂️ **Zero-Bloat Architecture:** Entirely file-based. Quizzes are read from simple YAML files, and game history is logged to JSON.
+* 🎮 **Dedicated Game Views:** Mobile-first player inputs, a powerful Host control center with manual scoring overrides, and a distraction-free Projector view for the big screen.
+* 🛡️ **Built-In Security:** Stateful role authentication and websocket rate-limiting prevent event flooding and spoofing.
+* 📝 **Frictionless Quiz Creation:** Simple plain-text authoring with a built-in lightweight YAML editor.
+
+---
+
+## 🚀 Quick Start (Local Development)
 
 ```bash
+# Install dependencies
 npm install
+
+# Start the development server
 npm run dev
 ```
+Open `http://localhost:5173` to view the app.
 
-Open http://localhost:5173
+---
 
-## Production
+## 🐳 Deployment (Docker)
+The recommended way to run this application in production is via Docker. 
 
-```bash
-npm run build
-npm run start
-```
+### Option 1: Docker Compose (Recommended)
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` and set your `HOST_PASSWORD`.
+3. Deploy the stack:
+   ```bash
+   docker compose up -d --build
+   ```
 
-## Docker
-
-### Docker Compose (recommended)
-
-One-time setup:
-
-```bash
-cp .env.example .env
-# Edit .env and set HOST_PASSWORD
-```
-
-Deploy or update:
-
-```bash
-git pull
-docker compose up -d --build
-```
-
-Open http://localhost:3000 (or your server's address). Quizzes and history persist in `./data`.
-
-If you get permission errors writing to `data/`, run: `chown -R 1001:1001 data`
-
-### Docker run
-
+### Option 2: Docker Run
+To run a standalone container with persistent data and a host password:
 ```bash
 docker build -t lets-go-quizzing .
-docker run -p 3000:3000 lets-go-quizzing
+
+docker run -d \
+  -p 3000:3000 \
+  -e HOST_PASSWORD=your_secure_password \
+  -v /path/to/host/data:/app/data \
+  lets-go-quizzing
 ```
 
-With host password:
+> **Note on Permissions:** The container runs as a non-root user. If you encounter permission errors writing to your mapped `data/` volume, run `chown -R 1001:1001 /path/to/host/data` on your host machine.
 
-```bash
-docker run -e HOST_PASSWORD=yourpassword -p 3000:3000 lets-go-quizzing
-```
+---
 
-For persistence: mount `data/` as a volume so quizzes and game history survive container restarts:
+## ⚙️ Configuration & Environment Variables
 
-```bash
-docker run -v /path/to/data:/app/data -p 3000:3000 lets-go-quizzing
-```
+Whether you are using a `.env` file, Docker environment variables, or standard shell exports, you can configure the app using the following variables:
 
-The container runs as a non-root user. If the host `data/` directory has restrictive permissions, ensure the container can write to it (e.g. `chown` the host directory to match the container user, or run with `--user`).
+| Variable | Description | Required? |
+| :--- | :--- | :--- |
+| `HOST_PASSWORD` | Secures the Host and Quiz Creator controls. If left blank, hosting and creating quizzes is disabled. | **Yes** (for hosting) |
+| `ORIGIN` | A comma-separated list of allowed origins (e.g., `https://quiz.example.com`). **Must be set in production** to prevent Socket.io CORS rejections. | **Yes** (in Prod) |
+| `ROOM_ID_LEN` | Length of the generated room code. Default is `6`. | No |
+| `ADDRESS_HEADER`| Set to `x-forwarded-for` if running behind a proxy so rate limits apply to real client IPs, not the proxy IP. | No |
 
-## Host Password (required for hosting and quiz creation)
+> **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your `.env`.
 
-Hosting and quiz creation require authentication. Set the `HOST_PASSWORD` environment variable:
+### Reverse Proxy Setup (Nginx, Cloudflare, Traefik, etc.)
+When running behind a reverse proxy that handles TLS/SSL, ensure you forward the correct headers so secure cookies and websockets function properly:
+* Forward the real IP: `proxy_set_header X-Forwarded-For $remote_addr;`
+* Terminate TLS correctly: `proxy_set_header X-Forwarded-Proto $scheme;`
 
-- **Shell**: `export HOST_PASSWORD=mysecret` then `npm run start`
-- **Inline**: `HOST_PASSWORD=mysecret npm run start`
-- **.env file**: Add `HOST_PASSWORD=mysecret` to a `.env` file in the project root (ensure `.env` is in `.gitignore`)
-- **Docker**: `-e HOST_PASSWORD=mysecret`
+---
 
-When set:
-- **Host a Game**: Users must enter the password when creating a room. A session cookie is set for 24 hours.
-- **Quiz Creator**: Users must log in with the password to create or edit quizzes.
+## 📝 Creating Quizzes
 
-When not set, hosting and quiz creation are disabled. Joining games as a player remains open.
+You can use the built-in **Quiz Creator** at `/creator` to author games directly in your browser, or you can drop manually written `.yaml` files into the `data/quizzes/` directory.
 
-**Security note:** The host password may be stored in browser sessionStorage to support creating new rooms after a game ends. It is stored in plaintext. Avoid using shared or public computers for hosting.
-
-## Production / Reverse Proxy
-
-**Important:** For production deployments, you **must** set `ORIGIN` to your public site origin(s). If unset, the app defaults to `https://localhost:3000`, which will reject connections from your actual domain.
-
-When running behind Nginx, Cloudflare, or another reverse proxy:
-
-- **ORIGIN** (production only, **required**): Comma-separated list of allowed origins for Socket.io CORS. Example: `ORIGIN=https://quiz.example.com,https://www.quiz.example.com`
-- **X-Forwarded-Proto**: Your proxy must set this to `https` when terminating TLS, so the app can issue Secure cookies correctly.
-- **X-Forwarded-For**: Your proxy must forward the real client IP. Set `ADDRESS_HEADER=x-forwarded-for` so both REST and Socket.io use the real client IP for rate limiting and logging.
-- **ROOM_ID_LEN** (optional): Room ID length (4–12 chars, default 6). Increase for higher entropy if needed.
-
-Example with Nginx: `proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $remote_addr;`
-
-## Creating Quizzes
-
-Use the **Quiz Creator** at `/creator` to create and edit quizzes in the browser, or add YAML files manually to `data/quizzes/`. Example:
-
+**Example Quiz Structure:**
 ```yaml
 meta:
   name: "Pub Quiz Night"
@@ -115,10 +100,13 @@ rounds:
         answer: ["fantasy", "fantsy"]
 ```
 
-## Tech Stack
+---
 
-- **Frontend**: SvelteKit, Tailwind CSS
-- **Backend**: Node.js, Socket.io
-- **Data**: YAML files, JSON history
+## 🛠️ Tech Stack & Architecture
 
-**Note:** Game state (rooms, players) is in-memory only. Restarting the server wipes active games. Single-instance only; horizontal scaling is not supported.
+* **Frontend:** SvelteKit, Tailwind CSS
+* **Backend:** Node.js, Socket.io
+* **Data Storage:** YAML (quizzes) and JSON (history)
+* **Transparency:** Ships with an automatically generated SPDX 2.3 `sbom.json` for easy software supply chain auditing. Regenerate with `npm run sbom`.
+
+> **Architecture Note:** Game state (rooms, active players) is held entirely in-memory for maximum speed. Restarting the server will wipe active games. Horizontal scaling (multiple instances) is not currently supported.
