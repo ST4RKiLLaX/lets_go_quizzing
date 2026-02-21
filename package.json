@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "sbom": "node scripts/generate-sbom.js",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
