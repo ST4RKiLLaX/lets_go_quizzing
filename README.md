@@ -1,4 +1,4 @@
-# Lets Go Quizzing
+# Let's Go Quizzing
 
 **The Markdown of Quiz Apps.** Text-based, portable, fast, and privacy-respecting. No database bloat, no tracking, no login walls.
 
