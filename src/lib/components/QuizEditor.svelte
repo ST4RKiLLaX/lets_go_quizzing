@@ -6,17 +6,29 @@
     createEmptyQuiz,
     generateQuestionId,
   } from '$lib/types/quiz.js';
-  import YamlEditor from '$lib/components/YamlEditor.svelte';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
+  import type { ComponentType } from 'svelte';
+  import { onMount } from 'svelte';
+
+  let YamlEditorComponent: ComponentType | null = null;
+  onMount(() => {
+    import('$lib/components/YamlEditor.svelte').then((m) => (YamlEditorComponent = m.default));
+  });
+
+  const STORAGE_KEY = 'quiz-editor-mode';
 
   export let quiz: Quiz;
   export let onSave: (quiz: Quiz) => Promise<void>;
   export let saveLabel = 'Save';
   export let quizFilename: string | undefined = undefined;
 
-  let mode: 'form' | 'yaml' = 'form';
+  let mode: 'form' | 'yaml' =
+    (typeof window !== 'undefined' && (localStorage.getItem(STORAGE_KEY) as 'form' | 'yaml' | null) === 'yaml')
+      ? 'yaml'
+      : 'form';
   let yamlStr = '';
+  $: if (mode === 'yaml' && quiz) yamlStr = quizToYaml(quiz);
   let saving = false;
   let uploadingFor: { ri: number; qi: number } | null = null;
   let error = '';
@@ -25,6 +37,7 @@
     error = '';
     yamlStr = quizToYaml(quiz);
     mode = 'yaml';
+    if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, 'yaml');
   }
 
   function switchToForm() {
@@ -32,6 +45,7 @@
     try {
       quiz = yamlToQuiz(yamlStr);
       mode = 'form';
+      if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, 'form');
     } catch (e) {
       error = String(e);
     }
@@ -220,10 +234,6 @@
 </script>
 
 <div class="space-y-8">
-  {#if error}
-    <div class="p-4 bg-red-900/50 rounded-lg text-red-200">{error}</div>
-  {/if}
-
   <div class="flex gap-2">
     <button
       type="button"
@@ -242,12 +252,17 @@
   </div>
 
   {#if mode === 'yaml'}
-    <YamlEditor
-      value={yamlStr}
-      onChange={(v) => (yamlStr = v)}
-      schema={QUIZ_JSON_SCHEMA}
-    />
-    <div class="flex gap-4">
+    {#if YamlEditorComponent}
+      <svelte:component
+        this={YamlEditorComponent}
+        value={yamlStr}
+        onChange={(v) => (yamlStr = v)}
+        schema={QUIZ_JSON_SCHEMA}
+      />
+    {:else}
+      <div class="p-4 bg-pub-darker rounded-lg text-pub-muted animate-pulse">Loading editor…</div>
+    {/if}
+    <div class="flex gap-4 items-center flex-wrap">
       <button
         type="button"
         class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
@@ -256,6 +271,9 @@
       >
         {saving ? 'Saving...' : saveLabel}
       </button>
+      {#if error}
+        <span class="text-red-400 text-sm">{error}</span>
+      {/if}
     </div>
   {:else}
   <section class="bg-pub-darker rounded-lg p-6">
@@ -469,7 +487,7 @@
     </section>
   {/each}
 
-  <div class="flex gap-4">
+  <div class="flex gap-4 items-center flex-wrap">
     {#if mode === 'form'}
       <button
         type="button"
@@ -487,6 +505,9 @@
     >
       {saving ? 'Saving...' : saveLabel}
     </button>
+    {#if error}
+      <span class="text-red-400 text-sm">{error}</span>
+    {/if}
   </div>
   {/if}
 </div>

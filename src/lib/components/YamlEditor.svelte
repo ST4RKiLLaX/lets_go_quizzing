@@ -2,9 +2,15 @@
   import { onMount, onDestroy } from 'svelte';
   import { EditorView, basicSetup } from 'codemirror';
   import { EditorState } from '@codemirror/state';
+  import { autocompletion } from '@codemirror/autocomplete';
   import { tags } from '@lezer/highlight';
   import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-  import { yamlSchema } from 'codemirror-json-schema/yaml';
+  import { yamlSchema, yamlCompletion } from 'codemirror-json-schema/yaml';
+  import {
+    choiceAnswerCompletion,
+    questionTypeCompletion,
+    wrapSchemaCompletionWithOptionsList,
+  } from '$lib/components/choice-answer-completion.js';
 
   export let value = '';
   export let onChange: (value: string) => void = () => {};
@@ -57,6 +63,14 @@
   onMount(() => {
     const extensions = [
       basicSetup,
+      autocompletion({
+        aboveCursor: true,
+        override: [
+          choiceAnswerCompletion,
+          questionTypeCompletion,
+          wrapSchemaCompletionWithOptionsList(yamlCompletion()),
+        ],
+      }),
       yamlHighlight,
       darkTheme,
       yamlSchema(schema as object),

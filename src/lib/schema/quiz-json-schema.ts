@@ -5,6 +5,7 @@ export const QUIZ_JSON_SCHEMA = {
   properties: {
     meta: {
       type: 'object',
+      description: 'Quiz metadata (title, author, timer)',
       required: ['name'],
       properties: {
         name: { type: 'string', description: 'Quiz title' },
@@ -12,46 +13,72 @@ export const QUIZ_JSON_SCHEMA = {
         default_timer: {
           type: 'integer',
           minimum: 0,
-          description: 'Default timer (seconds)',
+          description: 'Default timer (in seconds). Leave blank for no timer.',
         },
-        fuzzy_threshold: { type: 'number', minimum: 0, maximum: 1 },
+        fuzzy_threshold: {
+          type: 'number',
+          minimum: 0,
+          maximum: 1,
+          description: 'Typo tolerance 0-1 for fill-in answers (e.g. 0.8). Leave blank for no tolerance.',
+        },
       },
     },
     rounds: {
       type: 'array',
+      description: 'List of rounds, each with a name and questions',
       items: {
         type: 'object',
         required: ['name', 'questions'],
         properties: {
-          name: { type: 'string' },
+          name: { type: 'string', description: 'Round name (e.g. Round 1, Geography, Television). Leave blank for no name.' },
           questions: {
             type: 'array',
+            description: 'List of questions in this round',
             items: {
-              oneOf: [
-                {
-                  type: 'object',
-                  required: ['id', 'type', 'text', 'options', 'answer'],
-                  properties: {
-                    id: { type: 'string' },
-                    type: { const: 'choice' },
-                    text: { type: 'string' },
-                    image: { type: 'string' },
-                    options: { type: 'array', items: { type: 'string' } },
-                    answer: { type: 'integer', minimum: 0 },
+              type: 'object',
+              required: ['id', 'type', 'text'],
+              properties: {
+                id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
+                type: {
+                  enum: ['choice', 'input'],
+                  description: "choice = multiple choice, input = fill in the blank",
+                },
+                text: { type: 'string', description: 'Question text shown to players' },
+                image: {
+                  type: 'string',
+                  description:
+                    'Optional image. File: q1.png (upload via Form view). URL: https://example.com/photo.jpg',
+                },
+                options: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Answer choices; one per line (required for choice)',
+                },
+                answer: {
+                  description: 'Choice: index of correct option (0-based). Input: accepted answers',
+                  oneOf: [
+                    { type: 'integer', minimum: 0 },
+                    { type: 'array', items: { type: 'string' } },
+                  ],
+                },
+              },
+              if: { properties: { type: { const: 'choice' } }, required: ['type'] },
+              then: {
+                required: ['options', 'answer'],
+                properties: {
+                  answer: { type: 'integer', minimum: 0, description: 'Index of correct option (0-based)' },
+                },
+              },
+              else: {
+                required: ['answer'],
+                properties: {
+                  answer: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Accepted answers; add alternatives for common typos',
                   },
                 },
-                {
-                  type: 'object',
-                  required: ['id', 'type', 'text', 'answer'],
-                  properties: {
-                    id: { type: 'string' },
-                    type: { const: 'input' },
-                    text: { type: 'string' },
-                    image: { type: 'string' },
-                    answer: { type: 'array', items: { type: 'string' } },
-                  },
-                },
-              ],
+              },
             },
           },
         },

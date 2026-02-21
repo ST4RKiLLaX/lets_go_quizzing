@@ -1,10 +1,44 @@
 import { z } from 'zod';
 
+function isValidImageUrl(val: string): { ok: true } | { ok: false; message: string } {
+  if (!val || val.trim() === '') return { ok: true };
+  const trimmed = val.trim();
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return { ok: true }; // filename (e.g. q1.png)
+  }
+  if (/\s/.test(trimmed)) {
+    return {
+      ok: false,
+      message: 'Remove spaces from the URL. Use https://example.com not "https: //example.com".',
+    };
+  }
+  try {
+    const url = new URL(trimmed);
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return { ok: false, message: 'Image URL must use http or https.' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'Image URL must be a valid http or https URL.' };
+  }
+}
+
+const imageSchema = z
+  .string()
+  .optional()
+  .refine(
+    (val) => isValidImageUrl(val ?? '').ok,
+    (val) => {
+      const r = isValidImageUrl(val ?? '');
+      return { message: r.ok ? 'Invalid image URL' : r.message };
+    }
+  );
+
 const ChoiceQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('choice'),
   text: z.string(),
-  image: z.string().optional(),
+  image: imageSchema,
   options: z.array(z.string()),
   answer: z.number().int().min(0),
 });
@@ -13,7 +47,7 @@ const InputQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('input'),
   text: z.string(),
-  image: z.string().optional(),
+  image: imageSchema,
   answer: z.union([z.string(), z.array(z.string())]).transform((v) =>
     Array.isArray(v) ? v : [v]
   ),

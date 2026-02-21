@@ -1,6 +1,8 @@
+import { z } from 'zod';
 import { parse as parseYaml } from 'yaml';
 import { readFileSync, readdirSync } from 'fs';
 import { join, resolve, relative } from 'path';
+import { formatZodError } from '../../utils/format-zod-error.js';
 import {
   QuizSchema,
   type Quiz,
@@ -27,10 +29,52 @@ export {
   type QuizMeta,
 };
 
+function checkForUrlSpaces(content: string): void {
+  if (/https?:\s+\/\//.test(content)) {
+    throw new Error(
+      'Remove spaces from the URL. Use https://example.com not "https: //example.com".'
+    );
+  }
+}
+
+function improveYamlParseError(err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (
+    msg.includes('Implicit map keys need to be followed by map values') ||
+    msg.includes('Implicit keys need to be on a single line')
+  ) {
+    return new Error(
+      'Put a space after the colon (e.g. "answer: 2" not "answer:2", "text: Hello" not "text:Hello").'
+    );
+  }
+  if (msg.includes('Nested mappings are not allowed in compact mappings')) {
+    if (msg.includes('https:') || msg.includes('http:')) {
+      return new Error(
+        'Remove spaces from the URL. Use https://example.com not "https: //example.com".'
+      );
+    }
+    return new Error(
+      'YAML syntax error: avoid spaces inside key-value pairs. Quote values with special characters.'
+    );
+  }
+  return err instanceof Error ? err : new Error(String(err));
+}
+
 export function parseQuizFile(filePath: string): Quiz {
   const content = readFileSync(filePath, 'utf-8');
-  const raw = parseYaml(content);
-  return QuizSchema.parse(raw);
+  checkForUrlSpaces(content);
+  let raw: unknown;
+  try {
+    raw = parseYaml(content);
+  } catch (e) {
+    throw improveYamlParseError(e);
+  }
+  try {
+    return QuizSchema.parse(raw);
+  } catch (e) {
+    if (e instanceof z.ZodError) throw new Error(formatZodError(e));
+    throw e;
+  }
 }
 
 export function loadQuiz(quizFilename: string, dataDir = 'data'): Quiz {
