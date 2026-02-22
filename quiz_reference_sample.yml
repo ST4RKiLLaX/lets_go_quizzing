@@ -1,0 +1,74 @@
+# Quiz Reference Sample
+# Copy this file to data/quizzes/ and edit for your quiz.
+# Required: meta.name, meta.rounds, and each question needs id, type, text.
+
+# --- META (quiz metadata) ---
+meta:
+  # Required: Quiz title
+  name: "Sample Quiz"
+
+  # Optional: Author name
+  author: "Your Name"
+
+  # Optional: Default timer in seconds. Omit or 0 for no timer.
+  default_timer: 30
+
+  # Optional: Typo tolerance 0-1 for fill-in (input) answers. E.g. 0.8 allows "fantsy" for "fantasy"
+  # fuzzy_threshold: 0.85
+
+  # Optional: Scoring mode. standard = 1 pt per correct. ranked = first correct gets max, last gets min.
+  # scoring_mode: standard  # or: ranked
+
+  # Optional: When scoring_mode is ranked - points for 1st correct answer
+  # ranked_max_points: 100
+
+  # Optional: When scoring_mode is ranked - points for last correct answer
+  # ranked_min_points: 10
+
+# --- ROUNDS (each round has a name and list of questions) ---
+rounds:
+  - name: "Round 1"
+    questions:
+      # --- CHOICE QUESTION (multiple choice) ---
+      - id: q1
+        type: choice
+        text: "What is the capital of Australia?"
+        # Optional: Image. File (upload via Form view) or URL
+        # image: q1.png
+        # image: https://example.com/photo.jpg
+        options:
+          - Sydney
+          - Melbourne
+          - Canberra
+          - Perth
+        # Answer: 0-based index of correct option. 0=Sydney, 1=Melbourne, 2=Canberra, 3=Perth
+        answer: 2
+
+      # --- INPUT QUESTION (fill in the blank) ---
+      - id: q2
+        type: input
+        text: "Complete: 'Is this the real life? Is this just _____?'"
+        # Optional: Image
+        # image: q2.png
+        # Answer: list of accepted strings. Add alternatives for common typos.
+        answer:
+          - fantasy
+          - fantsy
+
+      # --- CHOICE with image ---
+      - id: q3
+        type: choice
+        text: "Which animal is shown?"
+        image: q3.png
+        options:
+          - Dog
+          - Cat
+          - Rabbit
+        answer: 1
+
+      # --- INPUT with single answer ---
+      - id: q4
+        type: input
+        text: "What year did World War II end?"
+        answer:
+          - "1945"
