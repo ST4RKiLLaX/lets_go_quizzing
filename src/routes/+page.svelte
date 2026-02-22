@@ -1,7 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import { createSocket } from '$lib/socket.js';
+  import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
@@ -17,9 +19,17 @@
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
     if (hostPasswordRequired) {
-      fetch('/api/auth/check', { credentials: 'include' }).then((r) => r.json()).then((d) => {
-        hostAuthenticated = d.authenticated ?? false;
-      });
+      refreshHostAuthState();
+    }
+  }
+
+  async function refreshHostAuthState() {
+    try {
+      const res = await fetch('/api/auth/check', { credentials: 'include' });
+      const data = await res.json();
+      hostAuthenticated = data.authenticated ?? false;
+    } catch {
+      hostAuthenticated = false;
     }
   }
 
@@ -27,9 +37,12 @@
     mode = 'host';
     passwordError = '';
     if (hostPasswordRequired) {
-      const res = await fetch('/api/auth/check', { credentials: 'include' });
-      const data = await res.json();
-      hostAuthenticated = data.authenticated ?? false;
+      try {
+        await refreshHostAuthState();
+      } catch {
+        hostAuthenticated = false;
+        passwordError = 'Unable to verify authentication. Please try again.';
+      }
     }
   }
 
@@ -41,65 +54,59 @@
     if (!quizFilename) return;
     passwordError = '';
     creating = true;
-    if (hostPasswordRequired) {
-      const checkRes = await fetch('/api/auth/check', { credentials: 'include' });
-      const { authenticated } = await checkRes.json();
-      if (!authenticated) {
-        if (!hostPassword.trim() && !hostAuthenticated) {
-          passwordError = 'Password required';
-          creating = false;
-          return;
-        }
-        const loginRes = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: hostPassword }),
-          credentials: 'include',
-        });
-        if (!loginRes.ok) {
-          const data = await loginRes.json();
-          passwordError = data.error ?? 'Invalid password';
-          creating = false;
-          return;
+    try {
+      if (hostPasswordRequired) {
+        const checkRes = await fetch('/api/auth/check', { credentials: 'include' });
+        const { authenticated } = await checkRes.json();
+        hostAuthenticated = authenticated ?? false;
+        if (!authenticated) {
+          if (!hostPassword.trim() && !hostAuthenticated) {
+            passwordError = 'Password required';
+            creating = false;
+            return;
+          }
+          const loginRes = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: hostPassword }),
+            credentials: 'include',
+          });
+          if (!loginRes.ok) {
+            const data = await loginRes.json();
+            passwordError = data.error ?? 'Invalid password';
+            creating = false;
+            return;
+          }
+          hostAuthenticated = true;
         }
       }
+    } catch {
+      creating = false;
+      passwordError = 'Unable to create room. Please try again.';
+      return;
     }
+
     const payload: { quizFilename: string; password?: string } = { quizFilename };
-    const typedPassword = hostPassword.trim();
-    let storedPassword = '';
-    if (hostPasswordRequired) {
-      try {
-        storedPassword = sessionStorage.getItem('lgq_host_password')?.trim() ?? '';
-      } catch {
-        /* ignore */
-      }
-    }
-    // Deterministic fallback order: typed password -> stored password -> none
-    payload.password = typedPassword || storedPassword || undefined;
+    payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
 
     const socket = createSocket();
-    const onAck = (ack: { roomId?: string; error?: string }) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const finalize = createSettlementGuard(() => {
+      if (timeout != null) clearTimeout(timeout);
       creating = false;
       socket.disconnect();
       socket.removeAllListeners();
+    });
+    const onAck = (ack: { roomId?: string; error?: string }) => {
+      if (!finalize()) return;
       if (ack?.roomId) {
-        // Security: password stored in sessionStorage to allow creating new rooms after game end.
-        // Risk: plaintext in client; acceptable for single-user host devices. Avoid on shared PCs.
-        if (hostPasswordRequired && hostPassword.trim()) {
-          try {
-            sessionStorage.setItem('lgq_host_password', hostPassword);
-          } catch {
-            /* ignore */
-          }
-        }
         goto(`/host/${ack.roomId}`);
       } else {
-        if (ack?.error === 'Invalid password') {
+        const mapped = mapHostCreateError(ack?.error);
+        if (mapped.clearAuthenticated) {
           hostAuthenticated = false;
-          passwordError = 'Session expired. Enter host password again.';
-        } else {
-          passwordError = ack?.error ?? 'Failed to create room';
         }
+        passwordError = mapped.message;
       }
     };
     const doEmit = () => {
@@ -107,30 +114,25 @@
         if (ack?.roomId || ack?.error) {
           onAck(ack);
         } else {
-          creating = false;
+          if (!finalize()) return;
           passwordError = 'Connection lost. Please try again.';
         }
       });
     };
-    const timeout = setTimeout(() => {
-      creating = false;
-      socket.disconnect();
-      socket.removeAllListeners();
+    timeout = setTimeout(() => {
+      if (!finalize()) return;
       passwordError = 'Connection timeout. Please try again.';
     }, 15000);
     if (socket.connected) {
-      clearTimeout(timeout);
       doEmit();
     } else {
       socket.once('connect', () => {
-        clearTimeout(timeout);
+        if (timeout == null) return;
         doEmit();
       });
       socket.once('connect_error', () => {
-        clearTimeout(timeout);
-        creating = false;
-        socket.disconnect();
-        socket.removeAllListeners();
+        if (!finalize()) return;
+        hostAuthenticated = false;
         passwordError = 'Connection failed. Please try again.';
       });
     }

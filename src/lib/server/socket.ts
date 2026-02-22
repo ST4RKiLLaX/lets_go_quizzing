@@ -28,6 +28,21 @@ import { join } from 'path';
 const DATA_DIR = 'data';
 const PLAYER_ID_KEY = 'lgq_player_id';
 
+function logHostAuthFailure(
+  event: 'host:create' | 'host:join',
+  socket: import('socket.io').Socket,
+  hasValidCookie: boolean,
+  hasValidPassword: boolean
+) {
+  console.warn('[auth] host auth failed', {
+    event,
+    socketId: socket.id,
+    clientAddress: getClientAddressFromSocket(socket),
+    hasValidCookie,
+    hasValidPassword,
+  });
+}
+
 export function initSocket(httpServer: import('http').Server): Server {
   const io = new Server(httpServer, {
     cors: {
@@ -61,7 +76,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const hasValidPassword =
         password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
       if (!hasValidCookie && !hasValidPassword) {
-        console.warn(`[auth] host:create auth failed from ${getClientAddressFromSocket(socket)}`);
+        logHostAuthFailure('host:create', socket, !!hasValidCookie, !!hasValidPassword);
         ack?.({ error: 'Invalid password' });
         return;
       }
@@ -150,7 +165,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const hostPwd = process.env.HOST_PASSWORD;
       const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
       if (!hasValidCookie && !hasValidPassword) {
-        console.warn(`[auth] host:join auth failed from ${getClientAddressFromSocket(socket)}`);
+        logHostAuthFailure('host:join', socket, !!hasValidCookie, !!hasValidPassword);
         ack?.({ error: 'Invalid password' });
         return;
       }
