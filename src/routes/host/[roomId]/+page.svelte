@@ -36,7 +36,8 @@
   }
 
   onMount(() => {
-    socket = socketStore.get() ?? socketStore.connect();
+    // Always reconnect on host page so the handshake includes latest auth cookies.
+    socket = socketStore.connect();
     let pwd: string | undefined;
     try {
       pwd = sessionStorage.getItem('lgq_host_password') ?? undefined;

@@ -14,7 +14,7 @@ import {
 } from './game/state-machine.js';
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
-import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth.js';
+import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth/index.js';
 import { getClientAddressFromSocket } from './address.js';
 import {
   checkPlayerJoinRateLimit,

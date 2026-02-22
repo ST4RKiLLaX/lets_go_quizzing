@@ -3,7 +3,19 @@ import { timingSafeEqual } from 'node:crypto';
 const SESSION_COOKIE = 'lgq_host_auth';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const tokens = new Map<string, number>(); // token -> expiry timestamp
+type HostAuthState = {
+  storeId: string;
+  tokens: Map<string, number>;
+  cleanupStarted: boolean;
+};
+const HOST_AUTH_STATE_KEY = '__lgq_host_auth_state__';
+const hostAuthState = ((globalThis as Record<string, unknown>)[HOST_AUTH_STATE_KEY] as HostAuthState | undefined) ?? {
+  storeId: crypto.randomUUID(),
+  tokens: new Map<string, number>(),
+  cleanupStarted: false,
+};
+(globalThis as Record<string, unknown>)[HOST_AUTH_STATE_KEY] = hostAuthState;
+const tokens = hostAuthState.tokens; // token -> expiry timestamp
 
 function cleanupExpiredTokens(): void {
   const now = Date.now();
@@ -14,8 +26,12 @@ function cleanupExpiredTokens(): void {
   for (const token of toDelete) tokens.delete(token);
 }
 
-// Periodic cleanup to prevent unbounded memory growth
-setInterval(cleanupExpiredTokens, CLEANUP_INTERVAL_MS);
+// Periodic cleanup to prevent unbounded memory growth.
+// Guarded so duplicate module instances don't register duplicate timers.
+if (!hostAuthState.cleanupStarted) {
+  hostAuthState.cleanupStarted = true;
+  setInterval(cleanupExpiredTokens, CLEANUP_INTERVAL_MS);
+}
 
 export function verifyPasswordConstantTime(input: string, expected: string): boolean {
   if (typeof input !== 'string' || typeof expected !== 'string') return false;

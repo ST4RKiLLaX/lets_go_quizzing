@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { createSession, requireHostPassword, verifyPasswordConstantTime } from '$lib/server/auth.js';
+import { createSession, requireHostPassword, verifyPasswordConstantTime } from '$lib/server/auth/index.js';
 import { checkLoginRateLimit } from '$lib/server/rate-limit.js';
 
 export async function POST({ request, getClientAddress }) {

@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import { createSocket } from '$lib/socket.js';
+  import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
@@ -88,7 +89,6 @@
 
     const payload: { quizFilename: string; password?: string } = { quizFilename };
     payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
-
     const socket = createSocket();
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const finalize = createSettlementGuard(() => {
@@ -100,6 +100,7 @@
     const onAck = (ack: { roomId?: string; error?: string }) => {
       if (!finalize()) return;
       if (ack?.roomId) {
+        socketStore.get()?.disconnect();
         goto(`/host/${ack.roomId}`);
       } else {
         const mapped = mapHostCreateError(ack?.error);
