@@ -83,7 +83,7 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 ```yaml
 meta:
   name: "Pub Quiz Night"
-  author: "You"
+  author: "Quizmaster"
   default_timer: 30
 
 rounds:
