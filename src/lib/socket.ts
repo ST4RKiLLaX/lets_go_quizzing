@@ -1,6 +1,12 @@
 import { io } from 'socket.io-client';
+import type { ManagerOptions, SocketOptions } from 'socket.io-client';
 
 const PLAYER_ID_KEY = 'lgq_player_id';
+export const SOCKET_OPTIONS: Partial<ManagerOptions & SocketOptions> = {
+  path: '/socket.io',
+  transports: ['websocket', 'polling'],
+  withCredentials: true,
+};
 
 export function getOrCreatePlayerId(): string {
   if (typeof window === 'undefined') return '';
@@ -13,8 +19,5 @@ export function getOrCreatePlayerId(): string {
 }
 
 export function createSocket() {
-  return io({
-    path: '/socket.io',
-    transports: ['websocket', 'polling'],
-  });
+  return io(SOCKET_OPTIONS);
 }

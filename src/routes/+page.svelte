@@ -1,8 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { io } from 'socket.io-client';
-  import { socketStore } from '$lib/stores/socket.js';
+  import { createSocket } from '$lib/socket.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
@@ -66,29 +65,23 @@
       }
     }
     const payload: { quizFilename: string; password?: string } = { quizFilename };
-    if (hostPasswordRequired && hostPassword.trim()) {
-      payload.password = hostPassword;
-    }
-    // Socket handshake may not include auth cookie; always try stored password when no password in form
-    if (hostPasswordRequired && !payload.password) {
+    const typedPassword = hostPassword.trim();
+    let storedPassword = '';
+    if (hostPasswordRequired) {
       try {
-        const stored = sessionStorage.getItem('lgq_host_password');
-        if (stored) payload.password = stored;
+        storedPassword = sessionStorage.getItem('lgq_host_password')?.trim() ?? '';
       } catch {
         /* ignore */
       }
     }
-    // When authenticated via cookie, use the existing socket from the store - its handshake
-    // already has the auth cookie. A fresh temp socket's handshake may not include it.
-    const existingSocket = hostAuthenticated ? socketStore.get() : null;
-    const useExisting = !!existingSocket?.connected;
-    const socket = useExisting ? existingSocket : io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+    // Deterministic fallback order: typed password -> stored password -> none
+    payload.password = typedPassword || storedPassword || undefined;
+
+    const socket = createSocket();
     const onAck = (ack: { roomId?: string; error?: string }) => {
       creating = false;
-      if (!useExisting) {
-        (socket as import('socket.io-client').Socket).disconnect();
-        (socket as import('socket.io-client').Socket).removeAllListeners();
-      }
+      socket.disconnect();
+      socket.removeAllListeners();
       if (ack?.roomId) {
         // Security: password stored in sessionStorage to allow creating new rooms after game end.
         // Risk: plaintext in client; acceptable for single-user host devices. Avoid on shared PCs.
@@ -101,7 +94,12 @@
         }
         goto(`/host/${ack.roomId}`);
       } else {
-        passwordError = ack?.error ?? 'Failed to create room';
+        if (ack?.error === 'Invalid password') {
+          hostAuthenticated = false;
+          passwordError = 'Session expired. Enter host password again.';
+        } else {
+          passwordError = ack?.error ?? 'Failed to create room';
+        }
       }
     };
     const doEmit = () => {
@@ -116,10 +114,8 @@
     };
     const timeout = setTimeout(() => {
       creating = false;
-      if (!useExisting) {
-        (socket as import('socket.io-client').Socket).disconnect();
-        (socket as import('socket.io-client').Socket).removeAllListeners();
-      }
+      socket.disconnect();
+      socket.removeAllListeners();
       passwordError = 'Connection timeout. Please try again.';
     }, 15000);
     if (socket.connected) {
@@ -133,7 +129,8 @@
       socket.once('connect_error', () => {
         clearTimeout(timeout);
         creating = false;
-        (socket as import('socket.io-client').Socket).removeAllListeners();
+        socket.disconnect();
+        socket.removeAllListeners();
         passwordError = 'Connection failed. Please try again.';
       });
     }
@@ -212,7 +209,7 @@
           {/if}
         </div>
       {:else if hostAuthenticated}
-        <p class="text-sm text-green-400">Authenticated</p>
+        <p class="text-sm text-green-400">Authenticated (session active)</p>
       {/if}
       <button
         type="submit"

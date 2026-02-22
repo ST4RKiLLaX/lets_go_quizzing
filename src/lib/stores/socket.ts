@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
+import { SOCKET_OPTIONS } from '$lib/socket.js';
 
 function createSocketStore() {
   const store = writable<Socket | null>(null);
@@ -14,7 +15,7 @@ function createSocketStore() {
       if (existing) {
         existing.disconnect();
       }
-      const socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+      const socket = io(SOCKET_OPTIONS);
       set(socket);
       return socket;
     },

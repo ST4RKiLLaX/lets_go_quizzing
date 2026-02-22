@@ -5,5 +5,13 @@ export async function GET({ request }) {
   const cookie = request.headers.get('cookie');
   const required = requireHostPassword();
   const authenticated = required && isAuthenticated(cookie ?? undefined);
-  return json({ required, authenticated });
+  return json(
+    { required, authenticated },
+    {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+        Pragma: 'no-cache',
+      },
+    }
+  );
 }
