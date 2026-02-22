@@ -12,6 +12,7 @@
   $: if (quizData) quiz = quizData;
 
   async function handleSave(q: Quiz) {
+    if (!filename) throw new Error('Missing quiz filename');
     const res = await fetch(`/api/quizzes/${encodeURIComponent(filename)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

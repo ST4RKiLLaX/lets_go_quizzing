@@ -136,8 +136,8 @@
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-6">
         {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
-        {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()}
+        {@const q = getCurrentQuestion()}
+        {#if q}
           <p class="text-pub-muted text-sm mb-2">
             {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
           </p>
@@ -153,7 +153,7 @@
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-2">
-              {#each q.options ?? [] as opt, i}
+              {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-pub-gold' : ''}">
                   {opt} {#if state?.type === 'RevealAnswer' && q.answer === i}(correct){/if}
                 </li>
@@ -161,7 +161,7 @@
             </ul>
           {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
-              Correct: {(q.answer ?? []).filter(Boolean).join(' / ')}
+              Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {/if}
         {/if}

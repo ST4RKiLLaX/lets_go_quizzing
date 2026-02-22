@@ -132,8 +132,8 @@
     {:else if state?.type === 'Question'}
       <div class="bg-pub-darker rounded-lg p-8" data-question-id={getCurrentQuestion()?.id}>
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
-        {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()}
+        {@const q = getCurrentQuestion()}
+        {#if q}
           <p class="text-pub-muted text-lg mb-2">
             {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
           </p>
@@ -149,7 +149,7 @@
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-3">
-              {#each q.options ?? [] as opt}
+              {#each q.options as opt}
                 <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl">{opt}</li>
               {/each}
             </ul>
@@ -174,7 +174,7 @@
     {:else if state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-8">
         {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()}
+          {@const q = getCurrentQuestion()!}
           <p class="text-2xl mb-6">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
@@ -184,7 +184,7 @@
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-3">
-              {#each q.options ?? [] as opt, i}
+              {#each q.options as opt, i}
                 <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl {q.answer === i ? 'ring-2 ring-pub-gold text-pub-gold' : ''}">
                   {opt} {#if q.answer === i}(correct){/if}
                 </li>
@@ -192,7 +192,7 @@
             </ul>
           {:else if q.type === 'input'}
             <p class="px-6 py-4 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold text-xl">
-              Correct: {(q.answer ?? []).filter(Boolean).join(' / ')}
+              Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {/if}
         {/if}

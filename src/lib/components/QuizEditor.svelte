@@ -1,11 +1,6 @@
 <script lang="ts">
-  import type { Quiz, Round, Question, ChoiceQuestion, InputQuestion } from '$lib/types/quiz.js';
-  import {
-    createEmptyChoiceQuestion,
-    createEmptyInputQuestion,
-    createEmptyQuiz,
-    generateQuestionId,
-  } from '$lib/types/quiz.js';
+  import type { Quiz, Question, ChoiceQuestion, InputQuestion } from '$lib/types/quiz.js';
+  import { createEmptyChoiceQuestion, generateQuestionId } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
   import type { ComponentType } from 'svelte';
@@ -120,7 +115,7 @@
           ? {
               ...r,
               questions: r.questions.map((qu, j) =>
-                j === qi ? { ...qu, options: [...qu.options, ''] } : qu
+                j === qi ? { ...q, options: [...q.options, ''] } : qu
               ),
             }
           : r
@@ -140,7 +135,7 @@
           ? {
               ...r,
               questions: r.questions.map((qu, j) =>
-                j === qi ? { ...qu, options: newOptions, answer: newAnswer } : qu
+                j === qi ? { ...q, options: newOptions, answer: newAnswer } : qu
               ),
             }
           : r
@@ -156,7 +151,7 @@
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, answer: [...current, ''] } : qu)) }
+          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: [...current, ''] } : qu)) }
           : r
       ),
     };
@@ -169,7 +164,12 @@
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, answer: qu.answer.filter((_, k) => k !== ai) } : qu)) }
+          ? {
+              ...r,
+              questions: r.questions.map((qu, j) =>
+                j === qi ? { ...q, answer: q.answer.filter((_: string, k: number) => k !== ai) } : qu
+              ),
+            }
           : r
       ),
     };
@@ -256,7 +256,7 @@
       <svelte:component
         this={YamlEditorComponent}
         value={yamlStr}
-        onChange={(v) => (yamlStr = v)}
+        onChange={(v: string) => (yamlStr = v)}
         schema={QUIZ_JSON_SCHEMA}
       />
     {:else}

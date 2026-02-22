@@ -75,12 +75,20 @@ export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult
  *   -
  * instead of options:[]
  */
-export function wrapSchemaCompletionWithOptionsList(schemaCompletion: CompletionSource): CompletionSource {
-  return (ctx: CompletionContext): CompletionResult | null => {
-    const result = schemaCompletion(ctx);
-    if (!result?.options?.length) return result;
+type SchemaCompletionLike = (
+  ctx: CompletionContext
+) => CompletionResult | Completion[] | Promise<CompletionResult | Completion[] | null> | null;
 
-    const options = result.options.map((opt): Completion => {
+export function wrapSchemaCompletionWithOptionsList(schemaCompletion: SchemaCompletionLike): CompletionSource {
+  const completion = schemaCompletion;
+  return async (ctx: CompletionContext): Promise<CompletionResult | null> => {
+    const maybeResult = await Promise.resolve(completion(ctx));
+    if (!maybeResult || Array.isArray(maybeResult) || !maybeResult.options?.length) {
+      return maybeResult && !Array.isArray(maybeResult) ? maybeResult : null;
+    }
+    const result = maybeResult;
+
+    const options = result.options.map((opt: Completion): Completion => {
       if (opt.label !== 'options') return opt;
 
       return {
