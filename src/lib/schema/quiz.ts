@@ -76,6 +76,9 @@ const QuizMetaSchema = z.object({
   author: z.string().optional(),
   default_timer: z.number().int().min(0).optional(),
   fuzzy_threshold: z.number().min(0).max(1).optional(),
+  scoring_mode: z.enum(['standard', 'ranked']).optional(),
+  ranked_max_points: z.number().int().min(0).optional(),
+  ranked_min_points: z.number().int().min(0).optional(),
 });
 
 export const QuizSchema = z.object({

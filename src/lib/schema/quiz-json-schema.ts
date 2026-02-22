@@ -21,6 +21,21 @@ export const QUIZ_JSON_SCHEMA = {
           maximum: 1,
           description: 'Typo tolerance 0-1 for fill-in answers (e.g. 0.8). Leave blank for no tolerance.',
         },
+        scoring_mode: {
+          type: 'string',
+          enum: ['standard', 'ranked'],
+          description: 'standard = 1 point per correct answer. ranked = first correct gets max points, last gets min.',
+        },
+        ranked_max_points: {
+          type: 'integer',
+          minimum: 0,
+          description: 'Points for 1st correct answer when scoring_mode is ranked. Default 100.',
+        },
+        ranked_min_points: {
+          type: 'integer',
+          minimum: 0,
+          description: 'Points for last correct answer when scoring_mode is ranked. Default 10.',
+        },
       },
     },
     rounds: {
@@ -28,6 +43,7 @@ export const QUIZ_JSON_SCHEMA = {
       description: 'List of rounds, each with a name and questions',
       items: {
         type: 'object',
+        description: 'A round with a name and list of questions',
         required: ['name', 'questions'],
         properties: {
           name: { type: 'string', description: 'Round name (e.g. Round 1, Geography, Television). Leave blank for no name.' },
@@ -36,6 +52,7 @@ export const QUIZ_JSON_SCHEMA = {
             description: 'List of questions in this round',
             items: {
               type: 'object',
+              description: 'A question: choice (multiple choice) or input (fill in the blank)',
               required: ['id', 'type', 'text'],
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },

@@ -3,6 +3,9 @@ export interface QuizMeta {
   author?: string;
   default_timer?: number;
   fuzzy_threshold?: number;
+  scoring_mode?: 'standard' | 'ranked';
+  ranked_max_points?: number;
+  ranked_min_points?: number;
 }
 
 export interface ChoiceQuestion {

@@ -1,0 +1,55 @@
+meta:
+  name: CISSP Practice Questions
+  author: Juan
+  default_timer: 60
+  scoring_mode: ranked
+  ranked_max_points: 5
+  ranked_min_points: 1
+rounds:
+  - name: Round 1
+    questions:
+      - id: q1
+        type: choice
+        text: In a high-security government facility housing classified materials, which feature of an emergency override system for doors would BEST balance immediate security concerns with the need for rapid evacuation during verified emergencies?
+        options:
+          - Automatic unlocking of all doors upon fire alarm activation
+          - Biometric authentication required for all emergency exits
+          - Staged unlocking of doors based on alarm severity and location
+          - Delayed release with warning
+        answer: 3
+      - id: q2
+        type: choice
+        text: Which category of control BEST supports the integration of change management with incident response and forensic readiness plans?
+        options:
+          - Corrective controls that reverse unapproved alterations
+          - Preventive controls that block unauthorized changes
+          - Directive controls that guide change implementation processes
+          - Detective controls that identify system modifications
+        answer: 3
+      - id: q3
+        type: choice
+        text: Javier is verifying that only IT system Administrators have the ability to log on to servers used for administrative purposes. What principle of information security is he enforcing?
+        options:
+          - Need to know
+          - Least privilege
+          - Two-person control
+          - Transitive trust
+        answer: 1
+      - id: q4
+        type: choice
+        text: Which of the following MUST be part of a contract to support electronic discovery of data stored in a cloud environment?
+        options:
+          - Integration with organizational directory services for authentication
+          - Tokenization of data
+          - Accommodation of hybrid deployment models
+          - Identification of data location
+        answer: 3
+      - id: q5
+        type: choice
+        text: Which one of the following affects the classification of data?
+        options:
+          - Assigned security label
+          - Multilevel Security (MLS) architecture
+          - Minimum query size
+          - Passage of time
+        answer: 3

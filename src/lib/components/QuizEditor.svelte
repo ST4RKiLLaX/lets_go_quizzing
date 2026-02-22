@@ -309,6 +309,44 @@
           class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
         />
       </div>
+      <div>
+        <label for="quiz-scoring" class="block text-sm text-pub-muted mb-1">Scoring</label>
+        <select
+          id="quiz-scoring"
+          value={quiz.meta.scoring_mode ?? 'standard'}
+          on:change={(e) => (quiz.meta.scoring_mode = (e.currentTarget as HTMLSelectElement).value as 'standard' | 'ranked')}
+          class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+        >
+          <option value="standard">Standard (1 point per correct)</option>
+          <option value="ranked">Ranked (first gets most points)</option>
+        </select>
+      </div>
+      {#if (quiz.meta.scoring_mode ?? 'standard') === 'ranked'}
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="quiz-ranked-max" class="block text-sm text-pub-muted mb-1">Max points (1st)</label>
+            <input
+              id="quiz-ranked-max"
+              type="number"
+              min="0"
+              placeholder="100"
+              bind:value={quiz.meta.ranked_max_points}
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+          </div>
+          <div>
+            <label for="quiz-ranked-min" class="block text-sm text-pub-muted mb-1">Min points (last)</label>
+            <input
+              id="quiz-ranked-min"
+              type="number"
+              min="0"
+              placeholder="10"
+              bind:value={quiz.meta.ranked_min_points}
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+          </div>
+        </div>
+      {/if}
     </div>
   </section>
 

@@ -48,7 +48,47 @@
     });
   }
 
+  function getCorrectAnswersInRankOrder(): Array<{ emoji: string; name: string; rank: number; points: number }> {
+    const q = getCurrentQuestion();
+    if (!q || !state?.submissions || !state?.wrongAnswers) return [];
+    const wrongPlayerIds = new Set(
+      state.wrongAnswers.filter((w) => w.questionId === q.id).map((w) => w.playerId)
+    );
+    const correct = state.submissions
+      .filter((s) => s.questionId === q.id && !wrongPlayerIds.has(s.playerId))
+      .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0));
+    const maxPts = state.quiz?.meta?.ranked_max_points ?? 100;
+    const minPts = state.quiz?.meta?.ranked_min_points ?? 10;
+    const players = state.players ?? [];
+    let currentRank = 1;
+    let prevTime = -1;
+    return correct.map((s, i) => {
+      if (s.submittedAt !== prevTime) {
+        currentRank = i + 1;
+        prevTime = s.submittedAt ?? -1;
+      }
+      const pts =
+        correct.length === 1
+          ? maxPts
+          : Math.round(
+              maxPts - ((currentRank - 1) * (maxPts - minPts)) / (correct.length - 1)
+            );
+      const p = players.find((x) => x.id === s.playerId);
+      return {
+        emoji: p?.emoji ?? '?',
+        name: p?.name ?? 'Unknown',
+        rank: currentRank,
+        points: pts,
+      };
+    });
+  }
+
   $: answeredList = state?.type === 'Question' ? getAnsweredInOrder() : [];
+  $: rankedCorrectList =
+    state?.type === 'RevealAnswer' &&
+    (state.quiz?.meta?.scoring_mode ?? 'standard') === 'ranked'
+      ? getCorrectAnswersInRankOrder()
+      : [];
 
   onMount(() => {
     socket = createSocket();
@@ -156,7 +196,23 @@
             </p>
           {/if}
         {/if}
-        <p class="mt-8 text-xl text-pub-muted">Waiting for next question...</p>
+        {#if rankedCorrectList.length > 0}
+          <div class="mt-8 pt-6 border-t border-pub-muted">
+            <p class="text-lg text-pub-muted mb-3">Correct answers</p>
+            <ol class="space-y-2 text-xl">
+              {#each rankedCorrectList as entry}
+                <li class="flex items-center gap-4">
+                  <span class="text-pub-gold font-bold w-12">#{entry.rank}</span>
+                  <span class="text-2xl">{entry.emoji}</span>
+                  <span>{entry.name}</span>
+                  <span class="ml-auto font-bold text-pub-gold">+{entry.points}</span>
+                </li>
+              {/each}
+            </ol>
+          </div>
+        {:else}
+          <p class="mt-8 text-xl text-pub-muted">Waiting for next question...</p>
+        {/if}
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
       <div class="bg-pub-darker rounded-lg p-8">
