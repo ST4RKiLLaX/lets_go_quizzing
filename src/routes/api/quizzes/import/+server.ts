@@ -9,7 +9,6 @@ import {
   parseQuizImportZip,
   writeImportedQuizImages,
 } from '$lib/server/storage/quiz-archive.js';
-import { isValidQuizFilename } from '$lib/server/storage/parser.js';
 
 export async function POST({ request }) {
   if (!requireHostPassword()) {
@@ -36,10 +35,8 @@ export async function POST({ request }) {
 
   try {
     const zipBuffer = Buffer.from(await file.arrayBuffer());
-    const { quiz, yamlName, images } = parseQuizImportZip(zipBuffer);
-    const desiredFilename = isValidQuizFilename(yamlName)
-      ? yamlName
-      : generateFilenameFromTitle(quiz.meta.name);
+    const { quiz, images } = parseQuizImportZip(zipBuffer);
+    const desiredFilename = generateFilenameFromTitle(quiz.meta.name);
     const filename = resolveUniqueQuizFilename(desiredFilename);
 
     saveQuiz(quiz, filename);

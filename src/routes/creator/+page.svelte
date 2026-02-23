@@ -2,7 +2,12 @@
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
 
-  let quizzes: string[] = [];
+  type QuizListItem = {
+    filename: string;
+    title: string;
+  };
+
+  let quizzes: QuizListItem[] = [];
   $: quizzes = $page.data.quizzes ?? [];
 
   let importInput: HTMLInputElement | null = null;
@@ -40,11 +45,12 @@
     }
   }
 
-  function downloadQuiz(filename: string) {
-    window.location.href = `/api/quizzes/${encodeURIComponent(filename)}/export`;
+  function downloadQuiz(quiz: QuizListItem) {
+    window.location.href = `/api/quizzes/${encodeURIComponent(quiz.filename)}/export`;
   }
 
-  async function deleteQuiz(filename: string) {
+  async function deleteQuiz(quiz: QuizListItem) {
+    const filename = quiz.filename;
     if (!confirm(`Delete ${filename}? This also removes associated images.`)) return;
     busy = true;
     message = '';
@@ -109,20 +115,21 @@
         <p class="text-pub-muted">No quizzes yet. Create your first one!</p>
       {:else}
         <ul class="space-y-2">
-          {#each quizzes as q}
+          {#each quizzes as quiz}
             <li class="px-4 py-3 bg-pub-dark rounded-lg">
               <div class="flex flex-wrap items-center gap-2">
                 <a
-                  href="/creator/{encodeURIComponent(q)}"
-                  class="font-medium hover:text-pub-gold break-all min-w-0 flex-1"
+                  href="/creator/{encodeURIComponent(quiz.filename)}"
+                  class="hover:text-pub-gold break-all min-w-0 flex-1"
                 >
-                  {q}
+                  <p class="font-medium text-pub-gold">{quiz.title}</p>
+                  <p class="text-xs text-pub-muted mt-0.5">{quiz.filename}</p>
                 </a>
                 <button
                   type="button"
                   class="px-3 py-1.5 text-sm rounded bg-pub-accent hover:opacity-90 disabled:opacity-50"
                   disabled={busy}
-                  on:click={() => downloadQuiz(q)}
+                  on:click={() => downloadQuiz(quiz)}
                 >
                   Export
                 </button>
@@ -130,7 +137,7 @@
                   type="button"
                   class="px-3 py-1.5 text-sm rounded bg-red-700 hover:opacity-90 disabled:opacity-50"
                   disabled={busy}
-                  on:click={() => deleteQuiz(q)}
+                  on:click={() => deleteQuiz(quiz)}
                 >
                   Delete
                 </button>
