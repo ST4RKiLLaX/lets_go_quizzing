@@ -117,15 +117,15 @@
   });
 </script>
 
-<div class="min-h-screen p-8 flex flex-col items-center justify-center">
+<div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
     {#if state?.quiz?.meta?.name}
       <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
     {/if}
     {#if state?.type === 'Lobby'}
       <div class="text-center">
-        <h2 class="text-3xl font-bold mb-6">Waiting for host to start</h2>
-        <p class="text-2xl text-pub-muted mb-6">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
+        <h2 class="text-xl font-bold mb-6">Waiting for host to start</h2>
+        <p class="text-pub-muted mb-6">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
         {#if joinUrl}
           <p class="text-lg text-pub-muted mb-4">Scan to join</p>
           <canvas
@@ -138,19 +138,19 @@
         {/if}
       </div>
     {:else if state?.type === 'Question'}
-      <div class="bg-pub-darker rounded-lg p-8" data-question-id={getCurrentQuestion()?.id}>
+      <div class="bg-pub-darker rounded-lg p-6" data-question-id={getCurrentQuestion()?.id}>
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
         {@const q = getCurrentQuestion()}
         {#if q}
           <div class="flex items-start justify-between gap-6 mb-2">
-            <p class="text-pub-gold text-xl font-semibold">
+            <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
             </p>
             {#if state.timerEndsAt && countdown}
-              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} size={72} />
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
             {/if}
           </div>
-          <p class="text-3xl mb-8">{q.text}</p>
+          <p class="text-xl mb-6">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
@@ -158,11 +158,11 @@
             {/if}
           {/if}
           {#if q.type === 'choice'}
-            <ul class="space-y-3">
+            <ul class="space-y-2">
               {#each q.options as opt, i}
-                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl">
-                  <div class="flex items-center gap-3">
-                    <span class="w-9 h-9 rounded-full bg-pub-gold text-base font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                <li class="px-4 py-2 bg-pub-dark rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">{opt}</span>
@@ -174,9 +174,9 @@
             <p class="text-xl text-pub-muted">Fill in the blank</p>
           {/if}
         {/if}
-        <div class="mt-8 pt-6 border-t border-pub-muted">
-          <p class="text-lg text-pub-muted mb-2">Answered</p>
-          <p class="text-2xl">
+        <div class="mt-6 pt-6 border-t border-pub-muted">
+          <p class="text-sm text-pub-muted mb-2">Answered</p>
+          <p>
             {#each answeredList as p, i}
               {#if i > 0}<span class="text-pub-muted">, </span>{/if}
               <span>{p.emoji} {p.name}</span>
@@ -189,18 +189,18 @@
         {/key}
       </div>
     {:else if state?.type === 'RevealAnswer'}
-      <div class="bg-pub-darker rounded-lg p-8">
+      <div class="bg-pub-darker rounded-lg p-6">
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()!}
           <div class="flex items-start justify-between gap-6 mb-2">
-            <p class="text-pub-gold text-xl font-semibold">
+            <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
             </p>
             {#if countdown}
-              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} size={72} />
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
             {/if}
           </div>
-          <p class="text-2xl mb-6">{q.text}</p>
+          <p class="text-xl mb-4">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
@@ -208,11 +208,11 @@
             {/if}
           {/if}
           {#if q.type === 'choice'}
-            <ul class="space-y-3">
+            <ul class="space-y-2">
               {#each q.options as opt, i}
-                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
-                  <div class="flex items-center gap-3">
-                    <span class="w-9 h-9 rounded-full bg-pub-gold text-base font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                <li class="px-4 py-2 bg-pub-dark rounded-lg {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
@@ -223,24 +223,24 @@
               {/each}
             </ul>
           {:else if q.type === 'input'}
-            <p class="px-6 py-4 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold text-xl">
+            <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {/if}
           {#if q.explanation?.trim()}
-            <p class="mt-4 px-6 py-4 bg-pub-dark rounded-lg text-pub-muted text-lg">
+            <p class="mt-4 px-4 py-3 bg-pub-dark rounded-lg text-pub-muted">
               {q.explanation}
             </p>
           {/if}
         {/if}
         {#if rankedCorrectList.length > 0}
-          <div class="mt-8 pt-6 border-t border-pub-muted">
-            <p class="text-lg text-pub-muted mb-3">Correct answers</p>
-            <ol class="space-y-2 text-xl">
+          <div class="mt-6 pt-6 border-t border-pub-muted">
+            <p class="text-sm text-pub-muted mb-3">Correct answers</p>
+            <ol class="space-y-2">
               {#each rankedCorrectList as entry}
                 <li class="flex items-center gap-4">
                   <span class="text-pub-gold font-bold w-12">#{entry.rank}</span>
-                  <span class="text-2xl">{entry.emoji}</span>
+                  <span>{entry.emoji}</span>
                   <span>{entry.name}</span>
                   <span class="ml-auto font-bold text-pub-gold">+{entry.points}</span>
                 </li>
@@ -248,22 +248,22 @@
             </ol>
           </div>
         {:else}
-          <p class="mt-8 text-xl text-pub-muted">Waiting for next question...</p>
+          <p class="mt-6 text-pub-muted">Waiting for next question...</p>
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
-      <div class="bg-pub-darker rounded-lg p-8">
-        <h2 class="text-3xl font-bold mb-3">
+      <div class="bg-pub-darker rounded-lg p-6">
+        <h2 class="text-xl font-bold mb-2">
           {state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
         </h2>
         {#if state.type === 'End'}
-          <p class="text-xl text-pub-muted mb-8">The host ended this quiz session.</p>
+          <p class="text-pub-muted mb-6">The host ended this quiz session.</p>
         {/if}
-        <ol class="space-y-4">
+        <ol class="space-y-3">
           {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-            <li class="flex items-center gap-6 text-2xl">
-              <span class="text-pub-gold font-bold w-12">#{i + 1}</span>
-              <span class="text-3xl">{player.emoji}</span>
+            <li class="flex items-center gap-4">
+              <span class="text-pub-gold font-bold w-8">#{i + 1}</span>
+              <span>{player.emoji}</span>
               <span>{player.name}</span>
               <span class="ml-auto font-bold">{player.score}</span>
             </li>
@@ -271,7 +271,7 @@
         </ol>
       </div>
     {:else}
-      <p class="text-2xl text-pub-muted text-center">Connecting...</p>
+      <p class="text-pub-muted text-center">Connecting...</p>
     {/if}
   </div>
 </div>

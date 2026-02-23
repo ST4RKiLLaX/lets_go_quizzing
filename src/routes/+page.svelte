@@ -13,10 +13,12 @@
   let passwordError = '';
   let creating = false;
   let hostAuthenticated = false;
+  let showQuizMenu = false;
 
   $: quizzes = $page.data.quizzes ?? [];
   $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
-  $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0];
+  $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0].filename;
+  $: selectedQuiz = quizzes.find((q) => q.filename === quizFilename) ?? null;
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
     if (hostPasswordRequired) {
@@ -187,16 +189,40 @@
       class="w-full max-w-md space-y-4"
       on:submit|preventDefault={createRoom}
     >
-      <label for="quiz-select" class="block text-sm text-pub-muted">Select Quiz</label>
-      <select
-        id="quiz-select"
-        bind:value={quizFilename}
-        class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-      >
-        {#each quizzes as q}
-          <option value={q}>{q}</option>
-        {/each}
-      </select>
+      <label class="block text-sm text-pub-muted">Select Quiz</label>
+      <div class="relative">
+        <button
+          type="button"
+          class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 text-left hover:opacity-90"
+          on:click={() => (showQuizMenu = !showQuizMenu)}
+          aria-haspopup="listbox"
+          aria-expanded={showQuizMenu}
+        >
+          {#if selectedQuiz}
+            <span class="block">{selectedQuiz.title}</span>
+            <span class="block text-xs text-pub-muted mt-0.5">{selectedQuiz.filename}</span>
+          {:else}
+            <span class="block text-pub-muted">Select a quiz</span>
+          {/if}
+        </button>
+        {#if showQuizMenu}
+          <div class="absolute z-20 mt-2 w-full bg-pub-darker border border-pub-muted rounded-lg shadow-lg max-h-64 overflow-auto">
+            {#each quizzes as q}
+              <button
+                type="button"
+                class="w-full text-left px-4 py-2 hover:bg-pub-dark border-b border-pub-muted/40 last:border-b-0"
+                on:click={() => {
+                  quizFilename = q.filename;
+                  showQuizMenu = false;
+                }}
+              >
+                <span class="block">{q.title}</span>
+                <span class="block text-xs text-pub-muted mt-0.5">{q.filename}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       {#if hostPasswordRequired && !hostAuthenticated}
         <div>
           <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>

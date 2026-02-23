@@ -132,7 +132,7 @@
           {#if state && state.type !== 'End'}
             <button
               type="button"
-              class="px-4 py-2 bg-red-700 rounded-lg font-medium hover:opacity-90"
+              class="px-4 py-2 bg-[#CF3030] rounded-lg font-medium hover:opacity-90"
               on:click={openEndQuizModal}
             >
               End Quiz
@@ -218,7 +218,7 @@
 
         <div class="flex gap-4 mt-6 flex-wrap items-center">
           <button
-            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
+            class="px-4 py-2 bg-green-600 rounded-lg font-medium hover:opacity-90 ml-auto"
             on:click={next}
           >
             Next
@@ -382,7 +382,7 @@
         </button>
         <button
           type="button"
-          class="px-4 py-2 bg-red-700 rounded-lg font-medium hover:opacity-90"
+          class="px-4 py-2 bg-[#CF3030] rounded-lg font-medium hover:opacity-90"
           on:click={confirmEndQuiz}
         >
           End Quiz
