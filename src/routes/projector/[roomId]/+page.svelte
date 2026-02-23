@@ -129,6 +129,9 @@
             bind:this={qrCanvas}
             class="mx-auto rounded-lg min-w-[256px] min-h-[256px] [image-rendering:pixelated]"
           ></canvas>
+          <p class="mt-4 text-sm text-pub-muted break-all">
+            {joinUrl}
+          </p>
         {/if}
       </div>
     {:else if state?.type === 'Question'}
@@ -153,9 +156,9 @@
             <ul class="space-y-3">
               {#each q.options as opt, i}
                 <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl">
-                  <div class="flex items-start gap-3">
-                    <span class="w-10 text-center text-2xl font-semibold text-pub-gold shrink-0">
-                      {formatOptionLabel(i, optionLabelStyle)}.
+                  <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-full bg-pub-gold text-base font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">{opt}</span>
                   </div>
@@ -194,10 +197,10 @@
           {#if q.type === 'choice'}
             <ul class="space-y-3">
               {#each q.options as opt, i}
-                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl {q.answer === i ? 'ring-2 ring-pub-gold text-pub-gold' : ''}">
-                  <div class="flex items-start gap-3">
-                    <span class="w-10 text-center text-2xl font-semibold text-pub-gold shrink-0">
-                      {formatOptionLabel(i, optionLabelStyle)}.
+                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
+                  <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-full bg-pub-gold text-base font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
                       {opt} {#if q.answer === i}(correct){/if}

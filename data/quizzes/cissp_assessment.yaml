@@ -3,7 +3,7 @@ meta:
   author: Juan
   default_timer: 60
   scoring_mode: ranked
-  option_label_style: numbers
+  option_label_style: letters
   ranked_max_points: 5
   ranked_min_points: 1
 rounds:

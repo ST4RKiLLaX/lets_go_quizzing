@@ -236,8 +236,8 @@
                       ●
                     {/if}
                   </span>
-                  <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
-                    {formatOptionLabel(i, optionLabelStyle)}.
+                  <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                    {formatOptionLabel(i, optionLabelStyle)}
                   </span>
                   <span class="flex-1 break-words">{opt}</span>
                 </button>
@@ -297,10 +297,10 @@
           {#if q.type === 'choice'}
             <ul class="space-y-2">
               {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-pub-gold' : ''}">
-                  <div class="flex items-start gap-2">
-                    <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
-                      {formatOptionLabel(i, optionLabelStyle)}.
+                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
                       {opt} {#if q.answer === i}(correct){/if}

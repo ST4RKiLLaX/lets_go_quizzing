@@ -99,18 +99,33 @@
   }
 </script>
 
-<div class="min-h-screen p-6">
-  <div class="max-w-4xl mx-auto flex gap-6">
+<div class="min-h-screen p-4 sm:p-6">
+  <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
     <div class="flex-1 min-w-0">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-pub-gold">Host: {roomId}</h1>
-      <p class="text-pub-muted text-sm">{state?.quiz?.meta?.name ?? 'Loading...'}</p>
+    <div class="mb-4 sm:mb-6">
+      <p class="text-pub-gold text-lg sm:text-xl font-semibold mb-2 break-words">
+        {state?.quiz?.meta?.name ?? 'Loading...'}
+      </p>
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
+        <button
+          type="button"
+          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90 shrink-0"
+          on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+        >
+          Projector
+        </button>
+      </div>
     </div>
 
     {#if state?.type === 'Lobby'}
-      <div class="bg-pub-darker rounded-lg p-6">
+      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <h2 class="text-lg font-semibold mb-4">Waiting for players</h2>
-        <p class="text-pub-muted mb-4">Share this code: <span class="text-pub-gold font-mono text-xl">{roomId}</span></p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <p class="text-pub-muted">
+            Share this code: <span class="text-pub-gold font-mono text-lg sm:text-xl">{roomId}</span>
+          </p>
+        </div>
         <p class="text-pub-muted mb-4">Players join at: <span class="text-sm break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/play/{roomId}</span></p>
         <div class="space-y-2 mb-6">
           {#each state.players ?? [] as player}
@@ -120,24 +135,17 @@
             </div>
           {/each}
         </div>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap gap-3 sm:gap-4">
           <button
-            class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
+            class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
             on:click={() => socket?.emit('host:start', {}, () => {})}
           >
             Start Game
           </button>
-          <button
-            type="button"
-            class="px-6 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-          >
-            Projector
-          </button>
         </div>
       </div>
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
-      <div class="bg-pub-darker rounded-lg p-6">
+      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
         {@const q = getCurrentQuestion()}
         {#if q}
@@ -157,10 +165,10 @@
           {#if q.type === 'choice'}
             <ul class="space-y-2">
               {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-pub-gold' : ''}">
-                  <div class="flex items-start gap-2">
-                    <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
-                      {formatOptionLabel(i, optionLabelStyle)}.
+                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60') : (q.answer === i ? 'ring-2 ring-green-500' : '')}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
                       {opt} {#if state?.type === 'RevealAnswer' && q.answer === i}(correct){/if}
@@ -190,7 +198,7 @@
           </p>
         {/if}
 
-        <div class="flex gap-4 mt-6 flex-wrap">
+        <div class="flex gap-4 mt-6 flex-wrap items-center">
           {#if state?.type === 'Question'}
             <button
               class="px-4 py-2 bg-amber-600 rounded-lg font-medium hover:opacity-90"
@@ -200,17 +208,10 @@
             </button>
           {/if}
           <button
-            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
+            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
             on:click={next}
           >
             Next
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-          >
-            Projector
           </button>
         </div>
 
@@ -244,7 +245,7 @@
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard'}
-      <div class="bg-pub-darker rounded-lg p-6">
+      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <h2 class="text-xl font-bold mb-6">Leaderboard</h2>
         <ol class="space-y-3">
           {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
@@ -256,13 +257,7 @@
             </li>
           {/each}
         </ol>
-        <div class="flex gap-4 mt-6">
-          <button
-            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-            on:click={next}
-          >
-            {state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
-          </button>
+        <div class="flex gap-4 mt-6 items-center">
           <button
             type="button"
             class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
@@ -270,10 +265,16 @@
           >
             Projector
           </button>
+          <button
+            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
+            on:click={next}
+          >
+            {state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
+          </button>
         </div>
       </div>
     {:else if state?.type === 'End'}
-      <div class="bg-pub-darker rounded-lg p-6">
+      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <h2 class="text-2xl font-bold text-pub-gold mb-6">Game Over!</h2>
         <ol class="space-y-3">
           {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
@@ -303,10 +304,10 @@
         </div>
       </div>
     {:else if joinError === 'Invalid password'}
-      <div class="bg-pub-darker rounded-lg p-6">
+      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <p class="text-pub-muted mb-4">Re-enter password to join host view</p>
         <form
-          class="flex gap-2"
+          class="flex flex-col sm:flex-row gap-2"
           on:submit|preventDefault={() => doHostJoin(hostRejoinPassword)}
         >
           <input
@@ -328,8 +329,8 @@
     {/if}
     </div>
     {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
-      <div class="w-64 flex-shrink-0">
-        <div class="bg-pub-darker rounded-lg p-4 sticky top-6">
+      <div class="w-full lg:w-64 flex-shrink-0">
+        <div class="bg-pub-darker rounded-lg p-4 lg:sticky lg:top-6">
           <h3 class="text-sm font-semibold text-pub-muted mb-3">Leaderboard</h3>
           <ol class="space-y-2 text-sm">
             {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
