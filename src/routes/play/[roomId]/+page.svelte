@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -12,7 +13,8 @@
   let state: SerializedState | null = null;
   let countdown: ReturnType<typeof useCountdown> | null = null;
 
-  $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
+  $: timerEndsAt =
+    state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt);
@@ -82,12 +84,21 @@
     }
   }
 
-  function timeExpired(): boolean {
-    return !!(state?.type === 'Question' && state.timerEndsAt && countdown && $countdown === 0);
-  }
+  $: currentQuestionId = getCurrentQuestion()?.id ?? '';
+  $: questionTimeExpired = !!(
+    state?.type === 'Question' &&
+    state?.timerEndsAt &&
+    countdown &&
+    ($countdown ?? 0) === 0
+  );
+  $: hasAnsweredCurrentQuestion =
+    hasSubmitted(currentQuestionId) ||
+    selectedAnswer?.questionId === currentQuestionId ||
+    selectedInput === currentQuestionId;
+  $: showTimesUpMessage = !!(questionTimeExpired && !hasAnsweredCurrentQuestion);
 
   function submitChoice(questionId: string, answerIndex: number) {
-    if (hasSubmitted(questionId) || selectedAnswer?.questionId === questionId || timeExpired()) return;
+    if (hasSubmitted(questionId) || selectedAnswer?.questionId === questionId || questionTimeExpired) return;
     submitError = '';
     selectedAnswer = { questionId, answerIndex };
     const playerId = getOrCreatePlayerId();
@@ -107,7 +118,7 @@
   }
 
   function submitInput(questionId: string, answerText: string) {
-    if (hasSubmitted(questionId) || selectedInput === questionId || timeExpired()) return;
+    if (hasSubmitted(questionId) || selectedInput === questionId || questionTimeExpired) return;
     submitError = '';
     selectedInput = questionId;
     const playerId = getOrCreatePlayerId();
@@ -148,15 +159,22 @@
   }
 
   $: playerId = getOrCreatePlayerId();
-  $: myScore = state?.players?.find((p) => p.id === playerId)?.score ?? 0;
+  $: currentPlayer = state?.players?.find((p) => p.id === playerId);
+  $: myScore = currentPlayer?.score ?? 0;
+  $: playerDisplayName = (currentPlayer?.name ?? name.trim()) || 'Anonymous';
+  $: playerDisplayEmoji = currentPlayer?.emoji ?? emoji;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
+  $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
 </script>
 
 <div class="min-h-screen p-6">
   <div class="max-w-2xl mx-auto">
     {#if registered && state}
-      <div class="flex justify-end items-center mb-4">
-        <span class="text-pub-gold font-bold">Your score: {myScore}</span>
+      <div class="flex justify-between items-center gap-3 mb-4">
+        <span class="text-pub-gold font-bold truncate">
+          {state.quiz?.meta?.name ?? 'Quiz'}
+        </span>
+        <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
       </div>
     {/if}
     {#if state?.type === 'Lobby' && !registered}
@@ -210,9 +228,14 @@
       <div class="bg-pub-darker rounded-lg p-6">
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()!}
-          <p class="text-pub-muted text-sm mb-2">
-            {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-          </p>
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <p class="text-pub-gold text-base font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            {#if countdown}
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
+            {/if}
+          </div>
           <p class="text-xl mb-6">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state.quizFilename)}
@@ -220,19 +243,17 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if state?.type === 'Question' && state.timerEndsAt && countdown}
-            <p class="text-pub-gold font-mono text-lg mb-4">{$countdown}s</p>
-          {/if}
           {#if q.type === 'choice'}
             <div class="space-y-2">
               {#each q.options as opt, i}
+                {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
                 <button
-                  class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2"
-                  disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || timeExpired()}
+                  class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
+                  disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || questionTimeExpired}
                   on:click={() => submitChoice(q.id, i)}
                 >
                   <span class="w-4 text-pub-gold" aria-hidden="true">
-                    {#if (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+                    {#if isChosen}
                       ●
                     {/if}
                   </span>
@@ -247,7 +268,7 @@
             <form
               class="flex gap-2"
               on:submit|preventDefault={() => {
-                if (inputAnswer.trim() && !hasSubmitted(q.id) && !timeExpired()) {
+                if (inputAnswer.trim() && !hasSubmitted(q.id) && !questionTimeExpired) {
                   submitInput(q.id, inputAnswer.trim());
                   inputAnswer = '';
                 }
@@ -260,7 +281,7 @@
                 class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
                 on:keydown={(e) => {
                   if (e.key === 'Enter') {
-                    if (inputAnswer.trim() && !timeExpired()) {
+                    if (inputAnswer.trim() && !questionTimeExpired) {
                       submitInput(q.id, inputAnswer.trim());
                       inputAnswer = '';
                     }
@@ -270,15 +291,17 @@
               <button
                 type="submit"
                 class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                disabled={hasSubmitted(q.id) || !inputAnswer.trim() || timeExpired()}
+                disabled={hasSubmitted(q.id) || !inputAnswer.trim() || questionTimeExpired}
               >
                 Submit
               </button>
             </form>
           {/if}
         {/if}
-        {#if hasSubmitted(getCurrentQuestion()?.id ?? '') || selectedAnswer?.questionId === getCurrentQuestion()?.id || selectedInput === getCurrentQuestion()?.id}
+        {#if hasAnsweredCurrentQuestion}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
+        {:else if showTimesUpMessage}
+          <p class="mt-4 text-red-400">Time's Up!</p>
         {:else if submitError}
           <p class="mt-4 text-red-500">{submitError}</p>
         {/if}
@@ -287,6 +310,14 @@
       <div class="bg-pub-darker rounded-lg p-6">
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()!}
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <p class="text-pub-gold text-base font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            {#if countdown}
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
+            {/if}
+          </div>
           <p class="text-xl mb-4">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state.quizFilename)}
@@ -297,8 +328,14 @@
           {#if q.type === 'choice'}
             <ul class="space-y-2">
               {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
+                {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
                   <div class="flex items-center gap-2">
+                    <span class="w-4 text-pub-gold" aria-hidden="true">
+                      {#if isChosen}
+                        ●
+                      {/if}
+                    </span>
                     <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
@@ -324,9 +361,12 @@
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
       <div class="bg-pub-darker rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-6">
-          {state.type === 'End' ? 'Final ' : ''}Leaderboard
+        <h2 class="text-xl font-bold mb-2">
+          {state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
         </h2>
+        {#if state.type === 'End'}
+          <p class="text-pub-muted mb-6">The host ended this quiz session.</p>
+        {/if}
         <ol class="space-y-3">
           {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
             <li class="flex items-center gap-4">

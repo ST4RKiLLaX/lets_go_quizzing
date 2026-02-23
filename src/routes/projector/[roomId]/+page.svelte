@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -23,8 +24,10 @@
     });
   }
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
 
-  $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
+  $: timerEndsAt =
+    state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt);
@@ -117,7 +120,7 @@
 <div class="min-h-screen p-8 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
     {#if state?.quiz?.meta?.name}
-      <h1 class="text-5xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
+      <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
     {/if}
     {#if state?.type === 'Lobby'}
       <div class="text-center">
@@ -139,18 +142,20 @@
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
         {@const q = getCurrentQuestion()}
         {#if q}
-          <p class="text-pub-muted text-lg mb-2">
-            {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-          </p>
+          <div class="flex items-start justify-between gap-6 mb-2">
+            <p class="text-pub-gold text-xl font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            {#if state.timerEndsAt && countdown}
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} size={72} />
+            {/if}
+          </div>
           <p class="text-3xl mb-8">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
-          {/if}
-          {#if state.timerEndsAt && countdown}
-            <p class="text-pub-gold font-mono text-2xl mb-6">{$countdown}s</p>
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-3">
@@ -187,6 +192,14 @@
       <div class="bg-pub-darker rounded-lg p-8">
         {#if getCurrentQuestion()}
           {@const q = getCurrentQuestion()!}
+          <div class="flex items-start justify-between gap-6 mb-2">
+            <p class="text-pub-gold text-xl font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            {#if countdown}
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} size={72} />
+            {/if}
+          </div>
           <p class="text-2xl mb-6">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
@@ -240,9 +253,12 @@
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
       <div class="bg-pub-darker rounded-lg p-8">
-        <h2 class="text-3xl font-bold mb-8">
-          {state.type === 'End' ? 'Final ' : ''}Leaderboard
+        <h2 class="text-3xl font-bold mb-3">
+          {state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
         </h2>
+        {#if state.type === 'End'}
+          <p class="text-xl text-pub-muted mb-8">The host ended this quiz session.</p>
+        {/if}
         <ol class="space-y-4">
           {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
             <li class="flex items-center gap-6 text-2xl">

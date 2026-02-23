@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -12,10 +13,13 @@
   let state: SerializedState | null = null;
   let joinError = '';
   let hostRejoinPassword = '';
+  let showEndQuizModal = false;
   let countdown: ReturnType<typeof useCountdown> | null = null;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
+  $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
 
-  $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
+  $: timerEndsAt =
+    state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt);
@@ -70,12 +74,21 @@
     socket?.emit('host:next', {}, () => {});
   }
 
-  function stopTimer() {
-    socket?.emit('host:stop_timer', {}, () => {});
-  }
-
   function showLeaderboard() {
     socket?.emit('host:show_leaderboard', {}, () => {});
+  }
+
+  function openEndQuizModal() {
+    showEndQuizModal = true;
+  }
+
+  function closeEndQuizModal() {
+    showEndQuizModal = false;
+  }
+
+  function confirmEndQuiz() {
+    socket?.emit('host:end_game', {}, () => {});
+    showEndQuizModal = false;
   }
 
   function override(playerId: string, questionId: string, delta: number) {
@@ -108,13 +121,24 @@
       </p>
       <div class="flex items-center justify-between gap-3">
         <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
-        <button
-          type="button"
-          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90 shrink-0"
-          on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-        >
-          Projector
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
+          >
+            Projector
+          </button>
+          {#if state && state.type !== 'End'}
+            <button
+              type="button"
+              class="px-4 py-2 bg-red-700 rounded-lg font-medium hover:opacity-90"
+              on:click={openEndQuizModal}
+            >
+              End Quiz
+            </button>
+          {/if}
+        </div>
       </div>
     </div>
 
@@ -127,14 +151,6 @@
           </p>
         </div>
         <p class="text-pub-muted mb-4">Players join at: <span class="text-sm break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/play/{roomId}</span></p>
-        <div class="space-y-2 mb-6">
-          {#each state.players ?? [] as player}
-            <div class="flex items-center gap-2">
-              <span>{player.emoji}</span>
-              <span>{player.name}</span>
-            </div>
-          {/each}
-        </div>
         <div class="flex flex-wrap gap-3 sm:gap-4">
           <button
             class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
@@ -149,18 +165,20 @@
         {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
         {@const q = getCurrentQuestion()}
         {#if q}
-          <p class="text-pub-muted text-sm mb-2">
-            {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-          </p>
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <p class="text-pub-gold text-base font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            {#if countdown}
+              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
+            {/if}
+          </div>
           <p class="text-xl mb-6">{q.text}</p>
           {#if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
-          {/if}
-          {#if state?.type === 'Question' && state.timerEndsAt && countdown}
-            <p class="text-pub-gold font-mono text-lg mb-4">{$countdown}s</p>
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-2">
@@ -199,14 +217,6 @@
         {/if}
 
         <div class="flex gap-4 mt-6 flex-wrap items-center">
-          {#if state?.type === 'Question'}
-            <button
-              class="px-4 py-2 bg-amber-600 rounded-lg font-medium hover:opacity-90"
-              on:click={stopTimer}
-            >
-              Stop Timer
-            </button>
-          {/if}
           <button
             class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
             on:click={next}
@@ -331,7 +341,10 @@
     {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
       <div class="w-full lg:w-64 flex-shrink-0">
         <div class="bg-pub-darker rounded-lg p-4 lg:sticky lg:top-6">
-          <h3 class="text-sm font-semibold text-pub-muted mb-3">Leaderboard</h3>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-semibold text-pub-muted">Players</h3>
+            <span class="text-sm text-pub-muted">{(state.players ?? []).length} active</span>
+          </div>
           <ol class="space-y-2 text-sm">
             {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
               <li class="flex items-center gap-2">
@@ -350,3 +363,31 @@
     {/if}
   </div>
 </div>
+
+{#if showEndQuizModal}
+  <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5">
+      <h2 class="text-lg font-semibold text-pub-gold mb-3">End quiz now?</h2>
+      <p class="text-sm text-pub-muted mb-5">
+        If you end the quiz now, all players and the projector will immediately see that the quiz has ended.
+        This room cannot continue from where it left off.
+      </p>
+      <div class="flex justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+          on:click={closeEndQuizModal}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-red-700 rounded-lg font-medium hover:opacity-90"
+          on:click={confirmEndQuiz}
+        >
+          End Quiz
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

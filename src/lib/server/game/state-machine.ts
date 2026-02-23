@@ -67,6 +67,12 @@ export function transition(
 ): GameState {
   const st = state.type;
   if (st === 'Lobby') {
+    if (event.type === 'END_GAME') {
+      return {
+        ...state,
+        type: 'End',
+      };
+    }
     if (event.type === 'START_GAME') {
       return {
         ...state,
@@ -80,6 +86,13 @@ export function transition(
       };
     }
   } else if (st === 'Question') {
+    if (event.type === 'END_GAME') {
+      return {
+        ...state,
+        type: 'End',
+        timerEndsAt: undefined,
+      };
+    }
     if (event.type === 'NEXT' || event.type === 'STOP_TIMER') {
       return {
         ...state,
@@ -88,6 +101,12 @@ export function transition(
       };
     }
   } else if (st === 'RevealAnswer') {
+    if (event.type === 'END_GAME') {
+      return {
+        ...state,
+        type: 'End',
+      };
+    }
     if (event.type === 'NEXT') {
       if (hasNextQuestion(state)) {
         const timer = state.quiz.meta.default_timer;

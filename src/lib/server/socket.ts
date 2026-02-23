@@ -279,6 +279,26 @@ export function initSocket(httpServer: import('http').Server): Server {
       io.to(roomId).emit('state:update', { state: serializeState(next) });
     });
 
+    socket.on('host:end_game', (_, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ error: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ error: 'Room not found' });
+        return;
+      }
+      const next = transition(state, { type: 'END_GAME' });
+      setRoom(roomId, next);
+      if (next.type === 'End') {
+        saveHistory(next);
+      }
+      ack?.({ ok: true });
+      io.to(roomId).emit('state:update', { state: serializeState(next) });
+    });
+
     socket.on('host:override', (payload: { playerId: string; questionId: string; delta?: number }, ack) => {
       const roomId = socket.data.roomId;
       if (!roomId || socket.data.role !== 'host') {
