@@ -28,3 +28,8 @@ npm-debug.log*
 
 # Game history (keep folder, ignore results)
 data/history/*.json
+
+# Quizzes (import/export artifacts and uploads)
+data/quizzes/**
+!data/quizzes/
+!data/quizzes/quiz_reference_sample.yml
