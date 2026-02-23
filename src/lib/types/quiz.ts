@@ -4,6 +4,7 @@ export interface QuizMeta {
   default_timer?: number;
   fuzzy_threshold?: number;
   scoring_mode?: 'standard' | 'ranked';
+  option_label_style?: 'letters' | 'numbers';
   ranked_max_points?: number;
   ranked_min_points?: number;
 }
@@ -12,6 +13,7 @@ export interface ChoiceQuestion {
   id: string;
   type: 'choice';
   text: string;
+  explanation?: string;
   image?: string;
   options: string[];
   answer: number;
@@ -21,6 +23,7 @@ export interface InputQuestion {
   id: string;
   type: 'input';
   text: string;
+  explanation?: string;
   image?: string;
   answer: string[];
 }

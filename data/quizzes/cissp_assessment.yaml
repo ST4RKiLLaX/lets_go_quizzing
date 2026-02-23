@@ -3,6 +3,7 @@ meta:
   author: Juan
   default_timer: 60
   scoring_mode: ranked
+  option_label_style: numbers
   ranked_max_points: 5
   ranked_min_points: 1
 rounds:
@@ -11,6 +12,7 @@ rounds:
       - id: q1
         type: choice
         text: An organization is migrating from a traditional perimeter security model to a Zero Trust Architecture (ZTA). Which change to their Demilitarized Zone (DMZ) strategy best aligns with this transition?
+        explanation: Zero Trust Architecture assumes no implicit trust based on network location. Moving away from traditional DMZs involves using identity-based access and micro-segmentation to secure resources granularly.
         options:
           - Expanding the DMZ to encompass cloud resources
           - Relying solely on edge firewalls for internal trust
@@ -20,6 +22,7 @@ rounds:
       - id: q2
         type: choice
         text: How does the Simultaneous Authentication of Equals (SAE) protocol in modern wireless networks improve upon previous security standards?
+        explanation: SAE (used in WPA3) replaces the standard Pre-Shared Key (PSK) exchange with the Dragonfly handshake, requiring interactive cryptographic exchanges that make offline brute-force dictionary attacks computationally infeasible.
         options:
           - It hides the SSID from passive scanning
           - It uses a centralized authentication server for all keys
@@ -29,6 +32,7 @@ rounds:
       - id: q3
         type: choice
         text: When deploying applications using OS-level virtualization (like LXC) instead of traditional virtual machines, what is the primary security concern?
+        explanation: Unlike traditional VMs which use a hypervisor and have independent kernels, containers share the host operating system's kernel. A vulnerability leading to kernel privilege escalation could compromise all containers on that host.
         options:
           - A privilege escalation in the shared host kernel could compromise all containers
           - Containers cannot use encrypted storage volumes
@@ -38,6 +42,7 @@ rounds:
       - id: q4
         type: choice
         text: A development team frequently forks open-source repositories and integrates pull requests into their proprietary software. Which control BEST mitigates the risk of a software supply chain attack?
+        explanation: An SBOM provides visibility into the components of an application, allowing automated vulnerability scanners in the CI/CD pipeline to detect known flaws in third-party dependencies before they are deployed to production.
         options:
           - Automated Software Bill of Materials (SBOM) generation and vulnerability scanning in the CI/CD pipeline
           - Relying solely on the community reputation of the upstream project
@@ -47,6 +52,7 @@ rounds:
       - id: q5
         type: choice
         text: Under the cloud shared responsibility model in an Infrastructure as a Service (IaaS) environment, which task remains the sole responsibility of the cloud customer?
+        explanation: In an IaaS model, the cloud provider manages the physical hardware, networking, and hypervisor. The customer is responsible for everything built on top of the hypervisor, including the guest OS, applications, and data.
         options:
           - Patching the guest operating systems of deployed virtual instances
           - Securing the physical hypervisor infrastructure
@@ -56,6 +62,7 @@ rounds:
       - id: q6
         type: choice
         text: During an active ransomware incident, the response team decides to logically isolate affected network segments rather than immediately powering off the infected servers. What is the primary justification for this decision?
+        explanation: Logically disconnecting the network stops the spread of the ransomware and severs external Command and Control (C2) communication, while keeping the machine powered on preserves valuable volatile memory (RAM) for forensic investigation.
         options:
           - To allow the encryption to finish so a decryption key can be purchased
           - To ensure backup servers remain accessible over the infected network
@@ -65,6 +72,7 @@ rounds:
       - id: q7
         type: choice
         text: When implementing Federated Identity Management between two distinct organizations using SAML, what role does the Identity Provider (IdP) primarily serve?
+        explanation: In a SAML federation, the Identity Provider (IdP) authenticates the user's credentials and generates a digitally signed assertion, which is then passed to the Service Provider (SP) to grant access.
         options:
           - It consumes the authentication assertion to grant access to a resource
           - It authenticates the user and generates a digitally signed assertion
@@ -74,6 +82,7 @@ rounds:
       - id: q8
         type: choice
         text: To comply with modern privacy frameworks, an organization replaces direct identifiers in a dataset with artificial identifiers. The mapping table is stored securely in a separate location. Which technique has been applied?
+        explanation: Pseudonymization replaces sensitive data with artificial identifiers (pseudonyms) and keeps the mapping key separate. Unlike anonymization, which is irreversible, pseudonymized data can be re-identified if the key is compromised.
         options:
           - Data masking
           - Anonymization
@@ -83,6 +92,7 @@ rounds:
       - id: q9
         type: choice
         text: Which cryptographic concept ensures that the compromise of a server's long-term private key does not compromise the confidentiality of past captured session keys?
+        explanation: Perfect Forward Secrecy (PFS) uses ephemeral (temporary) keys for each session (e.g., using Ephemeral Diffie-Hellman). If a long-term private key is compromised in the future, past traffic remains secure because the session keys were not derived directly from it.
         options:
           - Perfect Forward Secrecy
           - Asymmetric Encryption
@@ -92,6 +102,7 @@ rounds:
       - id: q10
         type: choice
         text: An organization wants to test its disaster recovery plan by activating the alternate site and processing real-world data transactions, but without shutting down the primary site. Which type of test is this?
+        explanation: A parallel test involves running the backup or alternate site alongside the primary site, processing live data at both locations to ensure the backup systems function correctly without interrupting primary business operations.
         options:
           - Tabletop exercise
           - Full interruption test

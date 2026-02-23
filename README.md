@@ -85,6 +85,8 @@ meta:
   name: "Pub Quiz Night"
   author: "Quizmaster"
   default_timer: 30
+  # Optional: choice option labels in views: "letters" (A,B,C) or "numbers" (1,2,3)
+  option_label_style: "letters"
 
 rounds:
   - name: "Round 1"
@@ -94,10 +96,12 @@ rounds:
         text: "What is the capital of Australia?"
         options: ["Sydney", "Melbourne", "Canberra", "Perth"]
         answer: 2
+        explanation: "Canberra is Australia’s capital city."
       - id: "q2"
         type: "input"
         text: "Complete: 'Is this the real life? Is this just _____?'"
         answer: ["fantasy", "fantsy"]
+        explanation: "This lyric is from Queen's Bohemian Rhapsody."
 ```
 
 ---

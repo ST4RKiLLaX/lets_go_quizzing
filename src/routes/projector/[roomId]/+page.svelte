@@ -3,6 +3,7 @@
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
   import { generate } from 'lean-qr';
@@ -30,6 +31,7 @@
   }
   onDestroy(() => countdown?.destroy?.());
   let socket: ReturnType<typeof createSocket> | null = null;
+  $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
 
   function getCurrentQuestion() {
     if (!state) return null;
@@ -149,8 +151,15 @@
           {/if}
           {#if q.type === 'choice'}
             <ul class="space-y-3">
-              {#each q.options as opt}
-                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl">{opt}</li>
+              {#each q.options as opt, i}
+                <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl">
+                  <div class="flex items-start gap-3">
+                    <span class="w-10 text-center text-2xl font-semibold text-pub-gold shrink-0">
+                      {formatOptionLabel(i, optionLabelStyle)}.
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                  </div>
+                </li>
               {/each}
             </ul>
           {:else if q.type === 'input'}
@@ -186,13 +195,25 @@
             <ul class="space-y-3">
               {#each q.options as opt, i}
                 <li class="px-6 py-4 bg-pub-dark rounded-lg text-xl {q.answer === i ? 'ring-2 ring-pub-gold text-pub-gold' : ''}">
-                  {opt} {#if q.answer === i}(correct){/if}
+                  <div class="flex items-start gap-3">
+                    <span class="w-10 text-center text-2xl font-semibold text-pub-gold shrink-0">
+                      {formatOptionLabel(i, optionLabelStyle)}.
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if q.answer === i}(correct){/if}
+                    </span>
+                  </div>
                 </li>
               {/each}
             </ul>
           {:else if q.type === 'input'}
             <p class="px-6 py-4 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold text-xl">
               Correct: {q.answer.filter(Boolean).join(' / ')}
+            </p>
+          {/if}
+          {#if q.explanation?.trim()}
+            <p class="mt-4 px-6 py-4 bg-pub-dark rounded-lg text-pub-muted text-lg">
+              {q.explanation}
             </p>
           {/if}
         {/if}

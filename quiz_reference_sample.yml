@@ -16,6 +16,9 @@ meta:
   # Optional: Typo tolerance 0-1 for fill-in (input) answers. E.g. 0.8 allows "fantsy" for "fantasy"
   # fuzzy_threshold: 0.85
 
+  # Optional: Choice option labels in player/host/projector views
+  # option_label_style: letters  # or: numbers
+
   # Optional: Scoring mode. standard = 1 pt per correct. ranked = first correct gets max, last gets min.
   # scoring_mode: standard  # or: ranked
 
@@ -43,6 +46,8 @@ rounds:
           - Perth
         # Answer: 0-based index of correct option. 0=Sydney, 1=Melbourne, 2=Canberra, 3=Perth
         answer: 2
+        # Optional: Shown when the answer is revealed
+        explanation: "Canberra is the capital city of Australia, not Sydney."
 
       # --- INPUT QUESTION (fill in the blank) ---
       - id: q2
@@ -54,6 +59,8 @@ rounds:
         answer:
           - fantasy
           - fantsy
+        # Optional: Shown when the answer is revealed
+        explanation: "The lyric is from Queen's Bohemian Rhapsody."
 
       # --- CHOICE with image ---
       - id: q3

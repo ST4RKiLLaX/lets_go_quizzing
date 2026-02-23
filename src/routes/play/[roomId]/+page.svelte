@@ -3,6 +3,7 @@
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
 
@@ -148,6 +149,7 @@
 
   $: playerId = getOrCreatePlayerId();
   $: myScore = state?.players?.find((p) => p.id === playerId)?.score ?? 0;
+  $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
 </script>
 
 <div class="min-h-screen p-6">
@@ -229,10 +231,15 @@
                   disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || timeExpired()}
                   on:click={() => submitChoice(q.id, i)}
                 >
-                  {#if (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
-                    <span class="text-pub-gold" aria-hidden="true">●</span>
-                  {/if}
-                  {opt}
+                  <span class="w-4 text-pub-gold" aria-hidden="true">
+                    {#if (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+                      ●
+                    {/if}
+                  </span>
+                  <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
+                    {formatOptionLabel(i, optionLabelStyle)}.
+                  </span>
+                  <span class="flex-1 break-words">{opt}</span>
                 </button>
               {/each}
             </div>
@@ -291,13 +298,25 @@
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-pub-gold' : ''}">
-                  {opt} {#if q.answer === i}(correct){/if}
+                  <div class="flex items-start gap-2">
+                    <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
+                      {formatOptionLabel(i, optionLabelStyle)}.
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if q.answer === i}(correct){/if}
+                    </span>
+                  </div>
                 </li>
               {/each}
             </ul>
           {:else if q.type === 'input'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
+            </p>
+          {/if}
+          {#if q.explanation?.trim()}
+            <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
+              {q.explanation}
             </p>
           {/if}
         {/if}

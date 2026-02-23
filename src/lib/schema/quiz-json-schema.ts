@@ -26,6 +26,11 @@ export const QUIZ_JSON_SCHEMA = {
           enum: ['standard', 'ranked'],
           description: 'standard = 1 point per correct answer. ranked = first correct gets max points, last gets min.',
         },
+        option_label_style: {
+          type: 'string',
+          enum: ['letters', 'numbers'],
+          description: 'How choice options are shown to players: letters (A, B, C) or numbers (1, 2, 3).',
+        },
         ranked_max_points: {
           type: 'integer',
           minimum: 0,
@@ -61,6 +66,10 @@ export const QUIZ_JSON_SCHEMA = {
                   description: "choice = multiple choice, input = fill in the blank",
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
+                explanation: {
+                  type: 'string',
+                  description: 'Optional explanation shown after revealing the answer',
+                },
                 image: {
                   type: 'string',
                   description:

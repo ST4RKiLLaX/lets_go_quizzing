@@ -38,6 +38,7 @@ const ChoiceQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('choice'),
   text: z.string(),
+  explanation: z.string().optional(),
   image: imageSchema,
   options: z.array(z.string()),
   answer: z.number().int().min(0),
@@ -47,6 +48,7 @@ const InputQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('input'),
   text: z.string(),
+  explanation: z.string().optional(),
   image: imageSchema,
   answer: z.union([z.string(), z.array(z.string())]).transform((v) =>
     Array.isArray(v) ? v : [v]
@@ -77,6 +79,7 @@ const QuizMetaSchema = z.object({
   default_timer: z.number().int().min(0).optional(),
   fuzzy_threshold: z.number().min(0).max(1).optional(),
   scoring_mode: z.enum(['standard', 'ranked']).optional(),
+  option_label_style: z.enum(['letters', 'numbers']).optional(),
   ranked_max_points: z.number().int().min(0).optional(),
   ranked_min_points: z.number().int().min(0).optional(),
 });

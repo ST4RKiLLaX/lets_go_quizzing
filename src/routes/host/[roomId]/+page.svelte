@@ -3,6 +3,7 @@
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
 
@@ -12,6 +13,7 @@
   let joinError = '';
   let hostRejoinPassword = '';
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
 
   $: timerEndsAt = state?.type === 'Question' ? state.timerEndsAt : undefined;
   $: {
@@ -156,13 +158,25 @@
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-pub-gold' : ''}">
-                  {opt} {#if state?.type === 'RevealAnswer' && q.answer === i}(correct){/if}
+                  <div class="flex items-start gap-2">
+                    <span class="w-8 text-center text-lg font-semibold text-pub-gold shrink-0">
+                      {formatOptionLabel(i, optionLabelStyle)}.
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if state?.type === 'RevealAnswer' && q.answer === i}(correct){/if}
+                    </span>
+                  </div>
                 </li>
               {/each}
             </ul>
           {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
+            </p>
+          {/if}
+          {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
+            <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
+              {q.explanation}
             </p>
           {/if}
         {/if}

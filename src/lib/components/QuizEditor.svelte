@@ -92,7 +92,7 @@
   function setQuestionType(ri: number, qi: number, type: 'choice' | 'input') {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
-    const base = { id: q.id, text: q.text, image: q.image };
+    const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image };
     const newQ: Question =
       type === 'choice'
         ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
@@ -321,6 +321,19 @@
           <option value="ranked">Ranked (first gets most points)</option>
         </select>
       </div>
+      <div>
+        <label for="quiz-option-label-style" class="block text-sm text-pub-muted mb-1">Choice option labels</label>
+        <select
+          id="quiz-option-label-style"
+          value={quiz.meta.option_label_style ?? 'letters'}
+          on:change={(e) =>
+            (quiz.meta.option_label_style = (e.currentTarget as HTMLSelectElement).value as 'letters' | 'numbers')}
+          class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+        >
+          <option value="letters">Letters (A, B, C...)</option>
+          <option value="numbers">Numbers (1, 2, 3...)</option>
+        </select>
+      </div>
       {#if (quiz.meta.scoring_mode ?? 'standard') === 'ranked'}
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -513,6 +526,16 @@
               </button>
             </div>
           {/if}
+          <div class="mt-3">
+            <label for="exp-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Explanation (optional)</label>
+            <textarea
+              id="exp-{ri}-{qi}"
+              bind:value={question.explanation}
+              placeholder="Explain why this answer is correct"
+              rows="2"
+              class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+            ></textarea>
+          </div>
         </div>
       {/each}
       <button
