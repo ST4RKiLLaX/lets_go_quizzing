@@ -1,10 +1,16 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { onDestroy, onMount } from 'svelte';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
+
+  type QuizListItem = {
+    filename: string;
+    title: string;
+  };
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
@@ -14,15 +20,126 @@
   let creating = false;
   let hostAuthenticated = false;
   let showQuizMenu = false;
+  let quizzes: QuizListItem[] = [];
+  let selectedQuiz: QuizListItem | null = null;
+  let hostPasswordRequired = false;
+  let highlightedQuizIndex = -1;
+  let quizMenuRoot: HTMLDivElement | null = null;
 
-  $: quizzes = $page.data.quizzes ?? [];
+  const quizSelectLabelId = 'quiz-select-label';
+  const quizSelectListboxId = 'quiz-select-listbox';
+
+  $: quizzes = ($page.data.quizzes ?? []) as QuizListItem[];
   $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
   $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0].filename;
   $: selectedQuiz = quizzes.find((q) => q.filename === quizFilename) ?? null;
+  $: if (showQuizMenu) {
+    highlightedQuizIndex = Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
+  }
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
     if (hostPasswordRequired) {
       refreshHostAuthState();
+    }
+  }
+
+  onMount(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!showQuizMenu || !quizMenuRoot) return;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!quizMenuRoot.contains(target)) {
+        closeQuizMenu();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  });
+
+  onDestroy(() => {
+    closeQuizMenu();
+  });
+
+  function openQuizMenu() {
+    showQuizMenu = true;
+  }
+
+  function closeQuizMenu() {
+    showQuizMenu = false;
+    highlightedQuizIndex = -1;
+  }
+
+  function selectQuizByIndex(index: number) {
+    if (index < 0 || index >= quizzes.length) return;
+    quizFilename = quizzes[index].filename;
+    closeQuizMenu();
+  }
+
+  function moveQuizHighlight(delta: number) {
+    if (quizzes.length === 0) return;
+    if (!showQuizMenu) openQuizMenu();
+    if (highlightedQuizIndex < 0) {
+      highlightedQuizIndex = Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
+      return;
+    }
+    highlightedQuizIndex = (highlightedQuizIndex + delta + quizzes.length) % quizzes.length;
+  }
+
+  function onQuizTriggerKeydown(event: KeyboardEvent) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveQuizHighlight(1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveQuizHighlight(-1);
+      return;
+    }
+    if (event.key === 'Escape') {
+      if (showQuizMenu) {
+        event.preventDefault();
+        closeQuizMenu();
+      }
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (!showQuizMenu) {
+        openQuizMenu();
+      } else {
+        const targetIndex =
+          highlightedQuizIndex >= 0
+            ? highlightedQuizIndex
+            : Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
+        selectQuizByIndex(targetIndex);
+      }
+    }
+  }
+
+  function onQuizListKeydown(event: KeyboardEvent) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveQuizHighlight(1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveQuizHighlight(-1);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeQuizMenu();
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (highlightedQuizIndex >= 0) {
+        selectQuizByIndex(highlightedQuizIndex);
+      }
     }
   }
 
@@ -189,13 +306,16 @@
       class="w-full max-w-md space-y-4"
       on:submit|preventDefault={createRoom}
     >
-      <label class="block text-sm text-pub-muted">Select Quiz</label>
-      <div class="relative">
+      <p id={quizSelectLabelId} class="block text-sm text-pub-muted">Select Quiz</p>
+      <div class="relative" bind:this={quizMenuRoot}>
         <button
           type="button"
           class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 text-left hover:opacity-90"
-          on:click={() => (showQuizMenu = !showQuizMenu)}
+          on:click={() => (showQuizMenu ? closeQuizMenu() : openQuizMenu())}
+          on:keydown={onQuizTriggerKeydown}
+          aria-labelledby={quizSelectLabelId}
           aria-haspopup="listbox"
+          aria-controls={quizSelectListboxId}
           aria-expanded={showQuizMenu}
         >
           {#if selectedQuiz}
@@ -206,14 +326,23 @@
           {/if}
         </button>
         {#if showQuizMenu}
-          <div class="absolute z-20 mt-2 w-full bg-pub-darker border border-pub-muted rounded-lg shadow-lg max-h-64 overflow-auto">
-            {#each quizzes as q}
+          <div
+            id={quizSelectListboxId}
+            role="listbox"
+            tabindex="-1"
+            aria-labelledby={quizSelectLabelId}
+            class="absolute z-20 mt-2 w-full bg-pub-darker border border-pub-muted rounded-lg shadow-lg max-h-64 overflow-auto"
+            on:keydown={onQuizListKeydown}
+          >
+            {#each quizzes as q, i}
               <button
                 type="button"
-                class="w-full text-left px-4 py-2 hover:bg-pub-dark border-b border-pub-muted/40 last:border-b-0"
+                role="option"
+                aria-selected={q.filename === quizFilename}
+                class="w-full text-left px-4 py-2 hover:bg-pub-dark border-b border-pub-muted/40 last:border-b-0 {i === highlightedQuizIndex ? 'bg-pub-dark' : ''}"
+                on:mouseenter={() => (highlightedQuizIndex = i)}
                 on:click={() => {
-                  quizFilename = q.filename;
-                  showQuizMenu = false;
+                  selectQuizByIndex(i);
                 }}
               >
                 <span class="block">{q.title}</span>

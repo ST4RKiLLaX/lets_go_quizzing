@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
+  import PlayerConfetti from '$lib/components/PlayerConfetti.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -12,6 +13,11 @@
 
   let state: SerializedState | null = null;
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  const confettiDurationMs = 1200;
+  let showConfetti = false;
+  let confettiRunId = 0;
+  let previousStateType: SerializedState['type'] | null = null;
+  const celebratedRevealKeys = new Set<string>();
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
@@ -19,7 +25,9 @@
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt);
   }
-  onDestroy(() => countdown?.destroy?.());
+  onDestroy(() => {
+    countdown?.destroy?.();
+  });
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
   let emoji = '👤';
@@ -165,9 +173,53 @@
   $: playerDisplayEmoji = currentPlayer?.emoji ?? emoji;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: revealQuestion = state?.type === 'RevealAnswer' ? getCurrentQuestion() : null;
+  $: revealKey =
+    state?.type === 'RevealAnswer' && revealQuestion
+      ? `${state.currentRoundIndex}-${state.currentQuestionIndex}-${revealQuestion.id}`
+      : '';
+  $: {
+    const currentType = state?.type ?? null;
+    const enteredReveal = currentType === 'RevealAnswer' && previousStateType !== 'RevealAnswer';
+    if (
+      enteredReveal &&
+      revealKey &&
+      !celebratedRevealKeys.has(revealKey) &&
+      isCurrentPlayerCorrectOnReveal(revealQuestion?.id ?? '')
+    ) {
+      celebratedRevealKeys.add(revealKey);
+      triggerConfetti();
+    }
+    previousStateType = currentType;
+  }
+
+  function isCurrentPlayerCorrectOnReveal(questionId: string): boolean {
+    if (!questionId || state?.type !== 'RevealAnswer') return false;
+    const me = getOrCreatePlayerId();
+    const submitted =
+      state.submissions?.some((s) => s.playerId === me && s.questionId === questionId) ?? false;
+    if (!submitted) return false;
+    const markedWrong =
+      state.wrongAnswers?.some((w) => w.playerId === me && w.questionId === questionId) ?? false;
+    return !markedWrong;
+  }
+
+  function triggerConfetti() {
+    showConfetti = true;
+    confettiRunId += 1;
+  }
+
+  function onConfettiDone() {
+    showConfetti = false;
+  }
 </script>
 
 <div class="min-h-screen p-6">
+  {#key confettiRunId}
+    {#if showConfetti}
+      <PlayerConfetti durationMs={confettiDurationMs} on:done={onConfettiDone} />
+    {/if}
+  {/key}
   <div class="max-w-2xl mx-auto">
     {#if registered && state}
       <div class="flex justify-between items-center gap-3 mb-4">
