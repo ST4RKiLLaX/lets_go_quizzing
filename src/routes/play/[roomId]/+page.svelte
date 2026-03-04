@@ -13,6 +13,7 @@
 
   let state: SerializedState | null = null;
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  let clockOffsetMs = 0;
   const confettiDurationMs = 1200;
   let showConfetti = false;
   let confettiRunId = 0;
@@ -21,9 +22,10 @@
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
+  $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
   $: {
     countdown?.destroy?.();
-    countdown = useCountdown(timerEndsAt);
+    countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
   onDestroy(() => {
     countdown?.destroy?.();

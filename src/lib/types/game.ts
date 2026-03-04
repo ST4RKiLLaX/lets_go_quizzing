@@ -25,6 +25,7 @@ export interface SerializedState {
   type: string;
   quiz: Quiz;
   quizFilename?: string;
+  serverNow?: number;
   players: SerializedPlayer[];
   currentRoundIndex: number;
   currentQuestionIndex: number;

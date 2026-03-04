@@ -24,13 +24,15 @@
     });
   }
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  let clockOffsetMs = 0;
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: {
     countdown?.destroy?.();
-    countdown = useCountdown(timerEndsAt);
+    countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
   onDestroy(() => countdown?.destroy?.());
   let socket: ReturnType<typeof createSocket> | null = null;

@@ -15,14 +15,16 @@
   let hostRejoinPassword = '';
   let showEndQuizModal = false;
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  let clockOffsetMs = 0;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: {
     countdown?.destroy?.();
-    countdown = useCountdown(timerEndsAt);
+    countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
   onDestroy(() => countdown?.destroy?.());
   let socket: import('socket.io-client').Socket | null = null;

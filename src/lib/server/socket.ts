@@ -395,6 +395,7 @@ export function initSocket(httpServer: import('http').Server): Server {
 function serializeState(state: GameState) {
   return {
     ...state,
+    serverNow: Date.now(),
     players: Array.from(state.players.entries()).map(([id, p]) => ({ ...p, id })),
   };
 }
