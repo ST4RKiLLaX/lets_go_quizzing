@@ -23,16 +23,15 @@ function isValidImageUrl(val: string): { ok: true } | { ok: false; message: stri
   }
 }
 
-const imageSchema = z
-  .string()
-  .optional()
-  .refine(
-    (val) => isValidImageUrl(val ?? '').ok,
-    (val) => {
-      const r = isValidImageUrl(val ?? '');
-      return { message: r.ok ? 'Invalid image URL' : r.message };
-    }
-  );
+const imageSchema = z.string().optional().superRefine((val, ctx) => {
+  const r = isValidImageUrl(val ?? '');
+  if (!r.ok) {
+    ctx.addIssue({
+      code: 'custom',
+      message: r.message,
+    });
+  }
+});
 
 const ChoiceQuestionSchema = z.object({
   id: z.string(),

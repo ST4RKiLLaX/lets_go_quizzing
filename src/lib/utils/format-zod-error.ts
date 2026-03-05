@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 export function formatZodError(err: z.ZodError): string {
-  const first = err.errors[0];
+  const first = err.issues[0];
   if (!first) return 'Validation error';
   const path = first.path;
   let location = '';

@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "lets-go-quizzing-0.0.1-sbom",
-  "documentNamespace": "https://spdx.org/spdxdocs/lets-go-quizzing-0.0.1-1771633610822",
+  "documentNamespace": "https://spdx.org/spdxdocs/lets-go-quizzing-0.0.1-1772683727952",
   "creationInfo": {
-    "created": "2026-02-21T00:26:50.821Z",
+    "created": "2026-03-05T04:08:47.952Z",
     "creators": [
       "Tool: generate-sbom.js",
       "Organization: lets-go-quizzing"
@@ -48,10 +48,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_codemirror_autocomplete-6.20.0",
+      "SPDXID": "SPDXRef-Package-_codemirror_autocomplete-6.20.1",
       "name": "@codemirror/autocomplete",
-      "versionInfo": "6.20.0",
-      "downloadLocation": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.0.tgz",
+      "versionInfo": "6.20.1",
+      "downloadLocation": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -59,14 +59,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "bOwvTOIJcG5FVo5gUUupiwYh8MioPLQ4UcqbcRf7UQ98X90tCa9E1kZ3Z7tqwpZxYyOvh1YTYbmZE9RTfTp5hg=="
+          "checksumValue": "1cvg3Vz1dSSToCNlJfRA2WSI4ht3K+WplO0UMOgmUYPivCyy2oueZY6Lx7M9wThm7SDUBViRmuT+OG/i8+ON9A=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40codemirror%2Fautocomplete@6.20.0"
+          "referenceLocator": "pkg:npm/%40codemirror%2Fautocomplete@6.20.1"
         }
       ]
     },
@@ -164,10 +164,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-_codemirror_lint-6.9.4",
+      "SPDXID": "SPDXRef-Package-_codemirror_lint-6.9.5",
       "name": "@codemirror/lint",
-      "versionInfo": "6.9.4",
-      "downloadLocation": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.4.tgz",
+      "versionInfo": "6.9.5",
+      "downloadLocation": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.5.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -175,14 +175,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "ABc9vJ8DEmvOWuH26P3i8FpMWPQkduD9Rvba5iwb6O3hxASgclm3T3krGo8NASXkHCidz6b++LWlzWIUfEPSWw=="
+          "checksumValue": "GElsbU9G7QT9xXhpUg1zWGmftA/7jamh+7+ydKRuT0ORpWS3wOSP0yT1FOlIZa7mIJjpVPipErsyvVqB9cfTFA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40codemirror%2Flint@6.9.4"
+          "referenceLocator": "pkg:npm/%40codemirror%2Flint@6.9.5"
         }
       ]
     },
@@ -233,10 +233,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-_codemirror_view-6.39.15",
+      "SPDXID": "SPDXRef-Package-_codemirror_view-6.39.16",
       "name": "@codemirror/view",
-      "versionInfo": "6.39.15",
-      "downloadLocation": "https://registry.npmjs.org/@codemirror/view/-/view-6.39.15.tgz",
+      "versionInfo": "6.39.16",
+      "downloadLocation": "https://registry.npmjs.org/@codemirror/view/-/view-6.39.16.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -244,14 +244,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "aCWjgweIIXLBHh7bY6cACvXuyrZ0xGafjQ2VInjp4RM4gMfscK5uESiNdrH0pE+e1lZr2B4ONGsjchl2KsKZzg=="
+          "checksumValue": "m6S22fFpKtOWhq8HuhzsI1WzUP/hB9THbDj0Tl5KX4gbO6Y91hwBl7Yky33NdvB6IffuRFiBxf1R8kJMyXmA4Q=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40codemirror%2Fview@6.39.15"
+          "referenceLocator": "pkg:npm/%40codemirror%2Fview@6.39.16"
         }
       ]
     },
@@ -1139,78 +1139,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-_nodelib_fs.scandir-2.1.5",
-      "name": "@nodelib/fs.scandir",
-      "versionInfo": "2.1.5",
-      "downloadLocation": "https://registry.npmjs.org/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40nodelib%2Ffs.scandir@2.1.5"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-_nodelib_fs.stat-2.0.5",
-      "name": "@nodelib/fs.stat",
-      "versionInfo": "2.0.5",
-      "downloadLocation": "https://registry.npmjs.org/@nodelib/fs.stat/-/fs.stat-2.0.5.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "RkhPPp2zrqDAQA/2jNhnztcPAlv64XdhIp7a7454A5ovI7Bukxgt7MX7udwAu3zg1DcpPU0rz3VV1SeaqvY4+A=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40nodelib%2Ffs.stat@2.0.5"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-_nodelib_fs.walk-1.2.8",
-      "name": "@nodelib/fs.walk",
-      "versionInfo": "1.2.8",
-      "downloadLocation": "https://registry.npmjs.org/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40nodelib%2Ffs.walk@1.2.8"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-_polka_url-1.0.0-next.29",
       "name": "@polka/url",
       "versionInfo": "1.0.0-next.29",
@@ -1330,10 +1258,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-android-arm-eabi-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-android-arm-eabi-4.59.0",
       "name": "@rollup/rollup-android-arm-eabi",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1341,23 +1269,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "A6ehUVSiSaaliTxai040ZpZ2zTevHYbvu/lDoeAteHI8QnaosIzm4qwtezfRg1jOYaUmnzLX1AOD6Z+UJjtifg=="
+          "checksumValue": "upnNBkA6ZH2VKGcBj9Fyl9IGNPULcjXRlg0LLeaioQWueH30p6IXtJEbKAgvyv+mJaMxSm1l6xwDXYjpEMiLMg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-android-arm-eabi@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-android-arm-eabi@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-android-arm64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-android-arm64-4.59.0",
       "name": "@rollup/rollup-android-arm64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1365,23 +1293,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "dQaAddCY9YgkFHZcFNS/606Exo8vcLHwArFZ7vxXq4rigo2bb494/xKMMwRRQW6ug7Js6yXmBZhSBRuBvCCQ3w=="
+          "checksumValue": "hZ+Zxj3SySm4A/DylsDKZAeVg0mvi++0PYVceVyX7hemkw7OreKdCvW2oQ3T1FMZvCaQXqOTHb8qmBShoqk69Q=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-android-arm64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-android-arm64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-darwin-arm64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-darwin-arm64-4.59.0",
       "name": "@rollup/rollup-darwin-arm64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1389,23 +1317,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "crNPrwJOrRxagUYeMn/DZwqN88SDmwaJ8Cvi/TN1HnWBU7GwknckyosC2gd0IqYRsHDEnXf328o9/HC6OkPgOg=="
+          "checksumValue": "W2Psnbh1J8ZJw0xKAd8zdNgF9HRLkdWwwdWqubSVk0pUuQkoHnv7rx4GiF9rT4t5DIZGAsConRE3AxCdJ4m8rg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-darwin-arm64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-darwin-arm64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-darwin-x64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-darwin-x64-4.59.0",
       "name": "@rollup/rollup-darwin-x64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1413,23 +1341,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Ji8g8ChVbKrhFtig5QBV7iMaJrGtpHelkB3lsaKzadFBe58gmjfGXAOfI5FV0lYMH8wiqsxKQ1C9B0YTRXVy4w=="
+          "checksumValue": "ZW2KkwlS4lwTv7ZVsYDiARfFCnSGhzYPdiOU4IM2fDbL+QGlyAbjgSFuqNRbSthybLbIJ915UtZBtmuLrQAT/w=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-darwin-x64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-darwin-x64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-freebsd-arm64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-freebsd-arm64-4.59.0",
       "name": "@rollup/rollup-freebsd-arm64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1437,23 +1365,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "R+/WwhsjmwodAcz65guCGFRkMb4gKWTcIeLy60JJQbXrJ97BOXHxnkPFrP+YwFlaS0m+uWJTstrUA9o+UchFug=="
+          "checksumValue": "EsKaJ5ytAu9jI3lonzn3BgG8iRBjV4LxZexygcQbpiU0wU0ATxhNVEpXKfUa0pS05gTcSDMKpn3Sx+QB9RlTTA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-freebsd-arm64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-freebsd-arm64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-freebsd-x64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-freebsd-x64-4.59.0",
       "name": "@rollup/rollup-freebsd-x64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1461,23 +1389,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "IEQTCHeiTOnAUC3IDQdzRAGj3jOAYNr9kBguI7MQAAZK3caezRrg0GxAb6Hchg4lxdZEI5Oq3iov/w/hnFWY9Q=="
+          "checksumValue": "d3DuZi2KzTMjImrxoHIAODUZYoUUMsuUiY4SRRcJy6NJoZ6iIqWnJu9IScV9jXysyGMVuW+KNzZvBLOcpdl3Vg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-freebsd-x64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-freebsd-x64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm-gnueabihf-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm-gnueabihf-4.59.0",
       "name": "@rollup/rollup-linux-arm-gnueabihf",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1485,23 +1413,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "F8sWbhZ7tyuEfsmOxwc2giKDQzN3+kuBLPwwZGyVkLlKGdV1nvnNwYD0fKQ8+XS6hp9nY7B+ZeK01EBUE7aHaw=="
+          "checksumValue": "t4ONHboXi/3E0rT6OZl1pKbl2Vgxf9vJfWgmUoCEVQVxhW6Cw/c8I6hbbu7DAvgp82RKiH7TpLwxnJeKv2pbsw=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm-gnueabihf@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm-gnueabihf@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm-musleabihf-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm-musleabihf-4.59.0",
       "name": "@rollup/rollup-linux-arm-musleabihf",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1509,23 +1437,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "rGfNUfn0GIeXtBP1wL5MnzSj98+PZe/AXaGBCRmT0ts80lU5CATYGxXukeTX39XBKsxzFpEeK+Mrp9faXOlmrw=="
+          "checksumValue": "CikFT7aYPA2ufMD086cVORBYGHffBo4K8MQ4uPS/ZnY54GKj36i196u8U+aDVT2LX4eSMbyHtyOh7D7Zvk2VvA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm-musleabihf@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm-musleabihf@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm64-gnu-4.59.0",
       "name": "@rollup/rollup-linux-arm64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1533,23 +1461,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "MMtej3YHWeg/0klK2Qodf3yrNzz6CGjo2UntLvk2RSPlhzgLvYEB3frRvbEF2wRKh1Z2fDIg9KRPe1fawv7C+g=="
+          "checksumValue": "jYgUGk5aLd1nUb1CtQ8E+t5JhLc9x5WdBKew9ZgAXg7DBk0ZHErLHdXM24rfX+bKrFe+Xp5YuJo54I5HFjGDAA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm64-musl-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-arm64-musl-4.59.0",
       "name": "@rollup/rollup-linux-arm64-musl",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1557,23 +1485,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "1a/qhaaOXhqXGpMFMET9VqwZakkljWHLmZOX48R0I/YLbhdxr1m4gtG1Hq7++VhVUmf+L3sTAf9op4JlhQ5u1Q=="
+          "checksumValue": "peZRVEdnFWZ5Bh2KeumKG9ty7aCXzzEsHShOZEFiCQlDEepP1dpUl/SrUNXNg13UmZl+gzVDPsiCwnV1uI0RUA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm64-musl@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-arm64-musl@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-loong64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-loong64-gnu-4.59.0",
       "name": "@rollup/rollup-linux-loong64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1581,23 +1509,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "QWO6RQTZ/cqYtJMtxhkRkidoNGXc7ERPbZN7dVW5SdURuLeVU7lwKMpo18XdcmpWYd0qsP1bwKPf7DNSUinhvA=="
+          "checksumValue": "gbUSW/97f7+r4gHy3Jlup8zDG190AuodsWnNiXErp9mT90iCy9NKKU0Xwx5k8VlRAIV2uU9CsMnEFg/xXaOfXg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-loong64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-loong64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-loong64-musl-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-loong64-musl-4.59.0",
       "name": "@rollup/rollup-linux-loong64-musl",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1605,23 +1533,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "xpObYIf+8gprgWaPP32xiN5RVTi/s5FCR+XMXSKmhfoJjrpRAjCuuqQXyxUa/eJTdAE6eJ+KDKaoEqjZQxh3Gw=="
+          "checksumValue": "yTRONe79E+o0FWFijasoTjtzG9EBedFXJMl888NBEDCDV9I2wGbFFfJQQe63OijbFCUZqxpHz1GzpbtSFikJ4Q=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-loong64-musl@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-loong64-musl@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-ppc64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-ppc64-gnu-4.59.0",
       "name": "@rollup/rollup-linux-ppc64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1629,23 +1557,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "4BrCgrpZo4hvzMDKRqEaW1zeecScDCR+2nZ86ATLhAoJ5FQ+lbHVD3ttKe74/c7tNT9c6F2viwB3ufwp01Oh2w=="
+          "checksumValue": "sw1o3tfyk12k3OEpRddF68a1unZ5VCN7zoTNtSn2KndUE+ea3m3ROOKRCZxEpmT9nsGnogpFP9x6mnLTCaoLkA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-ppc64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-ppc64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-ppc64-musl-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-ppc64-musl-4.59.0",
       "name": "@rollup/rollup-linux-ppc64-musl",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1653,23 +1581,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "NOlUuzesGauESAyEYFSe3QTUguL+lvrN1HtwEEsU2rOwdUDeTMJdO5dUYl/2hKf9jWydJrO9OL/XSSf65R5+Xw=="
+          "checksumValue": "+2kLtQ4xT3AiIxkzFVFXfsmlZiG5FXYW7ZyIIvGA7Bdeuh9Z0aN4hVyXS/G1E9bTP/vqszNIN/pUKCk/BTHsKA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-ppc64-musl@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-ppc64-musl@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-riscv64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-riscv64-gnu-4.59.0",
       "name": "@rollup/rollup-linux-riscv64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1677,23 +1605,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "ptA88htVp0AwUUqhVghwDIKlvJMD/fmL/wrQj99PRHFRAG6Z5nbWoWG4o81Nt9FT+IuqUQi+L31ZKAFeJ5Is+A=="
+          "checksumValue": "NDYMpsXYJJaj+I7UdwIuHHNxXZ/b/N2hR15NyH3m2qAtb/hHPA4g4SuuvrdxetTdndfj9b1WOmy73kcPRoERUg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-riscv64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-riscv64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-riscv64-musl-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-riscv64-musl-4.59.0",
       "name": "@rollup/rollup-linux-riscv64-musl",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1701,23 +1629,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "S51t7aMMTNdmAMPpBg7OOsTdn4tySRQvklmL3RpDRyknk87+Sp3xaumlatU+ppQ+5raY7sSTcC2beGgvhENfuw=="
+          "checksumValue": "nLckB8WOqHIf1bhymk+oHxvM9D3tyPndZH8i8+35p/1YiVoVswPid2yLzgX7ZJP0KQvnkhM4H6QZ5m0LzbyIAg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-riscv64-musl@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-riscv64-musl@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-s390x-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-s390x-gnu-4.59.0",
       "name": "@rollup/rollup-linux-s390x-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1725,23 +1653,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Bl00OFnVFkL82FHbEqy3k5CUCKH6OEJL54KCyx2oqsmZnFTR8IoNqBF+mjQVcRCT5sB6yOvK8A37LNm/kPJiZg=="
+          "checksumValue": "oF87Ie3uAIvORFBpwnCvUzdeYUqi2wY6jRFWJAy1qus/udHFYIkplYRW+wo+GRUP4sKzYdmE1Y3+rY5Gc4ZO+w=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-s390x-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-s390x-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-x64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-x64-gnu-4.59.0",
       "name": "@rollup/rollup-linux-x64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1749,23 +1677,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "ABca4ceT4N+Tv/GtotnWAeXZUZuM/9AQyCyKYyKnpk4yoA7QIAuBt6Hkgpw8kActYlew2mvckXkvx0FfoInnLg=="
+          "checksumValue": "3AHmtQq/ppNuUspKAlvA8HtLybkDflkMuLK4DPo77DfthRb71V84/c4MlWJXixZz4uruIH4uaa07IqoAkG64fg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-x64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-x64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-x64-musl-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-linux-x64-musl-4.59.0",
       "name": "@rollup/rollup-linux-x64-musl",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1773,23 +1701,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "HFps0JeGtuOR2convgRRkHCekD7j+gdAuXM+/i6kGzQtFhlCtQkpwtNzkNj6QhCDp7DRJ7+qC/1Vg2jt5iSOFw=="
+          "checksumValue": "2UdiwS/9cTAx7qIUZB/fWtToJwvt0Vbo0zmnYt7ED35KPg13Q0ym1g442THLC7VyI6JfYTP4PiSOWyoMdV2/xg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-x64-musl@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-linux-x64-musl@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-openbsd-x64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-openbsd-x64-4.59.0",
       "name": "@rollup/rollup-openbsd-x64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1797,23 +1725,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "H+hXEv9gdVQuDTgnqD+SQffoWoc0Of59AStSzTEj/feWTBAnSfSD3+Dql1ZruJQxmykT/JVY0dE8Ka7z0DH1hw=="
+          "checksumValue": "M3bLRAVk6GOwFlPTIxVBSYKUaqfLrn8l0psKinkCFxl4lQvOSz8ZrKDz2gxcBwHFpci0B6rttydI4IpS4IS/jQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-openbsd-x64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-openbsd-x64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-openharmony-arm64-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-openharmony-arm64-4.59.0",
       "name": "@rollup/rollup-openharmony-arm64",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1821,23 +1749,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "4wYoDpNg6o/oPximyc/NG+mYUejZrCU2q+2w6YZqrAs2UcNUChIZXjtafAiiZSUc7On8v5NyNj34Kzj/Ltk6dQ=="
+          "checksumValue": "tt9KBJqaqp5i5HUZzoafHZX8b5Q2Fe7UjYERADll83O4fGqJ49O1FsL6LpdzVFQcpwvnyd0i+K/VSwu/o/nWlA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-openharmony-arm64@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-openharmony-arm64@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-arm64-msvc-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-arm64-msvc-4.59.0",
       "name": "@rollup/rollup-win32-arm64-msvc",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1845,23 +1773,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "O54mtsV/6LW3P8qdTcamQmuC990HDfR71lo44oZMZlXU4tzLrbvTii87Ni9opq60ds0YzuAlEr/GNwuNluZyMQ=="
+          "checksumValue": "V5B6mG7OrGTwnxaNUzZTDTjDS7F75PO1ae6MJYdiMu60sq0CqN5CVeVsbhPxalupvTX8gXVSU9gq+Rx1/hvu6A=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-arm64-msvc@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-arm64-msvc@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-ia32-msvc-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-ia32-msvc-4.59.0",
       "name": "@rollup/rollup-win32-ia32-msvc",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1869,23 +1797,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "P3dLS+IerxCT/7D2q2FYcRdWRl22dNbrbBEtxdWhXrfIMPP9lQhb5h4Du04mdl5Woq05jVCDPCMF7Ub0NAjIew=="
+          "checksumValue": "UKFMHPuM9R0iBegwzKF4y0C4J9u8C6MEJgFuXTBerMk7EJ92GFVFYBfOZaSGLu6COf7FxpQNqhNS4c4icUPqxA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-ia32-msvc@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-ia32-msvc@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-x64-gnu-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-x64-gnu-4.59.0",
       "name": "@rollup/rollup-win32-x64-gnu",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1893,23 +1821,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "VMBH2eOOaKGtIJYleXsi2B8CPVADrh+TyNxJ4mWPnKfLB/DBUmzW+5m1xUrcwWoMfSLagIRpjUFeW5CO5hyciQ=="
+          "checksumValue": "laBkYlSS1n2L8fSo1thDNGrCTQMmxjYY5G0WFWjFFYZkKPjsMBsgJfGf4TLxXrF6RyhI60L8TMOjBMvXiTcxeA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-x64-gnu@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-x64-gnu@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-x64-msvc-4.57.1",
+      "SPDXID": "SPDXRef-Package-_rollup_rollup-win32-x64-msvc-4.59.0",
       "name": "@rollup/rollup-win32-x64-msvc",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1917,14 +1845,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA=="
+          "checksumValue": "2HRCml6OztYXyJXAvdDXPKcawukWY2GpR5/nxKp4iBgiO3wcoEGkAaqctIbZcNB6KlUQBIqt8VYkNSj2397EfA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-x64-msvc@4.57.1"
+          "referenceLocator": "pkg:npm/%40rollup%2Frollup-win32-x64-msvc@4.59.0"
         }
       ],
       "comment": "Optional, Dev dependency"
@@ -2231,10 +2159,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_sveltejs_adapter-node-5.5.3",
+      "SPDXID": "SPDXRef-Package-_sveltejs_adapter-node-5.5.4",
       "name": "@sveltejs/adapter-node",
-      "versionInfo": "5.5.3",
-      "downloadLocation": "https://registry.npmjs.org/@sveltejs/adapter-node/-/adapter-node-5.5.3.tgz",
+      "versionInfo": "5.5.4",
+      "downloadLocation": "https://registry.npmjs.org/@sveltejs/adapter-node/-/adapter-node-5.5.4.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2242,23 +2170,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "yeWbKXBL9vqDb/7R8ebvRHeuBHN4cRYYBSquNJSMQtS6rIYkXxsVSveaMTUaLvHYQsb1zNa+nH2iLTOMawBohA=="
+          "checksumValue": "45X92CXW+2J8ZUzPv3eLlKWEzINKiiGeFWTjyER4ZN4sGgNoaoeSkCY/QYNxHpPXy71QPsctwccBo9jJs0ySPQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40sveltejs%2Fadapter-node@5.5.3"
+          "referenceLocator": "pkg:npm/%40sveltejs%2Fadapter-node@5.5.4"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_sveltejs_kit-2.52.2",
+      "SPDXID": "SPDXRef-Package-_sveltejs_kit-2.53.4",
       "name": "@sveltejs/kit",
-      "versionInfo": "2.52.2",
-      "downloadLocation": "https://registry.npmjs.org/@sveltejs/kit/-/kit-2.52.2.tgz",
+      "versionInfo": "2.53.4",
+      "downloadLocation": "https://registry.npmjs.org/@sveltejs/kit/-/kit-2.53.4.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2266,23 +2194,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "1in76dftrofUt138rVLvYuwiQLkg9K3cG8agXEE6ksf7gCGs8oIr3+pFrVtbRmY9JvW+psW5fvLM/IwVybOLBA=="
+          "checksumValue": "iAIPEahFgDJJyvz8g0jP08KvqnM6JvdW8YfsygZ+pMeMvyM2zssWMltcsotETvjSZ82G3VlitgDtBIvpQSZrTA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40sveltejs%2Fkit@2.52.2"
+          "referenceLocator": "pkg:npm/%40sveltejs%2Fkit@2.53.4"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-5.1.1",
+      "SPDXID": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-6.2.4",
       "name": "@sveltejs/vite-plugin-svelte",
-      "versionInfo": "5.1.1",
-      "downloadLocation": "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte/-/vite-plugin-svelte-5.1.1.tgz",
+      "versionInfo": "6.2.4",
+      "downloadLocation": "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte/-/vite-plugin-svelte-6.2.4.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2290,23 +2218,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Y1Cs7hhTc+a5E9Va/xwKlAJoariQyHY+5zBgCZg4PFWNYQ1nMN9sjK1zhw1gK69DuqVP++sht/1GZg1aRwmAXQ=="
+          "checksumValue": "ou/d51QSdTyN26D7h6dSpusAKaZkAiGM55/AKYi+9AGZw7q85hElbjK3kEyzXHhLSnRISHOYzVge6x0jRZ7DXA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40sveltejs%2Fvite-plugin-svelte@5.1.1"
+          "referenceLocator": "pkg:npm/%40sveltejs%2Fvite-plugin-svelte@6.2.4"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-inspector-4.0.1",
+      "SPDXID": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-inspector-5.0.2",
       "name": "@sveltejs/vite-plugin-svelte-inspector",
-      "versionInfo": "4.0.1",
-      "downloadLocation": "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-4.0.1.tgz",
+      "versionInfo": "5.0.2",
+      "downloadLocation": "https://registry.npmjs.org/@sveltejs/vite-plugin-svelte-inspector/-/vite-plugin-svelte-inspector-5.0.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2314,14 +2242,398 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "J/Nmb2Q2y7mck2hyCX4ckVHcR5tu2J+MtBEQqpDrrgELZ2uvraQcK/ioCV61AqkdXFgriksOKIceDcQmqnGhVw=="
+          "checksumValue": "TZzRTcEtZffICSAoZGkPSl6Etsj2torOVrx6Uw0KpXxrec9Gg6jFWQ60Q3+LmNGfZSxHRCZL7vXVZIWmuV50Ig=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40sveltejs%2Fvite-plugin-svelte-inspector@4.0.1"
+          "referenceLocator": "pkg:npm/%40sveltejs%2Fvite-plugin-svelte-inspector@5.0.2"
+        }
+      ],
+      "comment": "Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_node-4.2.1",
+      "name": "@tailwindcss/node",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/node/-/node-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "jlx6sLk4EOwO6hHe1oCGm1Q4AN/s0rSrTTPBGPM0/RQ6Uylwq17FuU8IeJJKEjtc6K6O07zsvP+gDO6MMWo7pg=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Fnode@4.2.1"
+        }
+      ],
+      "comment": "Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-4.2.1",
+      "name": "@tailwindcss/oxide",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide/-/oxide-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "yv9jeEFWnjKCI6/T3Oq50yQEOqmpmpfzG1hcZsAOaXFQPfzWprWrlHSdGPEF3WQTi8zu8ohC9Mh9J470nT5pUw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide@4.2.1"
+        }
+      ],
+      "comment": "Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-android-arm64-4.2.1",
+      "name": "@tailwindcss/oxide-android-arm64",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-android-arm64/-/oxide-android-arm64-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "eZ7G1Zm5EC8OOKaesIKuw77jw++QJ2lL9N+dDpdQiAB/c/B2wDh0QPFHbkBVrXnwNugvrbJFk1gK2SsVjwWReg=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-android-arm64@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-darwin-arm64-4.2.1",
+      "name": "@tailwindcss/oxide-darwin-arm64",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-arm64/-/oxide-darwin-arm64-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "q/LHkOstoJ7pI1J0q6djesLzRvQSIfEto148ppAd+BVQK0JYjQIFSK3JgYZJa+Yzi0DDa52ZsQx2rqytBnf8Hw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-darwin-arm64@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-darwin-x64-4.2.1",
+      "name": "@tailwindcss/oxide-darwin-x64",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-x64/-/oxide-darwin-x64-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "/f/ozlaXGY6QLbpvd/kFTro2l18f7dHKpB+ieXz+Cijl4Mt9AI2rTrpq7V+t04nK+j9XBQHnSMdeQRhbGyt6fw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-darwin-x64@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-freebsd-x64-4.2.1",
+      "name": "@tailwindcss/oxide-freebsd-x64",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-freebsd-x64/-/oxide-freebsd-x64-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "5e/AkgYJT/cpbkys/OU2Ei2jdETCLlifwm7ogMC7/hksI2fC3iiq6OcXwjibcIjPung0kRtR3TxEITkqgn0TcA=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-freebsd-x64@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-linux-arm-gnueabihf-4.2.1",
+      "name": "@tailwindcss/oxide-linux-arm-gnueabihf",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm-gnueabihf/-/oxide-linux-arm-gnueabihf-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Uny1EcVTTmerCKt/1ZuKTkb0x8ZaiuYucg2/kImO5A5Y/kBz41/+j0gxUZl+hTF3xkWpDmHX+TaWhOtba2Fyuw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-linux-arm-gnueabihf@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-linux-arm64-gnu-4.2.1",
+      "name": "@tailwindcss/oxide-linux-arm64-gnu",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-gnu/-/oxide-linux-arm64-gnu-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "CTrwomI+c7n6aSSQlsPL0roRiNMDQ/YzMD9EjcR+H4f0I1SQ8QqIuPnsVp7QgMkC1Qi8rtkekLkOFjo7OlEFRQ=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-linux-arm64-gnu@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-linux-arm64-musl-4.2.1",
+      "name": "@tailwindcss/oxide-linux-arm64-musl",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-musl/-/oxide-linux-arm64-musl-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "WZA0CHRL/SP1TRbA5mp9htsppSEkWuQ4KsSUumYQnyl8ZdT39ntwqmz4IUHGN6p4XdSlYfJwM4rRzZLShHsGAQ=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-linux-arm64-musl@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-linux-x64-gnu-4.2.1",
+      "name": "@tailwindcss/oxide-linux-x64-gnu",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "qMFzxI2YlBOLW5PhblzuSWlWfwLHaneBE0xHzLrBgNtqN6mWfs+qYbhryGSXQjFYB1Dzf5w+LN5qbUTPhW7Y5g=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-linux-x64-gnu@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-linux-x64-musl-4.2.1",
+      "name": "@tailwindcss/oxide-linux-x64-musl",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-musl/-/oxide-linux-x64-musl-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "5r1X2FKnCMUPlXTWRYpHdPYUY6a1Ar/t7P24OuiEdEOmms5lyqjDRvVY1yy9Rmioh+AunQ0rWiOTPE8F9A3v5g=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-linux-x64-musl@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-wasm32-wasi-4.2.1",
+      "name": "@tailwindcss/oxide-wasm32-wasi",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-wasm32-wasi/-/oxide-wasm32-wasi-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "MGFB5cVPvshR85MTJkEvqDUnuNoysrsRxd6vnk1Lf2tbiqNlXpHYZqkqOQalydienEWOHHFyyuTSYRsLfxFJ2Q=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-wasm32-wasi@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-win32-arm64-msvc-4.2.1",
+      "name": "@tailwindcss/oxide-win32-arm64-msvc",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-win32-arm64-msvc/-/oxide-win32-arm64-msvc-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "YlUEHRHBGnCMh4Nj4GnqQyBtsshUPdiNroZj8VPkvTZSoHsilRCwXcVKnG9kyi0ZFAS/3u+qKHBdDc81SADTRA=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-win32-arm64-msvc@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_oxide-win32-x64-msvc-4.2.1",
+      "name": "@tailwindcss/oxide-win32-x64-msvc",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/oxide-win32-x64-msvc/-/oxide-win32-x64-msvc-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "rbO34G5sMWWyrN/idLeVxAZgAKWrn5LiR3/I90Q9MkA67s6T1oB0xtTe+0heoBvHSpbU9Mk7i6uwJnpo4u21XQ=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Foxide-win32-x64-msvc@4.2.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_tailwindcss_postcss-4.2.1",
+      "name": "@tailwindcss/postcss",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/@tailwindcss/postcss/-/postcss-4.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "OEwGIBnXnj7zJeonOh6ZG9woofIjGrd2BORfvE5p9USYKDCZoQmfqLcfNiRWoJlRWLdNPn2IgVZuWAOM4iTYMw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40tailwindcss%2Fpostcss@4.2.1"
+        }
+      ],
+      "comment": "Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-_types_adm-zip-0.5.7",
+      "name": "@types/adm-zip",
+      "versionInfo": "0.5.7",
+      "downloadLocation": "https://registry.npmjs.org/@types/adm-zip/-/adm-zip-0.5.7.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "DNEs/QvmyRLurdQPChqq0Md4zGvPwHerAJYWk9l2jCbD1VPpnzRJorOdiq4zsw09NFbYnhfsoEhWtxIzXpn2yw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/%40types%2Fadm-zip@0.5.7"
         }
       ],
       "comment": "Dev dependency"
@@ -2608,10 +2920,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-any-promise-1.3.0",
-      "name": "any-promise",
-      "versionInfo": "1.3.0",
-      "downloadLocation": "https://registry.npmjs.org/any-promise/-/any-promise-1.3.0.tgz",
+      "SPDXID": "SPDXRef-Package-adm-zip-0.5.16",
+      "name": "adm-zip",
+      "versionInfo": "0.5.16",
+      "downloadLocation": "https://registry.npmjs.org/adm-zip/-/adm-zip-0.5.16.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2619,89 +2931,16 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7UvmKalWRt1wgjL1RrGxoSJW/0QZFIegpeGvZG9kjp8vrRu55XTHbwnqq2GpXm9uLbcuhxm3IqX9OB4MZR1b2A=="
+          "checksumValue": "TGw5yVi4saajsSEgz25grObGHEUaDrniwvA2qwSC060KfqGPdglhvPMA2lPIoxs3PQIItj2iag35fONcQqgUaQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/any-promise@1.3.0"
+          "referenceLocator": "pkg:npm/adm-zip@0.5.16"
         }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-anymatch-3.1.3",
-      "name": "anymatch",
-      "versionInfo": "3.1.3",
-      "downloadLocation": "https://registry.npmjs.org/anymatch/-/anymatch-3.1.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/anymatch@3.1.3"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-anymatch-2.3.1",
-      "name": "anymatch",
-      "versionInfo": "2.3.1",
-      "downloadLocation": "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/anymatch@2.3.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-arg-5.0.2",
-      "name": "arg",
-      "versionInfo": "5.0.2",
-      "downloadLocation": "https://registry.npmjs.org/arg/-/arg-5.0.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/arg@5.0.2"
-        }
-      ],
-      "comment": "Dev dependency"
+      ]
     },
     {
       "SPDXID": "SPDXRef-Package-argparse-2.0.1",
@@ -2727,10 +2966,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-aria-query-5.3.2",
+      "SPDXID": "SPDXRef-Package-aria-query-5.3.1",
       "name": "aria-query",
-      "versionInfo": "5.3.2",
-      "downloadLocation": "https://registry.npmjs.org/aria-query/-/aria-query-5.3.2.tgz",
+      "versionInfo": "5.3.1",
+      "downloadLocation": "https://registry.npmjs.org/aria-query/-/aria-query-5.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
@@ -2738,23 +2977,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw=="
+          "checksumValue": "Z/ZeOgVl7bcSYZ/u/rh0fOpvEpq//LZmdbkXyc7syVzjPAhfOa9ebsdTSjEBDU4vs5nC98Kfduj1uFo0qyET3g=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/aria-query@5.3.2"
+          "referenceLocator": "pkg:npm/aria-query@5.3.1"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-autoprefixer-10.4.24",
+      "SPDXID": "SPDXRef-Package-autoprefixer-10.4.27",
       "name": "autoprefixer",
-      "versionInfo": "10.4.24",
-      "downloadLocation": "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.24.tgz",
+      "versionInfo": "10.4.27",
+      "downloadLocation": "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.27.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2762,14 +3001,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "uHZg7N9ULTVbutaIsDRoUkoS8/h3bdsmVJYZ5l3wv8Cp/6UIIoRDm90hZ+BwxUj/hGBEzLxdHNSKuFpn8WOyZw=="
+          "checksumValue": "NP9APE+tO+LuJGn7/9+cohklunJsXWiaWEfV3si4Gi/XHDwVNgkwr1J3RQYFIvPy76GmJ9/bW8vyoU1LcxwKHA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/autoprefixer@10.4.24"
+          "referenceLocator": "pkg:npm/autoprefixer@10.4.27"
         }
       ],
       "comment": "Dev dependency"
@@ -2869,54 +3108,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-binary-extensions-2.3.0",
-      "name": "binary-extensions",
-      "versionInfo": "2.3.0",
-      "downloadLocation": "https://registry.npmjs.org/binary-extensions/-/binary-extensions-2.3.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/binary-extensions@2.3.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-braces-3.0.3",
-      "name": "braces",
-      "versionInfo": "3.0.3",
-      "downloadLocation": "https://registry.npmjs.org/braces/-/braces-3.0.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/braces@3.0.3"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-browserslist-4.28.1",
       "name": "browserslist",
       "versionInfo": "4.28.1",
@@ -2941,34 +3132,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-camelcase-css-2.0.1",
-      "name": "camelcase-css",
-      "versionInfo": "2.0.1",
-      "downloadLocation": "https://registry.npmjs.org/camelcase-css/-/camelcase-css-2.0.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/camelcase-css@2.0.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-caniuse-lite-1.0.30001770",
+      "SPDXID": "SPDXRef-Package-caniuse-lite-1.0.30001776",
       "name": "caniuse-lite",
-      "versionInfo": "1.0.30001770",
-      "downloadLocation": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001770.tgz",
+      "versionInfo": "1.0.30001776",
+      "downloadLocation": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001776.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "CC-BY-4.0",
       "licenseDeclared": "CC-BY-4.0",
@@ -2976,14 +3143,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "x/2CLQ1jHENRbHg5PSId2sXq1CIO1CISvwWAj027ltMVG2UNgW+w9oH2+HzgEIRFembL8bUlXtfbBHR1fCg2xw=="
+          "checksumValue": "sg01JDPzZ9jGshqKSckOQthXnYwOEP50jeVFhaSFbZcOy05TiuuaffDOfcwtCisJ9kNQuLBFibYywv2Bgm9osw=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/caniuse-lite@1.0.30001770"
+          "referenceLocator": "pkg:npm/caniuse-lite@1.0.30001776"
         }
       ],
       "comment": "Dev dependency"
@@ -3199,30 +3366,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-commander-4.1.1",
-      "name": "commander",
-      "versionInfo": "4.1.1",
-      "downloadLocation": "https://registry.npmjs.org/commander/-/commander-4.1.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/commander@4.1.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-commondir-1.0.1",
       "name": "commondir",
       "versionInfo": "1.0.1",
@@ -3316,30 +3459,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-cssesc-3.0.0",
-      "name": "cssesc",
-      "versionInfo": "3.0.0",
-      "downloadLocation": "https://registry.npmjs.org/cssesc/-/cssesc-3.0.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/cssesc@3.0.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-debug-4.4.3",
       "name": "debug",
       "versionInfo": "4.4.3",
@@ -3409,6 +3528,30 @@
       ]
     },
     {
+      "SPDXID": "SPDXRef-Package-detect-libc-2.1.2",
+      "name": "detect-libc",
+      "versionInfo": "2.1.2",
+      "downloadLocation": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/detect-libc@2.1.2"
+        }
+      ],
+      "comment": "Dev dependency"
+    },
+    {
       "SPDXID": "SPDXRef-Package-devalue-5.6.3",
       "name": "devalue",
       "versionInfo": "5.6.3",
@@ -3456,30 +3599,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-didyoumean-1.2.2",
-      "name": "didyoumean",
-      "versionInfo": "1.2.2",
-      "downloadLocation": "https://registry.npmjs.org/didyoumean/-/didyoumean-1.2.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/didyoumean@1.2.2"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-discontinuous-range-1.0.0",
       "name": "discontinuous-range",
       "versionInfo": "1.0.0",
@@ -3501,30 +3620,6 @@
           "referenceLocator": "pkg:npm/discontinuous-range@1.0.0"
         }
       ]
-    },
-    {
-      "SPDXID": "SPDXRef-Package-dlv-1.1.3",
-      "name": "dlv",
-      "versionInfo": "1.1.3",
-      "downloadLocation": "https://registry.npmjs.org/dlv/-/dlv-1.1.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/dlv@1.1.3"
-        }
-      ],
-      "comment": "Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-ebnf-1.9.1",
@@ -3664,6 +3759,30 @@
           "referenceLocator": "pkg:npm/engine.io-parser@5.2.3"
         }
       ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-enhanced-resolve-5.20.0",
+      "name": "enhanced-resolve",
+      "versionInfo": "5.20.0",
+      "downloadLocation": "https://registry.npmjs.org/enhanced-resolve/-/enhanced-resolve-5.20.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "/ce7+jQ1PQ6rVXwe+jKEg5hW5ciicHwIQUagZkp6IufBoY3YDgdTTY1azVs0qoRgVmvsNB+rbjLJxDAeHHtwsQ=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/enhanced-resolve@5.20.0"
+        }
+      ],
+      "comment": "Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-entities-4.5.0",
@@ -3855,78 +3974,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-fast-glob-3.3.3",
-      "name": "fast-glob",
-      "versionInfo": "3.3.3",
-      "downloadLocation": "https://registry.npmjs.org/fast-glob/-/fast-glob-3.3.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/fast-glob@3.3.3"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-fast-glob-5.1.2",
-      "name": "fast-glob",
-      "versionInfo": "5.1.2",
-      "downloadLocation": "https://registry.npmjs.org/glob-parent/-/glob-parent-5.1.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/fast-glob@5.1.2"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-fastq-1.20.1",
-      "name": "fastq",
-      "versionInfo": "1.20.1",
-      "downloadLocation": "https://registry.npmjs.org/fastq/-/fastq-1.20.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/fastq@1.20.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-fdir-6.5.0",
       "name": "fdir",
       "versionInfo": "6.5.0",
@@ -3946,30 +3993,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/fdir@6.5.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-fill-range-7.1.1",
-      "name": "fill-range",
-      "versionInfo": "7.1.1",
-      "downloadLocation": "https://registry.npmjs.org/fill-range/-/fill-range-7.1.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/fill-range@7.1.1"
         }
       ],
       "comment": "Dev dependency"
@@ -4071,10 +4094,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-glob-parent-6.0.2",
-      "name": "glob-parent",
-      "versionInfo": "6.0.2",
-      "downloadLocation": "https://registry.npmjs.org/glob-parent/-/glob-parent-6.0.2.tgz",
+      "SPDXID": "SPDXRef-Package-graceful-fs-4.2.11",
+      "name": "graceful-fs",
+      "versionInfo": "4.2.11",
+      "downloadLocation": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "ISC",
       "licenseDeclared": "ISC",
@@ -4082,14 +4105,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A=="
+          "checksumValue": "RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/glob-parent@6.0.2"
+          "referenceLocator": "pkg:npm/graceful-fs@4.2.11"
         }
       ],
       "comment": "Dev dependency"
@@ -4188,30 +4211,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-is-binary-path-2.1.0",
-      "name": "is-binary-path",
-      "versionInfo": "2.1.0",
-      "downloadLocation": "https://registry.npmjs.org/is-binary-path/-/is-binary-path-2.1.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/is-binary-path@2.1.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-is-core-module-2.16.1",
       "name": "is-core-module",
       "versionInfo": "2.16.1",
@@ -4231,54 +4230,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/is-core-module@2.16.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-is-extglob-2.1.1",
-      "name": "is-extglob",
-      "versionInfo": "2.1.1",
-      "downloadLocation": "https://registry.npmjs.org/is-extglob/-/is-extglob-2.1.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/is-extglob@2.1.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-is-glob-4.0.3",
-      "name": "is-glob",
-      "versionInfo": "4.0.3",
-      "downloadLocation": "https://registry.npmjs.org/is-glob/-/is-glob-4.0.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/is-glob@4.0.3"
         }
       ],
       "comment": "Dev dependency"
@@ -4308,30 +4259,6 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-is-number-7.0.0",
-      "name": "is-number",
-      "versionInfo": "7.0.0",
-      "downloadLocation": "https://registry.npmjs.org/is-number/-/is-number-7.0.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/is-number@7.0.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-is-reference-1.2.1",
       "name": "is-reference",
       "versionInfo": "1.2.1",
@@ -4356,10 +4283,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-jiti-1.21.7",
+      "SPDXID": "SPDXRef-Package-jiti-2.6.1",
       "name": "jiti",
-      "versionInfo": "1.21.7",
-      "downloadLocation": "https://registry.npmjs.org/jiti/-/jiti-1.21.7.tgz",
+      "versionInfo": "2.6.1",
+      "downloadLocation": "https://registry.npmjs.org/jiti/-/jiti-2.6.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4367,14 +4294,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A=="
+          "checksumValue": "ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/jiti@1.21.7"
+          "referenceLocator": "pkg:npm/jiti@2.6.1"
         }
       ],
       "comment": "Dev dependency"
@@ -4521,52 +4448,292 @@
       "comment": "Optional dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-lilconfig-3.1.3",
-      "name": "lilconfig",
-      "versionInfo": "3.1.3",
-      "downloadLocation": "https://registry.npmjs.org/lilconfig/-/lilconfig-3.1.3.tgz",
+      "SPDXID": "SPDXRef-Package-lightningcss-1.31.1",
+      "name": "lightningcss",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.31.1.tgz",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw=="
+          "checksumValue": "l51N2r93WmGUye3WuFoN5k10zyvrVs0qfKBhyC5ogUQ6Ew6JUSswh78mbSO+IU3nTWsyOArqPCcShdQSadghBQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/lilconfig@3.1.3"
+          "referenceLocator": "pkg:npm/lightningcss@1.31.1"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-lines-and-columns-1.2.4",
-      "name": "lines-and-columns",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/lines-and-columns/-/lines-and-columns-1.2.4.tgz",
+      "SPDXID": "SPDXRef-Package-lightningcss-android-arm64-1.31.1",
+      "name": "lightningcss-android-arm64",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-android-arm64/-/lightningcss-android-arm64-1.31.1.tgz",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg=="
+          "checksumValue": "HXJF3x8w9nQ4jbXRiNppBCqeZPIAfUo8zE/kOEGbW5NZvGc/K7nMxbhIr+YlFlHW5mpbg/YFPdbnCh1wAXCKFg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/lines-and-columns@1.2.4"
+          "referenceLocator": "pkg:npm/lightningcss-android-arm64@1.31.1"
         }
       ],
-      "comment": "Dev dependency"
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-darwin-arm64-1.31.1",
+      "name": "lightningcss-darwin-arm64",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "02uTEqf3vIfNMq3h/z2cJfcOXnQ0GRwQrkmPafhueLb2h7mqEidiCzkE4gBMEH65abHRiQvhdcQ+aP0D0g67sg=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-darwin-arm64@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-darwin-x64-1.31.1",
+      "name": "lightningcss-darwin-x64",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1ObhyoCY+tGxtsz1lSx5NXCj3nirk0Y0kB/g8B8DT+sSx4G9djitg9ejFnjb3gJNWo7qXH4DIy2SUHvpoFwfTA=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-darwin-x64@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-freebsd-x64-1.31.1",
+      "name": "lightningcss-freebsd-x64",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1RINmQKAItO6ISxYgPwszQE1BrsVU5aB45ho6O42mu96UiZBxEXsuQ7cJW4zs4CEodPUioj/QrXW1r9pLUM74A=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-freebsd-x64@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-linux-arm-gnueabihf-1.31.1",
+      "name": "lightningcss-linux-arm-gnueabihf",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "OOCm2//MZJ87CdDK62rZIu+aw9gBv4azMJuA8/KB74wmfS3lnC4yoPHm0uXZ/dvNNHmnZnB8XLAZzObeG0nS1g=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-linux-arm64-gnu-1.31.1",
+      "name": "lightningcss-linux-arm64-gnu",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "WKyLWztD71rTnou4xAD5kQT+982wvca7E6QoLpoawZ1gP9JM0GJj4Tp5jMUh9B3AitHbRZ2/H3W5xQmdEOUlLg=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-linux-arm64-gnu@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-linux-arm64-musl-1.31.1",
+      "name": "lightningcss-linux-arm64-musl",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "mVZ7Pg2zIbe3XlNbZJdjs86YViQFoJSpc41CbVmKBPiGmC4YrfeOyz65ms2qpAobVd7WQsbW4PdsSJEMymyIMg=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-linux-arm64-musl@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-linux-x64-gnu-1.31.1",
+      "name": "lightningcss-linux-x64-gnu",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "xGlFWRMl+0KvUhgySdIaReQdB4FNudfUTARn7q0hh/V67PVGCs3ADFjw+6++kG1RNd0zdGRlEKa+T13/tQjPMA=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-linux-x64-gnu@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-linux-x64-musl-1.31.1",
+      "name": "lightningcss-linux-x64-musl",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "eowF8PrKHw9LpoZii5tdZwnBcYDxRw2rRCyvAXLi34iyeYfqCQNA9rmUM0ce62NlPhCvof1+9ivRaTY6pSKDaA=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-linux-x64-musl@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-win32-arm64-msvc-1.31.1",
+      "name": "lightningcss-win32-arm64-msvc",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "aJReEbSEQzx1uBlQizAOBSjcmr9dCdL3XuC/6HLXAxmtErsj2ICo5yYggg1qOODQMtnjNQv2UHb9NpOuFtYe4w=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-win32-arm64-msvc@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lightningcss-win32-x64-msvc-1.31.1",
+      "name": "lightningcss-win32-x64-msvc",
+      "versionInfo": "1.31.1",
+      "downloadLocation": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.31.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MPL-2.0",
+      "licenseDeclared": "MPL-2.0",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "I9aiFrbd7oYHwlnQDqr1Roz+fTz61oDDJX7n9tYF9FJymH1cIN1DtKw3iYt6b8WZgEjoNwVSncwF4wx/ZedMhw=="
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/lightningcss-win32-x64-msvc@1.31.1"
+        }
+      ],
+      "comment": "Optional, Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-linkify-it-5.0.0",
@@ -4732,30 +4899,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-merge2-1.4.1",
-      "name": "merge2",
-      "versionInfo": "1.4.1",
-      "downloadLocation": "https://registry.npmjs.org/merge2/-/merge2-1.4.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/merge2@1.4.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-micromark-util-character-2.1.1",
       "name": "micromark-util-character",
       "versionInfo": "2.1.1",
@@ -4869,54 +5012,6 @@
           "referenceLocator": "pkg:npm/micromark-util-types@2.0.2"
         }
       ]
-    },
-    {
-      "SPDXID": "SPDXRef-Package-micromatch-4.0.8",
-      "name": "micromatch",
-      "versionInfo": "4.0.8",
-      "downloadLocation": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/micromatch@4.0.8"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-micromatch-2.3.1",
-      "name": "micromatch",
-      "versionInfo": "2.3.1",
-      "downloadLocation": "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/micromatch@2.3.1"
-        }
-      ],
-      "comment": "Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-mime-db-1.52.0",
@@ -5059,30 +5154,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-mz-2.7.0",
-      "name": "mz",
-      "versionInfo": "2.7.0",
-      "downloadLocation": "https://registry.npmjs.org/mz/-/mz-2.7.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/mz@2.7.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-nanoid-5.1.6",
       "name": "nanoid",
       "versionInfo": "5.1.6",
@@ -5199,30 +5270,6 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-normalize-path-3.0.0",
-      "name": "normalize-path",
-      "versionInfo": "3.0.0",
-      "downloadLocation": "https://registry.npmjs.org/normalize-path/-/normalize-path-3.0.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/normalize-path@3.0.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-object-assign-4.1.1",
       "name": "object-assign",
       "versionInfo": "4.1.1",
@@ -5246,10 +5293,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-object-hash-3.0.0",
-      "name": "object-hash",
-      "versionInfo": "3.0.0",
-      "downloadLocation": "https://registry.npmjs.org/object-hash/-/object-hash-3.0.0.tgz",
+      "SPDXID": "SPDXRef-Package-obug-2.1.1",
+      "name": "obug",
+      "versionInfo": "2.1.1",
+      "downloadLocation": "https://registry.npmjs.org/obug/-/obug-2.1.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -5257,14 +5304,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw=="
+          "checksumValue": "uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/object-hash@3.0.0"
+          "referenceLocator": "pkg:npm/obug@2.1.1"
         }
       ],
       "comment": "Dev dependency"
@@ -5365,54 +5412,6 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-pify-2.3.0",
-      "name": "pify",
-      "versionInfo": "2.3.0",
-      "downloadLocation": "https://registry.npmjs.org/pify/-/pify-2.3.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/pify@2.3.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-pirates-4.0.7",
-      "name": "pirates",
-      "versionInfo": "4.0.7",
-      "downloadLocation": "https://registry.npmjs.org/pirates/-/pirates-4.0.7.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/pirates@4.0.7"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-polka-1.0.0-next.28",
       "name": "polka",
       "versionInfo": "1.0.0-next.28",
@@ -5436,10 +5435,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-postcss-8.5.6",
+      "SPDXID": "SPDXRef-Package-postcss-8.5.8",
       "name": "postcss",
-      "versionInfo": "8.5.6",
-      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+      "versionInfo": "8.5.8",
+      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.8.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -5447,14 +5446,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="
+          "checksumValue": "OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss@8.5.6"
+          "referenceLocator": "pkg:npm/postcss@8.5.8"
         }
       ],
       "comment": "Dev dependency"
@@ -5479,126 +5478,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/postcss@3.3.11"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-postcss-import-15.1.0",
-      "name": "postcss-import",
-      "versionInfo": "15.1.0",
-      "downloadLocation": "https://registry.npmjs.org/postcss-import/-/postcss-import-15.1.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss-import@15.1.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-postcss-js-4.1.0",
-      "name": "postcss-js",
-      "versionInfo": "4.1.0",
-      "downloadLocation": "https://registry.npmjs.org/postcss-js/-/postcss-js-4.1.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "oIAOTqgIo7q2EOwbhb8UalYePMvYoIeRY2YKntdpFQXNosSu3vLrniGgmH9OKs/qAkfoj5oB3le/7mINW1LCfw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss-js@4.1.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-postcss-load-config-6.0.1",
-      "name": "postcss-load-config",
-      "versionInfo": "6.0.1",
-      "downloadLocation": "https://registry.npmjs.org/postcss-load-config/-/postcss-load-config-6.0.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss-load-config@6.0.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-postcss-nested-6.2.0",
-      "name": "postcss-nested",
-      "versionInfo": "6.2.0",
-      "downloadLocation": "https://registry.npmjs.org/postcss-nested/-/postcss-nested-6.2.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss-nested@6.2.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-postcss-selector-parser-6.1.2",
-      "name": "postcss-selector-parser",
-      "versionInfo": "6.1.2",
-      "downloadLocation": "https://registry.npmjs.org/postcss-selector-parser/-/postcss-selector-parser-6.1.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/postcss-selector-parser@6.1.2"
         }
       ],
       "comment": "Dev dependency"
@@ -5674,30 +5553,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-queue-microtask-1.2.3",
-      "name": "queue-microtask",
-      "versionInfo": "1.2.3",
-      "downloadLocation": "https://registry.npmjs.org/queue-microtask/-/queue-microtask-1.2.3.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/queue-microtask@1.2.3"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-railroad-diagrams-1.0.0",
       "name": "railroad-diagrams",
       "versionInfo": "1.0.0",
@@ -5742,30 +5597,6 @@
           "referenceLocator": "pkg:npm/randexp@0.4.6"
         }
       ]
-    },
-    {
-      "SPDXID": "SPDXRef-Package-read-cache-1.0.0",
-      "name": "read-cache",
-      "versionInfo": "1.0.0",
-      "downloadLocation": "https://registry.npmjs.org/read-cache/-/read-cache-1.0.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/read-cache@1.0.0"
-        }
-      ],
-      "comment": "Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-readdirp-4.1.2",
@@ -5955,34 +5786,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-reusify-1.1.0",
-      "name": "reusify",
-      "versionInfo": "1.1.0",
-      "downloadLocation": "https://registry.npmjs.org/reusify/-/reusify-1.1.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/reusify@1.1.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-rollup-4.57.1",
+      "SPDXID": "SPDXRef-Package-rollup-4.59.0",
       "name": "rollup",
-      "versionInfo": "4.57.1",
-      "downloadLocation": "https://registry.npmjs.org/rollup/-/rollup-4.57.1.tgz",
+      "versionInfo": "4.59.0",
+      "downloadLocation": "https://registry.npmjs.org/rollup/-/rollup-4.59.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -5990,38 +5797,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "oQL6lgK3e2QZeQ7gcgIkS2YZPg5slw37hYufJ3edKlfQSGGm8ICoxswK15ntSzF/a8+h7ekRy7k7oWc3BQ7y8A=="
+          "checksumValue": "2oMpl67a3zCH9H79LeMcbDhXW/UmWG/y2zuqnF2jQq5uq9TbM9TVyXvA4+t+ne2IIkBdrLpAaRQAvo7YI/Yyeg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/rollup@4.57.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-run-parallel-1.2.0",
-      "name": "run-parallel",
-      "versionInfo": "1.2.0",
-      "downloadLocation": "https://registry.npmjs.org/run-parallel/-/run-parallel-1.2.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/run-parallel@1.2.0"
+          "referenceLocator": "pkg:npm/rollup@4.59.0"
         }
       ],
       "comment": "Dev dependency"
@@ -6353,30 +6136,6 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-sucrase-3.35.1",
-      "name": "sucrase",
-      "versionInfo": "3.35.1",
-      "downloadLocation": "https://registry.npmjs.org/sucrase/-/sucrase-3.35.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "DhuTmvZWux4H1UOnWMB3sk0sbaCVOoQZjv8u1rDoTV0HTdGem9hkAZtl4JZy8P2z4Bg0nT+YMeOFyVr4zcG5Tw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/sucrase@3.35.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-supports-preserve-symlinks-flag-1.0.0",
       "name": "supports-preserve-symlinks-flag",
       "versionInfo": "1.0.0",
@@ -6401,10 +6160,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-svelte-5.53.0",
+      "SPDXID": "SPDXRef-Package-svelte-5.53.7",
       "name": "svelte",
-      "versionInfo": "5.53.0",
-      "downloadLocation": "https://registry.npmjs.org/svelte/-/svelte-5.53.0.tgz",
+      "versionInfo": "5.53.7",
+      "downloadLocation": "https://registry.npmjs.org/svelte/-/svelte-5.53.7.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -6412,14 +6171,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7dhHkSamGS2vtoBmIW2hRab+gl5Z60alEHZB4910ePqqJNxAWnDAxsofVmlZ2tREmWyHNE+A1nCKwICAquoD2A=="
+          "checksumValue": "uxck1KI7JWtlfP3H6HOWi/94soAl23jsGJkBzN2BAWcQng0+lTrRNhxActFqORgnO9BHVd1hKJhG+ljRuIUWfQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/svelte@5.53.0"
+          "referenceLocator": "pkg:npm/svelte@5.53.7"
         }
       ],
       "comment": "Dev dependency"
@@ -6449,10 +6208,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-svelte-check-4.4.1",
+      "SPDXID": "SPDXRef-Package-svelte-check-4.4.4",
       "name": "svelte-check",
-      "versionInfo": "4.4.1",
-      "downloadLocation": "https://registry.npmjs.org/svelte-check/-/svelte-check-4.4.1.tgz",
+      "versionInfo": "4.4.4",
+      "downloadLocation": "https://registry.npmjs.org/svelte-check/-/svelte-check-4.4.4.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -6460,23 +6219,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "y1bBT0CRCMMfdjyqX1e5zCygLgEEr4KJV1qP6GSUReHl90bmcQaAWjZygHPfQ8K63f1eR8IuivuZMwmCg3zT2Q=="
+          "checksumValue": "F1pGqXc710Oi/wTI4d/x7d6lgPwwfx1U6w3Q35n4xsC2e8C/yN2sM1+mWxjlMcpAfWucjlq4vPi+P4FZ8a14sQ=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/svelte-check@4.4.1"
+          "referenceLocator": "pkg:npm/svelte-check@4.4.4"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-tailwindcss-3.4.19",
+      "SPDXID": "SPDXRef-Package-tailwindcss-4.2.1",
       "name": "tailwindcss",
-      "versionInfo": "3.4.19",
-      "downloadLocation": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.19.tgz",
+      "versionInfo": "4.2.1",
+      "downloadLocation": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.2.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -6484,23 +6243,23 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "3ofp+LL8E+pK/JuPLPggVAIaEuhvIz4qNcf3nA1Xn2o/7fb7s/TYpHhwGDv1ZU3PkBluUVaF8PyCHcm48cKLWQ=="
+          "checksumValue": "/tBrSQ36vCleJkAOsy9kbNTgaxvGbyOamC30PRePTQe/o1MFwEKHQk4Cn7BNGaPtjp+PuUrByJehM1hgxfq4sw=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/tailwindcss@3.4.19"
+          "referenceLocator": "pkg:npm/tailwindcss@4.2.1"
         }
       ],
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-tailwindcss-3.6.0",
-      "name": "tailwindcss",
-      "versionInfo": "3.6.0",
-      "downloadLocation": "https://registry.npmjs.org/chokidar/-/chokidar-3.6.0.tgz",
+      "SPDXID": "SPDXRef-Package-tapable-2.3.0",
+      "name": "tapable",
+      "versionInfo": "2.3.0",
+      "downloadLocation": "https://registry.npmjs.org/tapable/-/tapable-2.3.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -6508,110 +6267,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw=="
+          "checksumValue": "g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/tailwindcss@3.6.0"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-tailwindcss-5.1.2",
-      "name": "tailwindcss",
-      "versionInfo": "5.1.2",
-      "downloadLocation": "https://registry.npmjs.org/glob-parent/-/glob-parent-5.1.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/tailwindcss@5.1.2"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-tailwindcss-2.3.1",
-      "name": "tailwindcss",
-      "versionInfo": "2.3.1",
-      "downloadLocation": "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/tailwindcss@2.3.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-thenify-3.3.1",
-      "name": "thenify",
-      "versionInfo": "3.3.1",
-      "downloadLocation": "https://registry.npmjs.org/thenify/-/thenify-3.3.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "RVZSIV5IG10Hk3enotrhvz0T9em6cyHBLkH/YAZuKqd8hRkKhSfCGIcP2KUY0EPxndzANBmNllzWPwak+bheSw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/thenify@3.3.1"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-thenify-all-1.6.0",
-      "name": "thenify-all",
-      "versionInfo": "1.6.0",
-      "downloadLocation": "https://registry.npmjs.org/thenify-all/-/thenify-all-1.6.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/thenify-all@1.6.0"
+          "referenceLocator": "pkg:npm/tapable@2.3.0"
         }
       ],
       "comment": "Dev dependency"
@@ -6636,30 +6299,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/tinyglobby@0.2.15"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-to-regex-range-5.0.1",
-      "name": "to-regex-range",
-      "versionInfo": "5.0.1",
-      "downloadLocation": "https://registry.npmjs.org/to-regex-range/-/to-regex-range-5.0.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/to-regex-range@5.0.1"
         }
       ],
       "comment": "Dev dependency"
@@ -6733,30 +6372,6 @@
           "referenceLocator": "pkg:npm/trouter@4.0.0"
         }
       ]
-    },
-    {
-      "SPDXID": "SPDXRef-Package-ts-interface-checker-0.1.13",
-      "name": "ts-interface-checker",
-      "versionInfo": "0.1.13",
-      "downloadLocation": "https://registry.npmjs.org/ts-interface-checker/-/ts-interface-checker-0.1.13.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/ts-interface-checker@0.1.13"
-        }
-      ],
-      "comment": "Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-tslib-2.8.1",
@@ -7016,30 +6631,6 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-util-deprecate-1.0.2",
-      "name": "util-deprecate",
-      "versionInfo": "1.0.2",
-      "downloadLocation": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/util-deprecate@1.0.2"
-        }
-      ],
-      "comment": "Dev dependency"
-    },
-    {
       "SPDXID": "SPDXRef-Package-valid-url-1.0.9",
       "name": "valid-url",
       "versionInfo": "1.0.9",
@@ -7132,10 +6723,10 @@
       ]
     },
     {
-      "SPDXID": "SPDXRef-Package-vite-6.4.1",
+      "SPDXID": "SPDXRef-Package-vite-7.3.1",
       "name": "vite",
-      "versionInfo": "6.4.1",
-      "downloadLocation": "https://registry.npmjs.org/vite/-/vite-6.4.1.tgz",
+      "versionInfo": "7.3.1",
+      "downloadLocation": "https://registry.npmjs.org/vite/-/vite-7.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -7143,41 +6734,17 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g=="
+          "checksumValue": "w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/vite@6.4.1"
+          "referenceLocator": "pkg:npm/vite@7.3.1"
         }
       ],
       "comment": "Dev dependency"
-    },
-    {
-      "SPDXID": "SPDXRef-Package-vite-0.25.12",
-      "name": "vite",
-      "versionInfo": "0.25.12",
-      "downloadLocation": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.25.12.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/vite@0.25.12"
-        }
-      ],
-      "comment": "Optional, Dev dependency"
     },
     {
       "SPDXID": "SPDXRef-Package-vitefu-1.1.1",
@@ -7320,10 +6887,10 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-zod-3.25.76",
+      "SPDXID": "SPDXRef-Package-zod-4.3.6",
       "name": "zod",
-      "versionInfo": "3.25.76",
-      "downloadLocation": "https://registry.npmjs.org/zod/-/zod-3.25.76.tgz",
+      "versionInfo": "4.3.6",
+      "downloadLocation": "https://registry.npmjs.org/zod/-/zod-4.3.6.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -7331,14 +6898,14 @@
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+          "checksumValue": "rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
         }
       ],
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/zod@3.25.76"
+          "referenceLocator": "pkg:npm/zod@4.3.6"
         }
       ]
     },
@@ -7375,7 +6942,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_codemirror_autocomplete-6.20.0"
+      "relatedSpdxElement": "SPDXRef-Package-_codemirror_autocomplete-6.20.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7400,7 +6967,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_codemirror_lint-6.9.4"
+      "relatedSpdxElement": "SPDXRef-Package-_codemirror_lint-6.9.5"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7415,7 +6982,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_codemirror_view-6.39.15"
+      "relatedSpdxElement": "SPDXRef-Package-_codemirror_view-6.39.16"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7605,21 +7172,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_nodelib_fs.scandir-2.1.5"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_nodelib_fs.stat-2.0.5"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_nodelib_fs.walk-1.2.8"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-_polka_url-1.0.0-next.29"
     },
     {
@@ -7645,127 +7197,127 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-android-arm-eabi-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-android-arm-eabi-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-android-arm64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-android-arm64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-darwin-arm64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-darwin-arm64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-darwin-x64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-darwin-x64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-freebsd-arm64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-freebsd-arm64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-freebsd-x64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-freebsd-x64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm-gnueabihf-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm-gnueabihf-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm-musleabihf-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm-musleabihf-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm64-musl-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-arm64-musl-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-loong64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-loong64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-loong64-musl-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-loong64-musl-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-ppc64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-ppc64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-ppc64-musl-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-ppc64-musl-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-riscv64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-riscv64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-riscv64-musl-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-riscv64-musl-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-s390x-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-s390x-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-x64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-x64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-x64-musl-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-linux-x64-musl-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-openbsd-x64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-openbsd-x64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-openharmony-arm64-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-openharmony-arm64-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-arm64-msvc-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-arm64-msvc-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-ia32-msvc-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-ia32-msvc-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-x64-gnu-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-x64-gnu-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-x64-msvc-4.57.1"
+      "relatedSpdxElement": "SPDXRef-Package-_rollup_rollup-win32-x64-msvc-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7835,22 +7387,102 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_adapter-node-5.5.3"
+      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_adapter-node-5.5.4"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_kit-2.52.2"
+      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_kit-2.53.4"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-5.1.1"
+      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-6.2.4"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-inspector-4.0.1"
+      "relatedSpdxElement": "SPDXRef-Package-_sveltejs_vite-plugin-svelte-inspector-5.0.2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_node-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-android-arm64-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-darwin-arm64-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-darwin-x64-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-freebsd-x64-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-linux-arm-gnueabihf-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-linux-arm64-gnu-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-linux-arm64-musl-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-linux-x64-gnu-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-linux-x64-musl-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-wasm32-wasi-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-win32-arm64-msvc-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_oxide-win32-x64-msvc-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_tailwindcss_postcss-4.2.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-_types_adm-zip-0.5.7"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7915,22 +7547,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-any-promise-1.3.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-anymatch-3.1.3"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-anymatch-2.3.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-arg-5.0.2"
+      "relatedSpdxElement": "SPDXRef-Package-adm-zip-0.5.16"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7940,12 +7557,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-aria-query-5.3.2"
+      "relatedSpdxElement": "SPDXRef-Package-aria-query-5.3.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-autoprefixer-10.4.24"
+      "relatedSpdxElement": "SPDXRef-Package-autoprefixer-10.4.27"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -7970,27 +7587,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-binary-extensions-2.3.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-braces-3.0.3"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-browserslist-4.28.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-camelcase-css-2.0.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-caniuse-lite-1.0.30001770"
+      "relatedSpdxElement": "SPDXRef-Package-caniuse-lite-1.0.30001776"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8040,11 +7642,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-commander-4.1.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-commondir-1.0.1"
     },
     {
@@ -8065,11 +7662,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-cssesc-3.0.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-debug-4.4.3"
     },
     {
@@ -8085,6 +7677,11 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-detect-libc-2.1.2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-devalue-5.6.3"
     },
     {
@@ -8095,17 +7692,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-didyoumean-1.2.2"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-discontinuous-range-1.0.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-dlv-1.1.3"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8136,6 +7723,11 @@
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-engine.io-parser-5.2.3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-enhanced-resolve-5.20.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8180,27 +7772,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-fast-glob-3.3.3"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-fast-glob-5.1.2"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-fastq-1.20.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-fdir-6.5.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-fill-range-7.1.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8225,7 +7797,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-glob-parent-6.0.2"
+      "relatedSpdxElement": "SPDXRef-Package-graceful-fs-4.2.11"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8250,22 +7822,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-is-binary-path-2.1.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-is-core-module-2.16.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-is-extglob-2.1.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-is-glob-4.0.3"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8275,17 +7832,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-is-number-7.0.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-is-reference-1.2.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-jiti-1.21.7"
+      "relatedSpdxElement": "SPDXRef-Package-jiti-2.6.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8320,12 +7872,62 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-lilconfig-3.1.3"
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-1.31.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-lines-and-columns-1.2.4"
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-android-arm64-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-darwin-arm64-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-darwin-x64-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-freebsd-x64-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-linux-arm-gnueabihf-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-linux-arm64-gnu-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-linux-arm64-musl-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-linux-x64-gnu-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-linux-x64-musl-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-win32-arm64-msvc-1.31.1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-lightningcss-win32-x64-msvc-1.31.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8365,11 +7967,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-merge2-1.4.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-micromark-util-character-2.1.1"
     },
     {
@@ -8391,16 +7988,6 @@
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-micromark-util-types-2.0.2"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-micromatch-4.0.8"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-micromatch-2.3.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8435,11 +8022,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-mz-2.7.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-nanoid-5.1.6"
     },
     {
@@ -8465,17 +8047,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-normalize-path-3.0.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-object-assign-4.1.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-object-hash-3.0.0"
+      "relatedSpdxElement": "SPDXRef-Package-obug-2.1.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8500,52 +8077,17 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-pify-2.3.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-pirates-4.0.7"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-polka-1.0.0-next.28"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-8.5.6"
+      "relatedSpdxElement": "SPDXRef-Package-postcss-8.5.8"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-postcss-3.3.11"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-import-15.1.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-js-4.1.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-load-config-6.0.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-nested-6.2.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-postcss-selector-parser-6.1.2"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8565,22 +8107,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-queue-microtask-1.2.3"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-railroad-diagrams-1.0.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-randexp-0.4.6"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-read-cache-1.0.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8625,17 +8157,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-reusify-1.1.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-rollup-4.57.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-run-parallel-1.2.0"
+      "relatedSpdxElement": "SPDXRef-Package-rollup-4.59.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8710,17 +8232,12 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-sucrase-3.35.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-supports-preserve-symlinks-flag-1.0.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-svelte-5.53.0"
+      "relatedSpdxElement": "SPDXRef-Package-svelte-5.53.7"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8730,47 +8247,22 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-svelte-check-4.4.1"
+      "relatedSpdxElement": "SPDXRef-Package-svelte-check-4.4.4"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-tailwindcss-3.4.19"
+      "relatedSpdxElement": "SPDXRef-Package-tailwindcss-4.2.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-tailwindcss-3.6.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-tailwindcss-5.1.2"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-tailwindcss-2.3.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-thenify-3.3.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-thenify-all-1.6.0"
+      "relatedSpdxElement": "SPDXRef-Package-tapable-2.3.0"
     },
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-tinyglobby-0.2.15"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-to-regex-range-5.0.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8786,11 +8278,6 @@
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-trouter-4.0.0"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-ts-interface-checker-0.1.13"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8850,11 +8337,6 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-util-deprecate-1.0.2"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-valid-url-1.0.9"
     },
     {
@@ -8875,12 +8357,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-vite-6.4.1"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-vite-0.25.12"
+      "relatedSpdxElement": "SPDXRef-Package-vite-7.3.1"
     },
     {
       "spdxElementId": "SPDXRef-Root",
@@ -8915,7 +8392,7 @@
     {
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-zod-3.25.76"
+      "relatedSpdxElement": "SPDXRef-Package-zod-4.3.6"
     },
     {
       "spdxElementId": "SPDXRef-Root",
