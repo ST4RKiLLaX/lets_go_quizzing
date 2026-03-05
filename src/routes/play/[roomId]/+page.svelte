@@ -33,6 +33,7 @@
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
   let emoji = '👤';
+  let registerError = '';
   let registered = false;
   let inputAnswer = '';
   let joinError = '';
@@ -45,6 +46,11 @@
     '🎉', '🧠', '⭐', '🔥', '🚀', '🎯', '💡', '🏆', '🎮', '🎸',
     '🐶', '🐱', '🦊', '🐻', '🐼', '🦁', '🐯', '🐸', '🦉', '🐙',
     '🍕', '🍔', '☕', '🍩', '🌮', '🥑', '🍎', '🍋', '🌶️', '🍿',
+    '😄', '😁', '😆', '😂', '🤣', '😍', '🥰', '😘', '😋', '🙌',
+    '👏', '🤝', '💪', '🫶', '🎊', '🎈', '🎵', '🎤', '🎨', '📚',
+    '🧩', '♟️', '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏓',
+    '🐵', '🐨', '🐮', '🐷', '🐰', '🐹', '🦄', '🐢', '🐬', '🐝',
+    '🍉', '🍇', '🍓', '🍒', '🍍', '🥨', '🍪', '🍫', '🧋', '🧁',
   ];
 
   onMount(() => {
@@ -60,11 +66,23 @@
   });
 
   function register() {
+    registerError = '';
+    if (unavailableEmojis.has(emoji)) {
+      registerError = 'That emoji is no longer available. Please choose another.';
+      return;
+    }
     const playerId = getOrCreatePlayerId();
     socket?.emit(
       'player:register',
       { playerId, name: name.trim() || 'Anonymous', emoji },
       (ack: { ok?: boolean; error?: string }) => {
+        if (ack?.error) {
+          registerError =
+            ack.error === 'Emoji unavailable'
+              ? 'That emoji was just taken. Please pick another.'
+              : ack.error;
+          return;
+        }
         if (ack?.ok) registered = true;
       }
     );
@@ -193,6 +211,15 @@
 
   $: playerId = getOrCreatePlayerId();
   $: currentPlayer = state?.players?.find((p) => p.id === playerId);
+  $: unavailableEmojis = new Set(
+    (state?.players ?? []).filter((p) => p.isActive).map((p) => p.emoji)
+  );
+  $: {
+    if (!registered && unavailableEmojis.has(emoji)) {
+      const firstAvailable = EMOJI_OPTIONS.find((e) => !unavailableEmojis.has(e));
+      if (firstAvailable) emoji = firstAvailable;
+    }
+  }
   $: if (currentPlayer && !registered) registered = true;
   $: myScore = currentPlayer?.score ?? 0;
   $: playerDisplayName = (currentPlayer?.name ?? name.trim()) || 'Anonymous';
@@ -305,21 +332,33 @@
           <div>
             <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
             <div
-              class="flex gap-2 overflow-x-auto flex-nowrap pb-2 -mx-1"
+              class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-44 overflow-y-auto overflow-x-hidden p-1"
               role="group"
               aria-label="Pick an emoji"
               style="scrollbar-width: thin;"
             >
               {#each EMOJI_OPTIONS as e}
+                {@const isUnavailable = unavailableEmojis.has(e)}
                 <button
                   type="button"
-                  class="text-2xl p-2 rounded flex-shrink-0 {emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
-                  on:click={() => (emoji = e)}
+                  class="relative h-12 w-full text-2xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
+                  disabled={isUnavailable}
+                  on:click={() => {
+                    if (!isUnavailable) emoji = e;
+                  }}
                 >
                   {e}
+                  {#if isUnavailable}
+                    <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">
+                      ✕
+                    </span>
+                  {/if}
                 </button>
               {/each}
             </div>
+            {#if registerError}
+              <p class="mt-2 text-sm text-red-400">{registerError}</p>
+            {/if}
           </div>
           <button
             type="submit"

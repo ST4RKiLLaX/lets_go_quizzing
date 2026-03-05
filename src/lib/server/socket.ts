@@ -144,11 +144,19 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Invalid state' });
         return;
       }
+      const requestedEmoji = emoji || '👤';
+      const takenByActivePlayer = Array.from(state.players.entries()).some(
+        ([id, p]) => id !== playerId && !!p.socketId && p.emoji === requestedEmoji
+      );
+      if (takenByActivePlayer) {
+        ack?.({ error: 'Emoji unavailable' });
+        return;
+      }
       const players = new Map(state.players);
       players.set(playerId, {
         id: playerId,
         name: name || 'Anonymous',
-        emoji: emoji || '👤',
+        emoji: requestedEmoji,
         score: 0,
         socketId: socket.id,
       });
@@ -435,7 +443,13 @@ function serializeState(state: GameState) {
     timerEndsAt,
     startedAt,
     serverNow: Date.now(),
-    players: Array.from(players.entries()).map(([id, p]) => ({ ...p, id })),
+    players: Array.from(players.entries()).map(([id, p]) => ({
+      id,
+      name: p.name,
+      emoji: p.emoji,
+      score: p.score,
+      isActive: !!p.socketId,
+    })),
   };
 }
 

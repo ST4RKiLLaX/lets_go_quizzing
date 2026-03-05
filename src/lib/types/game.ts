@@ -5,6 +5,7 @@ export interface SerializedPlayer {
   name: string;
   emoji: string;
   score: number;
+  isActive?: boolean;
 }
 
 export interface SerializedSubmission {
