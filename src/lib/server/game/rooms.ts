@@ -7,14 +7,20 @@ const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', ROOM_ID_LEN);
 
 const rooms = new Map<string, GameState>();
 
-export function createRoom(quizFilename: string, hostSocketId: string): string {
+export function createRoom(
+  quizFilename: string,
+  hostSocketId: string,
+  playerJoinPassword?: string
+): string {
   const roomId = nanoid();
   const quiz = loadQuiz(quizFilename);
+  const trimmedPlayerJoinPassword = playerJoinPassword?.trim();
   const state: GameState = {
     type: 'Lobby',
     roomId,
     quiz,
     quizFilename,
+    playerJoinPassword: trimmedPlayerJoinPassword || undefined,
     hostSocketId,
     players: new Map(),
     currentRoundIndex: 0,

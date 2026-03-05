@@ -28,6 +28,7 @@ export interface GameState {
   roomId: string;
   quiz: Quiz;
   quizFilename: string;
+  playerJoinPassword?: string;
   hostSocketId: string;
   players: Map<string, Player>;
   currentRoundIndex: number;

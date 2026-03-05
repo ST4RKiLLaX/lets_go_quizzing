@@ -35,6 +35,10 @@
   let emoji = '👤';
   let registered = false;
   let inputAnswer = '';
+  let joinError = '';
+  let joinPassword = '';
+  let joiningRoom = false;
+  let needsRoomPassword = false;
 
   const EMOJI_OPTIONS = [
     '👤', '😀', '😎', '🤓', '😇', '🥳', '🤩', '😊', '🙂', '😏',
@@ -46,17 +50,7 @@
   onMount(() => {
     const playerId = getOrCreatePlayerId();
     socket = createSocket();
-    socket.emit(
-      'player:join',
-      { roomId, playerId },
-      (ack: { state?: SerializedState; error?: string }) => {
-        if (ack?.error) {
-          window.location.href = '/';
-          return;
-        }
-        if (ack?.state) state = ack.state;
-      }
-    );
+    joinRoom(playerId, joinPassword);
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
@@ -72,6 +66,35 @@
       { playerId, name: name.trim() || 'Anonymous', emoji },
       (ack: { ok?: boolean; error?: string }) => {
         if (ack?.ok) registered = true;
+      }
+    );
+  }
+
+  function joinRoom(playerId: string, password: string) {
+    if (!socket) return;
+    joiningRoom = true;
+    socket.emit(
+      'player:join',
+      { roomId, playerId, password: password.trim() || undefined },
+      (ack: { state?: SerializedState; error?: string }) => {
+        joiningRoom = false;
+        if (ack?.error) {
+          if (ack.error === 'Room password required') {
+            needsRoomPassword = true;
+            joinError = '';
+            return;
+          }
+          if (ack.error === 'Invalid room password') {
+            needsRoomPassword = true;
+            joinError = ack.error;
+            return;
+          }
+          window.location.href = '/';
+          return;
+        }
+        needsRoomPassword = false;
+        joinError = '';
+        if (ack?.state) state = ack.state;
       }
     );
   }
@@ -170,6 +193,7 @@
 
   $: playerId = getOrCreatePlayerId();
   $: currentPlayer = state?.players?.find((p) => p.id === playerId);
+  $: if (currentPlayer && !registered) registered = true;
   $: myScore = currentPlayer?.score ?? 0;
   $: playerDisplayName = (currentPlayer?.name ?? name.trim()) || 'Anonymous';
   $: playerDisplayEmoji = currentPlayer?.emoji ?? emoji;
@@ -231,7 +255,40 @@
         <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
       </div>
     {/if}
-    {#if state?.type === 'Lobby' && !registered}
+    {#if !state}
+      <div class="bg-pub-darker rounded-lg p-6">
+        <h2 class="text-xl font-bold mb-4">Join room {roomId}</h2>
+        {#if needsRoomPassword}
+          <form
+            class="space-y-3"
+            on:submit|preventDefault={() => joinRoom(getOrCreatePlayerId(), joinPassword)}
+          >
+            <label for="join-password" class="block text-sm text-pub-muted">
+              This room requires a password
+            </label>
+            <input
+              id="join-password"
+              type="password"
+              bind:value={joinPassword}
+              placeholder="Enter room password"
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+            {#if joinError === 'Invalid room password'}
+              <p class="text-sm text-red-400">Invalid room password. Please try again.</p>
+            {/if}
+            <button
+              type="submit"
+              class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              disabled={joiningRoom || !joinPassword.trim()}
+            >
+              {joiningRoom ? 'Joining...' : 'Join Room'}
+            </button>
+          </form>
+        {:else}
+          <p class="text-pub-muted">Joining room...</p>
+        {/if}
+      </div>
+    {:else if state?.type === 'Lobby' && !registered}
       <div class="bg-pub-darker rounded-lg p-6">
         <h2 class="text-xl font-bold mb-4">Join the quiz</h2>
         <form class="space-y-4" on:submit|preventDefault={register}>

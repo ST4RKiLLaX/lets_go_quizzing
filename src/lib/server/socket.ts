@@ -57,8 +57,8 @@ export function initSocket(httpServer: import('http').Server): Server {
   });
 
   io.on('connection', (socket) => {
-    socket.on('host:create', (payload: { quizFilename: string; password?: string }, ack) => {
-      const { quizFilename, password } = payload ?? {};
+    socket.on('host:create', (payload: { quizFilename: string; password?: string; playerJoinPassword?: string }, ack) => {
+      const { quizFilename, password, playerJoinPassword } = payload ?? {};
       if (!quizFilename) {
         ack?.({ error: 'quizFilename required' });
         return;
@@ -81,7 +81,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       try {
-        const roomId = createRoom(quizFilename, socket.id);
+        const roomId = createRoom(quizFilename, socket.id, playerJoinPassword);
         socket.join(roomId);
         socket.data.role = 'host';
         socket.data.roomId = roomId;
@@ -93,8 +93,8 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
     });
 
-    socket.on('player:join', (payload: { roomId: string; playerId?: string }, ack) => {
-      const { roomId, playerId } = payload ?? {};
+    socket.on('player:join', (payload: { roomId: string; playerId?: string; password?: string }, ack) => {
+      const { roomId, playerId, password } = payload ?? {};
       if (!roomId) {
         ack?.({ error: 'roomId required' });
         return;
@@ -108,10 +108,26 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       const state = getRoom(roomId)!;
+      const resolvedPlayerId = playerId ?? crypto.randomUUID();
+      const roomJoinPassword = state.playerJoinPassword;
+      if (roomJoinPassword) {
+        // Allow seamless refresh/rejoin for already admitted players.
+        const returningKnownPlayer = state.players.has(resolvedPlayerId);
+        if (!returningKnownPlayer) {
+          if (!password?.trim()) {
+            ack?.({ error: 'Room password required' });
+            return;
+          }
+          if (!verifyPasswordConstantTime(password, roomJoinPassword)) {
+            ack?.({ error: 'Invalid room password' });
+            return;
+          }
+        }
+      }
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.role = 'player';
-      socket.data.playerId = playerId ?? crypto.randomUUID();
+      socket.data.playerId = resolvedPlayerId;
       ack?.({ roomId, playerId: socket.data.playerId, state: serializeState(state) });
       io.to(roomId).emit('room:update', { state: serializeState(state) });
     });
@@ -393,10 +409,33 @@ export function initSocket(httpServer: import('http').Server): Server {
 }
 
 function serializeState(state: GameState) {
+  const {
+    type,
+    roomId,
+    quiz,
+    quizFilename,
+    players,
+    currentRoundIndex,
+    currentQuestionIndex,
+    submissions,
+    wrongAnswers,
+    timerEndsAt,
+    startedAt,
+  } = state;
+
   return {
-    ...state,
+    type,
+    roomId,
+    quiz,
+    quizFilename,
+    currentRoundIndex,
+    currentQuestionIndex,
+    submissions,
+    wrongAnswers,
+    timerEndsAt,
+    startedAt,
     serverNow: Date.now(),
-    players: Array.from(state.players.entries()).map(([id, p]) => ({ ...p, id })),
+    players: Array.from(players.entries()).map(([id, p]) => ({ ...p, id })),
   };
 }
 

@@ -16,6 +16,7 @@
   let quizFilename = '';
   let roomId = '';
   let hostPassword = '';
+  let playerJoinPassword = '';
   let passwordError = '';
   let creating = false;
   let hostAuthenticated = false;
@@ -206,8 +207,12 @@
       return;
     }
 
-    const payload: { quizFilename: string; password?: string } = { quizFilename };
+    const payload: { quizFilename: string; password?: string; playerJoinPassword?: string } = { quizFilename };
     payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
+    const trimmedPlayerJoinPassword = playerJoinPassword.trim();
+    if (trimmedPlayerJoinPassword) {
+      payload.playerJoinPassword = trimmedPlayerJoinPassword;
+    }
     const socket = createSocket();
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const finalize = createSettlementGuard(() => {
@@ -369,6 +374,18 @@
       {:else if hostAuthenticated}
         <p class="text-sm text-green-400">Authenticated (session active)</p>
       {/if}
+      <div>
+        <label for="player-join-password" class="block text-sm text-pub-muted mb-1">
+          Player join password (optional)
+        </label>
+        <input
+          id="player-join-password"
+          type="password"
+          bind:value={playerJoinPassword}
+          placeholder="Require password for players joining this room"
+          class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+        />
+      </div>
       <button
         type="submit"
         class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
