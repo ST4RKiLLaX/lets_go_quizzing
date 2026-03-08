@@ -3,6 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
@@ -13,6 +14,15 @@
 
   let state: SerializedState | null = null;
   let qrCanvas: HTMLCanvasElement | null = null;
+  let wakeManager: ReturnType<typeof createWakeManager> | null = null;
+  let wakeSnapshot: WakeSnapshot = {
+    desired: false,
+    active: false,
+    status: 'off',
+    method: 'none',
+    errorMessage: null,
+  };
+  let stopWakeSubscription: (() => void) | null = null;
 
   $: joinUrl =
     typeof window !== 'undefined' ? window.location.origin + '/play/' + roomId : '';
@@ -33,13 +43,36 @@
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
+  $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
-  onDestroy(() => countdown?.destroy?.());
+  $: if (wakeManager) {
+    void wakeManager.setAutoActive(!!isActiveQuizPhase);
+  }
+  onDestroy(() => {
+    countdown?.destroy?.();
+    stopWakeSubscription?.();
+    void wakeManager?.destroy();
+  });
   let socket: ReturnType<typeof createSocket> | null = null;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
+
+  function getWakeStatusLabel(status: WakeSnapshot['status']) {
+    switch (status) {
+      case 'on':
+        return 'On';
+      case 'unsupported':
+        return 'Unsupported';
+      case 'blocked':
+        return 'Tap to keep awake';
+      case 'error':
+        return 'Unavailable';
+      default:
+        return 'Off';
+    }
+  }
 
   function getCurrentQuestion() {
     if (!state) return null;
@@ -101,6 +134,11 @@
       : [];
 
   onMount(() => {
+    wakeManager = createWakeManager();
+    stopWakeSubscription = wakeManager.subscribe((next) => {
+      wakeSnapshot = next;
+    });
+
     socket = createSocket();
     socket.emit(
       'player:join',
@@ -124,6 +162,18 @@
 
 <div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
+    <div class="flex flex-wrap justify-end items-center gap-2 mb-2">
+      <span class="text-xs text-pub-muted">Awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+      {#if wakeSnapshot.status === 'blocked'}
+        <button
+          type="button"
+          class="px-2 py-1 text-xs bg-pub-dark border border-pub-muted rounded-md hover:opacity-90"
+          on:click={() => wakeManager?.sync()}
+        >
+          Try again
+        </button>
+      {/if}
+    </div>
     {#if state?.quiz?.meta?.name}
       <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
     {/if}

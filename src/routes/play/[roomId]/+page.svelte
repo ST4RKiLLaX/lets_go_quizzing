@@ -4,6 +4,7 @@
   import PlayerConfetti from '$lib/components/PlayerConfetti.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
@@ -13,6 +14,16 @@
 
   let state: SerializedState | null = null;
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  let wakeManager: ReturnType<typeof createWakeManager> | null = null;
+  let wakeSnapshot: WakeSnapshot = {
+    desired: false,
+    active: false,
+    status: 'off',
+    method: 'none',
+    errorMessage: null,
+  };
+  let stopWakeSubscription: (() => void) | null = null;
+  let keepAwakeEnabled = false;
   let clockOffsetMs = 0;
   const confettiDurationMs = 1200;
   let showConfetti = false;
@@ -22,13 +33,20 @@
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
+  $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
+  $: if (wakeManager) {
+    void wakeManager.setAutoActive(false);
+    void wakeManager.setUserEnabled(!!(keepAwakeEnabled && isActiveQuizPhase));
+  }
   onDestroy(() => {
     countdown?.destroy?.();
+    stopWakeSubscription?.();
+    void wakeManager?.destroy();
   });
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
@@ -52,8 +70,19 @@
     '🐵', '🐨', '🐮', '🐷', '🐰', '🐹', '🦄', '🐢', '🐬', '🐝',
     '🍉', '🍇', '🍓', '🍒', '🍍', '🥨', '🍪', '🍫', '🧋', '🧁',
   ];
+  const keepAwakeStorageKey = 'lgq_keep_awake_enabled';
 
   onMount(() => {
+    wakeManager = createWakeManager();
+    stopWakeSubscription = wakeManager.subscribe((next) => {
+      wakeSnapshot = next;
+    });
+    try {
+      keepAwakeEnabled = localStorage.getItem(keepAwakeStorageKey) === '1';
+    } catch {
+      keepAwakeEnabled = false;
+    }
+
     const playerId = getOrCreatePlayerId();
     socket = createSocket();
     joinRoom(playerId, joinPassword);
@@ -268,6 +297,30 @@
   function onConfettiDone() {
     showConfetti = false;
   }
+
+  function toggleKeepAwake() {
+    keepAwakeEnabled = !keepAwakeEnabled;
+    try {
+      localStorage.setItem(keepAwakeStorageKey, keepAwakeEnabled ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function getWakeStatusLabel(status: WakeSnapshot['status']) {
+    switch (status) {
+      case 'on':
+        return 'On';
+      case 'unsupported':
+        return 'Unsupported';
+      case 'blocked':
+        return 'Tap to keep awake';
+      case 'error':
+        return 'Unavailable';
+      default:
+        return 'Off';
+    }
+  }
 </script>
 
 <div class="min-h-screen p-6">
@@ -283,6 +336,27 @@
           {state.quiz?.meta?.name ?? 'Quiz'}
         </span>
         <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 mb-4 text-xs">
+        <button
+          type="button"
+          class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
+          on:click={toggleKeepAwake}
+        >
+          Keep screen awake: {keepAwakeEnabled ? 'On' : 'Off'}
+        </button>
+        <div class="flex items-center justify-between sm:justify-end gap-2 text-pub-muted">
+          <span>Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+          {#if wakeSnapshot.status === 'blocked'}
+            <button
+              type="button"
+              class="px-2 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90"
+              on:click={() => wakeManager?.sync()}
+            >
+              Try again
+            </button>
+          {/if}
+        </div>
       </div>
     {/if}
     {#if !state}

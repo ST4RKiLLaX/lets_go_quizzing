@@ -3,6 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
@@ -15,6 +16,15 @@
   let hostRejoinPassword = '';
   let showEndQuizModal = false;
   let countdown: ReturnType<typeof useCountdown> | null = null;
+  let wakeManager: ReturnType<typeof createWakeManager> | null = null;
+  let wakeSnapshot: WakeSnapshot = {
+    desired: false,
+    active: false,
+    status: 'off',
+    method: 'none',
+    errorMessage: null,
+  };
+  let stopWakeSubscription: (() => void) | null = null;
   let clockOffsetMs = 0;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
@@ -25,12 +35,35 @@
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
+  $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);
   }
-  onDestroy(() => countdown?.destroy?.());
+  $: if (wakeManager) {
+    void wakeManager.setAutoActive(!!isActiveQuizPhase);
+  }
+  onDestroy(() => {
+    countdown?.destroy?.();
+    stopWakeSubscription?.();
+    void wakeManager?.destroy();
+  });
   let socket: import('socket.io-client').Socket | null = null;
+
+  function getWakeStatusLabel(status: WakeSnapshot['status']) {
+    switch (status) {
+      case 'on':
+        return 'On';
+      case 'unsupported':
+        return 'Unsupported';
+      case 'blocked':
+        return 'Tap to keep awake';
+      case 'error':
+        return 'Unavailable';
+      default:
+        return 'Off';
+    }
+  }
 
   function doHostJoin(password?: string) {
     joinError = '';
@@ -47,6 +80,11 @@
   }
 
   onMount(() => {
+    wakeManager = createWakeManager();
+    stopWakeSubscription = wakeManager.subscribe((next) => {
+      wakeSnapshot = next;
+    });
+
     // Always reconnect on host page so the handshake includes latest auth cookies.
     socket = socketStore.connect();
     let pwd: string | undefined;
@@ -124,9 +162,19 @@
       <p class="text-pub-gold text-lg sm:text-xl font-semibold mb-2 break-words">
         {state?.quiz?.meta?.name ?? 'Loading...'}
       </p>
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+          <span class="text-xs text-pub-muted w-full sm:w-auto text-right">Awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+          {#if wakeSnapshot.status === 'blocked'}
+            <button
+              type="button"
+              class="px-2 py-1 text-xs bg-pub-dark border border-pub-muted rounded-md hover:opacity-90"
+              on:click={() => wakeManager?.sync()}
+            >
+              Try again
+            </button>
+          {/if}
           <button
             type="button"
             class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
