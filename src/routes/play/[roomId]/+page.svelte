@@ -336,36 +336,6 @@
     showWakeEnableModal = false;
   }
 
-  function getWakeStatusLabel(status: WakeSnapshot['status']) {
-    if (wakeRequested && !isActiveQuizPhase && state?.type === 'Lobby') {
-      if (status === 'on') return 'On';
-      if (status === 'off') return 'Waiting in lobby';
-    }
-
-    switch (status) {
-      case 'on':
-        return 'On';
-      case 'unsupported':
-        return 'Unsupported';
-      case 'blocked':
-        return 'Tap to keep awake';
-      case 'error':
-        return 'Unavailable';
-      default:
-        return 'Off';
-    }
-  }
-
-  function getWakeMethodLabel(method: WakeSnapshot['method']) {
-    switch (method) {
-      case 'wake-lock':
-        return 'native';
-      case 'video':
-        return 'video-fallback';
-      default:
-        return 'none';
-    }
-  }
 </script>
 
 <div class="min-h-screen p-6">
@@ -382,12 +352,8 @@
         </span>
         <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
       </div>
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 mb-4 text-xs">
-        {#if wakeSnapshot.active}
-          <span class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark w-full sm:w-auto text-center sm:text-left">
-            Screen wake enabled
-          </span>
-        {:else}
+      {#if wakeAutoAttempted && !wakeSnapshot.active}
+        <div class="mb-4 text-xs">
           <button
             type="button"
             class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
@@ -395,23 +361,8 @@
           >
             Enable screen wake
           </button>
-        {/if}
-        <div class="flex items-center justify-between sm:justify-end gap-2 text-pub-muted">
-          <span>
-            Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}
-            ({getWakeMethodLabel(wakeSnapshot.method)})
-          </span>
-          {#if wakeSnapshot.status === 'blocked'}
-            <button
-              type="button"
-              class="px-2 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90"
-              on:click={enableWakeFromTap}
-            >
-              Try again
-            </button>
-          {/if}
         </div>
-      </div>
+      {/if}
     {/if}
     {#if !state}
       <div class="bg-pub-darker rounded-lg p-6">
