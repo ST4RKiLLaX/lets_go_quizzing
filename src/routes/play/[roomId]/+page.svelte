@@ -23,7 +23,10 @@
     errorMessage: null,
   };
   let stopWakeSubscription: (() => void) | null = null;
-  let keepAwakeEnabled = false;
+  let wakeRequested = false;
+  let wakeAutoAttempted = false;
+  let wakeAutoAttemptInFlight = false;
+  let showWakeEnableModal = false;
   let clockOffsetMs = 0;
   const confettiDurationMs = 1200;
   let showConfetti = false;
@@ -41,7 +44,7 @@
   }
   $: if (wakeManager) {
     void wakeManager.setAutoActive(false);
-    void wakeManager.setUserEnabled(!!(keepAwakeEnabled && isActiveQuizPhase));
+    void wakeManager.setUserEnabled(wakeRequested);
   }
   onDestroy(() => {
     countdown?.destroy?.();
@@ -70,18 +73,11 @@
     '🐵', '🐨', '🐮', '🐷', '🐰', '🐹', '🦄', '🐢', '🐬', '🐝',
     '🍉', '🍇', '🍓', '🍒', '🍍', '🥨', '🍪', '🍫', '🧋', '🧁',
   ];
-  const keepAwakeStorageKey = 'lgq_keep_awake_enabled';
-
   onMount(() => {
     wakeManager = createWakeManager();
     stopWakeSubscription = wakeManager.subscribe((next) => {
       wakeSnapshot = next;
     });
-    try {
-      keepAwakeEnabled = localStorage.getItem(keepAwakeStorageKey) === '1';
-    } catch {
-      keepAwakeEnabled = false;
-    }
 
     const playerId = getOrCreatePlayerId();
     socket = createSocket();
@@ -259,6 +255,16 @@
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: revealQuestion = state?.type === 'RevealAnswer' ? getCurrentQuestion() : null;
+  $: canAttemptWakeNow = !!(registered && state && (state.type === 'Lobby' || isActiveQuizPhase));
+  $: if (
+    wakeManager &&
+    canAttemptWakeNow &&
+    !wakeRequested &&
+    !wakeAutoAttempted &&
+    !wakeAutoAttemptInFlight
+  ) {
+    void attemptWakeSilently();
+  }
   $: revealKey =
     state?.type === 'RevealAnswer' && revealQuestion
       ? `${state.currentRoundIndex}-${state.currentQuestionIndex}-${revealQuestion.id}`
@@ -298,25 +304,42 @@
     showConfetti = false;
   }
 
-  async function toggleKeepAwake() {
-    keepAwakeEnabled = !keepAwakeEnabled;
+  async function attemptWakeSilently() {
+    if (!wakeManager || wakeAutoAttempted || wakeAutoAttemptInFlight) return;
+    wakeAutoAttemptInFlight = true;
+    wakeRequested = true;
     try {
-      localStorage.setItem(keepAwakeStorageKey, keepAwakeEnabled ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-
-    if (!wakeManager) return;
-    await wakeManager.setAutoActive(false);
-    await wakeManager.setUserEnabled(!!(keepAwakeEnabled && isActiveQuizPhase));
-    if (keepAwakeEnabled && isActiveQuizPhase) {
-      await wakeManager.sync();
+      await wakeManager.setAutoActive(false);
+      await wakeManager.setUserEnabled(true);
+      if (!wakeManager.getSnapshot().active) {
+        showWakeEnableModal = true;
+      }
+    } finally {
+      wakeAutoAttemptInFlight = false;
+      wakeAutoAttempted = true;
     }
   }
 
+  async function enableWakeFromTap() {
+    showWakeEnableModal = false;
+    wakeRequested = true;
+    if (!wakeManager) return;
+    await wakeManager.setAutoActive(false);
+    await wakeManager.setUserEnabled(true);
+    await wakeManager.sync();
+    if (!wakeManager.getSnapshot().active) {
+      showWakeEnableModal = true;
+    }
+  }
+
+  function closeWakeEnableModal() {
+    showWakeEnableModal = false;
+  }
+
   function getWakeStatusLabel(status: WakeSnapshot['status']) {
-    if (keepAwakeEnabled && !isActiveQuizPhase) {
-      return 'Waiting for question';
+    if (wakeRequested && !isActiveQuizPhase && state?.type === 'Lobby') {
+      if (status === 'on') return 'On';
+      if (status === 'off') return 'Waiting in lobby';
     }
 
     switch (status) {
@@ -360,13 +383,19 @@
         <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
       </div>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 mb-4 text-xs">
-        <button
-          type="button"
-          class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
-          on:click={toggleKeepAwake}
-        >
-          Keep-awake preference: {keepAwakeEnabled ? 'Enabled' : 'Disabled'}
-        </button>
+        {#if wakeSnapshot.active}
+          <span class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark w-full sm:w-auto text-center sm:text-left">
+            Screen wake enabled
+          </span>
+        {:else}
+          <button
+            type="button"
+            class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
+            on:click={enableWakeFromTap}
+          >
+            Enable screen wake
+          </button>
+        {/if}
         <div class="flex items-center justify-between sm:justify-end gap-2 text-pub-muted">
           <span>
             Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}
@@ -376,7 +405,7 @@
             <button
               type="button"
               class="px-2 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90"
-              on:click={() => wakeManager?.sync()}
+              on:click={enableWakeFromTap}
             >
               Try again
             </button>
@@ -645,3 +674,31 @@
     {/if}
   </div>
 </div>
+
+{#if showWakeEnableModal}
+  <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5">
+      <h2 class="text-lg font-semibold text-pub-gold mb-3">Keep your screen awake?</h2>
+      <p class="text-sm text-pub-muted mb-5">
+        We could not enable screen wake automatically. Tap below to keep your screen on during the
+        quiz.
+      </p>
+      <div class="flex justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+          on:click={closeWakeEnableModal}
+        >
+          Not now
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-green-600 rounded-lg font-medium hover:opacity-90"
+          on:click={enableWakeFromTap}
+        >
+          Enable
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
