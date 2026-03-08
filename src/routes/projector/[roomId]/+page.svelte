@@ -26,6 +26,9 @@
   let countdown: ReturnType<typeof useCountdown> | null = null;
   let clockOffsetMs = 0;
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: currentRoundQuestionTotal =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
+  $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
@@ -188,6 +191,11 @@
             {/if}
           </p>
         </div>
+        {#if currentRoundQuestionTotal > 0}
+          <p class="mt-4 text-center text-sm font-medium text-pub-muted">
+            {currentQuestionNumber}/{currentRoundQuestionTotal}
+          </p>
+        {/if}
         {/key}
       </div>
     {:else if state?.type === 'RevealAnswer'}
@@ -251,6 +259,11 @@
           </div>
         {:else}
           <p class="mt-6 text-pub-muted">Waiting for next question...</p>
+        {/if}
+        {#if currentRoundQuestionTotal > 0}
+          <p class="mt-4 text-center text-sm font-medium text-pub-muted">
+            {currentQuestionNumber}/{currentRoundQuestionTotal}
+          </p>
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}

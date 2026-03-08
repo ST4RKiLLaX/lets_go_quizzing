@@ -18,6 +18,9 @@
   let clockOffsetMs = 0;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: currentRoundQuestionTotal =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
+  $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
@@ -205,6 +208,11 @@
           {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
               {q.explanation}
+            </p>
+          {/if}
+          {#if currentRoundQuestionTotal > 0}
+            <p class="mt-4 text-center text-sm font-medium text-pub-muted">
+              {currentQuestionNumber}/{currentRoundQuestionTotal}
             </p>
           {/if}
         {/if}

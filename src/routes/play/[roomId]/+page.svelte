@@ -226,6 +226,9 @@
   $: playerDisplayEmoji = currentPlayer?.emoji ?? emoji;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
+  $: currentRoundQuestionTotal =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
+  $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: revealQuestion = state?.type === 'RevealAnswer' ? getCurrentQuestion() : null;
   $: revealKey =
     state?.type === 'RevealAnswer' && revealQuestion
@@ -447,6 +450,11 @@
               </button>
             </form>
           {/if}
+          {#if currentRoundQuestionTotal > 0}
+            <p class="mt-4 text-center text-sm font-medium text-pub-muted">
+              {currentQuestionNumber}/{currentRoundQuestionTotal}
+            </p>
+          {/if}
         {/if}
         {#if hasAnsweredCurrentQuestion}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
@@ -504,6 +512,11 @@
           {#if q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
               {q.explanation}
+            </p>
+          {/if}
+          {#if currentRoundQuestionTotal > 0}
+            <p class="mt-4 text-center text-sm font-medium text-pub-muted">
+              {currentQuestionNumber}/{currentRoundQuestionTotal}
             </p>
           {/if}
         {/if}
