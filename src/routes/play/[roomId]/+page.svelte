@@ -298,16 +298,27 @@
     showConfetti = false;
   }
 
-  function toggleKeepAwake() {
+  async function toggleKeepAwake() {
     keepAwakeEnabled = !keepAwakeEnabled;
     try {
       localStorage.setItem(keepAwakeStorageKey, keepAwakeEnabled ? '1' : '0');
     } catch {
       /* ignore */
     }
+
+    if (!wakeManager) return;
+    await wakeManager.setAutoActive(false);
+    await wakeManager.setUserEnabled(!!(keepAwakeEnabled && isActiveQuizPhase));
+    if (keepAwakeEnabled && isActiveQuizPhase) {
+      await wakeManager.sync();
+    }
   }
 
   function getWakeStatusLabel(status: WakeSnapshot['status']) {
+    if (keepAwakeEnabled && !isActiveQuizPhase) {
+      return 'Waiting for question';
+    }
+
     switch (status) {
       case 'on':
         return 'On';
@@ -343,7 +354,7 @@
           class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
           on:click={toggleKeepAwake}
         >
-          Keep screen awake: {keepAwakeEnabled ? 'On' : 'Off'}
+          Keep-awake preference: {keepAwakeEnabled ? 'Enabled' : 'Disabled'}
         </button>
         <div class="flex items-center justify-between sm:justify-end gap-2 text-pub-muted">
           <span>Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
