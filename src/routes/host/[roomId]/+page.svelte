@@ -65,6 +65,17 @@
     }
   }
 
+  function getWakeMethodLabel(method: WakeSnapshot['method']) {
+    switch (method) {
+      case 'wake-lock':
+        return 'native';
+      case 'video':
+        return 'video-fallback';
+      default:
+        return 'none';
+    }
+  }
+
   function doHostJoin(password?: string) {
     joinError = '';
     socket?.emit('host:join', { roomId, password }, (ack: { state?: SerializedState; error?: string }) => {
@@ -165,7 +176,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
         <div class="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
-          <span class="text-xs text-pub-muted w-full sm:w-auto text-right">Awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+          <span class="text-xs text-pub-muted w-full sm:w-auto text-right">
+            Awake: {getWakeStatusLabel(wakeSnapshot.status)}
+            ({getWakeMethodLabel(wakeSnapshot.method)})
+          </span>
           {#if wakeSnapshot.status === 'blocked'}
             <button
               type="button"

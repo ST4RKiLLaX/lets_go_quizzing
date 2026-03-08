@@ -332,6 +332,17 @@
         return 'Off';
     }
   }
+
+  function getWakeMethodLabel(method: WakeSnapshot['method']) {
+    switch (method) {
+      case 'wake-lock':
+        return 'native';
+      case 'video':
+        return 'video-fallback';
+      default:
+        return 'none';
+    }
+  }
 </script>
 
 <div class="min-h-screen p-6">
@@ -357,7 +368,10 @@
           Keep-awake preference: {keepAwakeEnabled ? 'Enabled' : 'Disabled'}
         </button>
         <div class="flex items-center justify-between sm:justify-end gap-2 text-pub-muted">
-          <span>Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+          <span>
+            Screen awake: {getWakeStatusLabel(wakeSnapshot.status)}
+            ({getWakeMethodLabel(wakeSnapshot.method)})
+          </span>
           {#if wakeSnapshot.status === 'blocked'}
             <button
               type="button"

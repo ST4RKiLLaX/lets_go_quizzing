@@ -74,6 +74,17 @@
     }
   }
 
+  function getWakeMethodLabel(method: WakeSnapshot['method']) {
+    switch (method) {
+      case 'wake-lock':
+        return 'native';
+      case 'video':
+        return 'video-fallback';
+      default:
+        return 'none';
+    }
+  }
+
   function getCurrentQuestion() {
     if (!state) return null;
     const round = state.quiz?.rounds?.[state.currentRoundIndex];
@@ -163,7 +174,10 @@
 <div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
     <div class="flex flex-wrap justify-end items-center gap-2 mb-2">
-      <span class="text-xs text-pub-muted">Awake: {getWakeStatusLabel(wakeSnapshot.status)}</span>
+      <span class="text-xs text-pub-muted">
+        Awake: {getWakeStatusLabel(wakeSnapshot.status)}
+        ({getWakeMethodLabel(wakeSnapshot.method)})
+      </span>
       {#if wakeSnapshot.status === 'blocked'}
         <button
           type="button"
