@@ -285,6 +285,33 @@
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
+          {:else if q.type === 'open_ended' && state?.type === 'RevealAnswer'}
+            <div class="space-y-2 mt-4">
+              <h3 class="text-sm font-semibold text-pub-muted">Responses:</h3>
+              <ul class="space-y-1">
+                {#each (state.submissions ?? []).filter(s => s.questionId === q.id) as sub}
+                  {@const player = state.players.find(p => p.id === sub.playerId)}
+                  <li class="px-4 py-2 bg-pub-dark rounded text-sm">
+                    <span class="text-pub-muted mr-2">{player?.emoji} {player?.name}:</span>
+                    {sub.answerText}
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {:else if q.type === 'word_cloud' && state?.type === 'RevealAnswer'}
+            <div class="mt-4 flex flex-wrap gap-3 justify-center items-center p-6 bg-pub-dark rounded min-h-[150px]">
+              {#each Array.from(
+                (state.submissions ?? []).filter(s => s.questionId === q.id).reduce((acc, s) => {
+                  const text = (s.answerText || '').trim().toUpperCase();
+                  if (text) acc.set(text, (acc.get(text) || 0) + 1);
+                  return acc;
+                }, new Map<string, number>())
+              ).sort((a, b) => b[1] - a[1]) as [word, count]}
+                <span style="font-size: {Math.max(1, Math.min(3.5, 0.9 + count * 0.3))}rem; opacity: {Math.min(1, 0.5 + count * 0.2)}" class="text-pub-gold font-bold leading-none inline-block">
+                  {word}
+                </span>
+              {/each}
+            </div>
           {/if}
           {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">

@@ -62,8 +62,8 @@ export const QUIZ_JSON_SCHEMA = {
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'slider', 'input'],
-                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, slider = numeric range, input = fill in the blank',
+                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'slider', 'input', 'open_ended', 'word_cloud'],
+                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -180,6 +180,18 @@ export const QUIZ_JSON_SCHEMA = {
                         description: 'Accepted answers; add alternatives for common typos',
                       },
                     },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'open_ended' } }, required: ['type'] },
+                  then: {
+                    properties: {},
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'word_cloud' } }, required: ['type'] },
+                  then: {
+                    properties: {},
                   },
                 },
               ],

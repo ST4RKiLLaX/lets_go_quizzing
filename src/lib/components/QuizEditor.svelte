@@ -8,6 +8,8 @@
     MultiSelectQuestion,
     SliderQuestion,
     InputQuestion,
+    OpenEndedQuestion,
+    WordCloudQuestion,
   } from '$lib/types/quiz.js';
   import {
     createEmptyChoiceQuestion,
@@ -15,6 +17,9 @@
     createEmptyPollQuestion,
     createEmptyMultiSelectQuestion,
     createEmptySliderQuestion,
+    createEmptyInputQuestion,
+    createEmptyOpenEndedQuestion,
+    createEmptyWordCloudQuestion,
     generateQuestionId,
   } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
@@ -108,7 +113,7 @@
   function setQuestionType(
     ri: number,
     qi: number,
-    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input'
+    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud'
   ) {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
@@ -124,7 +129,11 @@
               ? { ...base, type: 'multi_select', options: ['', ''], answer: [0] }
               : type === 'slider'
                 ? { ...base, type: 'slider', min: 0, max: 10, step: 1, answer: 5 }
-                : { ...base, type: 'input', answer: [''] };
+                : type === 'input'
+                  ? { ...base, type: 'input', answer: [''] }
+                  : type === 'open_ended'
+                    ? { ...base, type: 'open_ended' }
+                    : { ...base, type: 'word_cloud' };
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -475,7 +484,7 @@
                 setQuestionType(
                   ri,
                   qi,
-                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input')
+                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud')
                 )}
               class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
             >
@@ -485,6 +494,8 @@
               <option value="multi_select">Multi-select</option>
               <option value="slider">Slider</option>
               <option value="input">Fill in the blank</option>
+              <option value="open_ended">Long text response</option>
+              <option value="word_cloud">Word cloud</option>
             </select>
             <button
               type="button"
@@ -691,7 +702,7 @@
                 <span>False</span>
               </label>
             </div>
-          {:else}
+          {:else if question.type === 'input'}
             <div class="space-y-2" role="group" aria-label="Accepted answers">
               <span class="block text-sm text-pub-muted">Accepted answers (for typos, add alternatives)</span>
               {#each (Array.isArray(question.answer) ? question.answer : ['']) as ans, ai}

@@ -94,6 +94,22 @@ const InputQuestionSchema = z.object({
   ),
 });
 
+const OpenEndedQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('open_ended'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+});
+
+const WordCloudQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('word_cloud'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+});
+
 const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
   TrueFalseQuestionSchema,
@@ -101,6 +117,8 @@ const QuestionSchema = z.discriminatedUnion('type', [
   MultiSelectQuestionSchema,
   SliderQuestionSchema,
   InputQuestionSchema,
+  OpenEndedQuestionSchema,
+  WordCloudQuestionSchema,
 ]);
 
 const RoundSchema = z
@@ -149,6 +167,8 @@ export type PollQuestion = z.infer<typeof PollQuestionSchema>;
 export type MultiSelectQuestion = z.infer<typeof MultiSelectQuestionSchema>;
 export type SliderQuestion = z.infer<typeof SliderQuestionSchema>;
 export type InputQuestion = z.infer<typeof InputQuestionSchema>;
+export type OpenEndedQuestion = z.infer<typeof OpenEndedQuestionSchema>;
+export type WordCloudQuestion = z.infer<typeof WordCloudQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;

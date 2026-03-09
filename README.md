@@ -86,6 +86,8 @@ The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` is intended 
 - `poll`
 - `multi_select`
 - `slider`
+- `open_ended`
+- `word_cloud`
 
 **Example Quiz Structure:**
 ```yaml
@@ -132,6 +134,16 @@ rounds:
         max: 15
         step: 1
         answer: 11
+  - name: "Round 3"
+    questions:
+      - id: "q7"
+        type: "open_ended"
+        text: "In one sentence, why do you like pub quizzes?"
+        explanation: "Open-ended questions allow longer text answers without being scored."
+      - id: "q8"
+        type: "word_cloud"
+        text: "Describe your current mood in one word!"
+        explanation: "Word clouds aggregate repeated answers into a visual display."
 ```
 
 ---

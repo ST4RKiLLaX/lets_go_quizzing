@@ -223,6 +223,10 @@
             <p class="text-xl text-pub-muted">Choose a value on the slider</p>
           {:else if q.type === 'input'}
             <p class="text-xl text-pub-muted">Fill in the blank</p>
+          {:else if q.type === 'open_ended'}
+            <p class="text-xl text-pub-muted">Type your response</p>
+          {:else if q.type === 'word_cloud'}
+            <p class="text-xl text-pub-muted">Type a short word or phrase</p>
           {/if}
         {/if}
         <div class="mt-6 pt-6 border-t border-pub-muted">
@@ -325,6 +329,33 @@
             <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
+          {:else if q.type === 'open_ended'}
+            <div class="space-y-3 mt-4">
+              <h3 class="text-lg font-semibold text-pub-muted">Responses:</h3>
+              <ul class="space-y-2">
+                {#each (state.submissions ?? []).filter(s => s.questionId === q.id) as sub}
+                  {@const player = state.players?.find(p => p.id === sub.playerId)}
+                  <li class="px-4 py-3 bg-pub-dark rounded-lg text-lg">
+                    <span class="text-pub-muted mr-3">{player?.emoji} {player?.name}:</span>
+                    {sub.answerText}
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {:else if q.type === 'word_cloud'}
+            <div class="mt-4 flex flex-wrap gap-4 justify-center items-center p-8 bg-pub-dark rounded-lg min-h-[200px]">
+              {#each Array.from(
+                (state.submissions ?? []).filter(s => s.questionId === q.id).reduce((acc, s) => {
+                  const text = (s.answerText || '').trim().toUpperCase();
+                  if (text) acc.set(text, (acc.get(text) || 0) + 1);
+                  return acc;
+                }, new Map<string, number>())
+              ).sort((a, b) => b[1] - a[1]) as [word, count]}
+                <span style="font-size: {Math.max(1.5, Math.min(5, 1 + count * 0.5))}rem; opacity: {Math.min(1, 0.4 + count * 0.2)}" class="text-pub-gold font-bold leading-none inline-block">
+                  {word}
+                </span>
+              {/each}
+            </div>
           {/if}
           {#if q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded-lg text-pub-muted">

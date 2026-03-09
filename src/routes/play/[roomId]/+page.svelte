@@ -718,7 +718,7 @@
                 Submit
               </button>
             </div>
-          {:else if q.type === 'input'}
+          {:else if q.type === 'input' || q.type === 'open_ended' || q.type === 'word_cloud'}
             <form
               class="flex gap-2"
               on:submit|preventDefault={() => {
@@ -756,7 +756,7 @@
             </p>
           {/if}
         {/if}
-        {#if hasAnsweredCurrentQuestion && currentQuestion?.type !== 'input'}
+        {#if hasAnsweredCurrentQuestion && currentQuestion?.type !== 'input' && currentQuestion?.type !== 'open_ended' && currentQuestion?.type !== 'word_cloud'}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
           {#if (currentQuestion?.type === 'true_false' || currentQuestion?.type === 'poll') && getSelectedOptionLabel(currentQuestion)}
             <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">

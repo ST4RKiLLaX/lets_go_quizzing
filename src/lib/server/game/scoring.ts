@@ -7,6 +7,8 @@ import type {
   MultiSelectQuestion,
   SliderQuestion,
   InputQuestion,
+  OpenEndedQuestion,
+  WordCloudQuestion,
 } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
@@ -76,7 +78,9 @@ function isCorrect(
     | PollQuestion
     | MultiSelectQuestion
     | SliderQuestion
-    | InputQuestion,
+    | InputQuestion
+    | OpenEndedQuestion
+    | WordCloudQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
@@ -86,7 +90,7 @@ function isCorrect(
   if (question.type === 'true_false') {
     return isTrueFalseCorrect(question, submission);
   }
-  if (question.type === 'poll') {
+  if (question.type === 'poll' || question.type === 'open_ended' || question.type === 'word_cloud') {
     return false;
   }
   if (question.type === 'multi_select') {
@@ -125,7 +129,7 @@ export function scoreSubmissions(
 
   const question = round.questions[state.currentQuestionIndex];
   if (!question) return state;
-  if (question.type === 'poll') {
+  if (question.type === 'poll' || question.type === 'open_ended' || question.type === 'word_cloud') {
     return {
       ...state,
       wrongAnswers: [],

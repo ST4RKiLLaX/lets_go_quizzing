@@ -68,13 +68,31 @@ export interface InputQuestion {
   answer: string[];
 }
 
+export interface OpenEndedQuestion {
+  id: string;
+  type: 'open_ended';
+  text: string;
+  explanation?: string;
+  image?: string;
+}
+
+export interface WordCloudQuestion {
+  id: string;
+  type: 'word_cloud';
+  text: string;
+  explanation?: string;
+  image?: string;
+}
+
 export type Question =
   | ChoiceQuestion
   | TrueFalseQuestion
   | PollQuestion
   | MultiSelectQuestion
   | SliderQuestion
-  | InputQuestion;
+  | InputQuestion
+  | OpenEndedQuestion
+  | WordCloudQuestion;
 
 export interface Round {
   name: string;
@@ -149,6 +167,22 @@ export function createEmptyInputQuestion(id: string): InputQuestion {
     type: 'input',
     text: '',
     answer: [''],
+  };
+}
+
+export function createEmptyOpenEndedQuestion(id: string): OpenEndedQuestion {
+  return {
+    id,
+    type: 'open_ended',
+    text: '',
+  };
+}
+
+export function createEmptyWordCloudQuestion(id: string): WordCloudQuestion {
+  return {
+    id,
+    type: 'word_cloud',
+    text: '',
   };
 }
 

@@ -141,6 +141,8 @@ const QUESTION_TYPES: { value: string; detail: string }[] = [
   { value: 'multi_select', detail: 'Choose multiple options' },
   { value: 'slider', detail: 'Numeric range slider' },
   { value: 'input', detail: 'Fill in the blank' },
+  { value: 'open_ended', detail: 'Long text response' },
+  { value: 'word_cloud', detail: 'Short text for word cloud' },
 ];
 
 /**

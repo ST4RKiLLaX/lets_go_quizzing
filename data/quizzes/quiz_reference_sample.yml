@@ -18,11 +18,12 @@ rounds:
         answer: 2
       - id: q2
         type: input
-        text: "Complete: 'Is this the real life? Is this just _________________?'"
+        text: "Complete: 'Is this the real life? Is this just __________'"
         explanation: The lyric is from Queen's Bohemian Rhapsody.
         answer:
           - fantasy
           - fantsy
+          - Phantasy
       - id: q3
         type: true_false
         text: Lightning is hotter than the surface of the sun.
@@ -59,3 +60,13 @@ rounds:
         max: 15
         step: 1
         answer: 11
+  - name: Phase 3 Text Aggregation
+    questions:
+      - id: q7
+        type: open_ended
+        text: In one sentence, why do you like pub quizzes?
+        explanation: Open-ended questions allow longer text answers without being scored.
+      - id: q8
+        type: word_cloud
+        text: Describe your current mood in one word!
+        explanation: Word clouds aggregate repeated answers into a visual display.
