@@ -3,6 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -31,6 +32,8 @@
   $: currentRoundQuestionTotal =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
+  $: currentQuestion =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
@@ -50,14 +53,8 @@
   let socket: ReturnType<typeof createSocket> | null = null;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
 
-  function getCurrentQuestion() {
-    if (!state) return null;
-    const round = state.quiz?.rounds?.[state.currentRoundIndex];
-    return round?.questions?.[state.currentQuestionIndex] ?? null;
-  }
-
   function getAnsweredInOrder(): Array<{ emoji: string; name: string }> {
-    const q = getCurrentQuestion();
+    const q = currentQuestion;
     if (!q || !state?.submissions) return [];
     const submitted = state.submissions.filter((s) => s.questionId === q.id);
     const players = state.players ?? [];
@@ -67,23 +64,30 @@
     });
   }
 
-  function getQuestionOptions(q: NonNullable<ReturnType<typeof getCurrentQuestion>>): string[] {
+  function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
     return [];
   }
 
   function getOptionCounts(questionId: string): Map<number, number> {
     const counts = new Map<number, number>();
     for (const submission of state?.submissions ?? []) {
-      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
-      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      if (submission.questionId !== questionId) continue;
+      if (submission.answerIndex != null) {
+        counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      }
+      if (submission.answerIndexes?.length) {
+        for (const answerIndex of submission.answerIndexes) {
+          counts.set(answerIndex, (counts.get(answerIndex) ?? 0) + 1);
+        }
+      }
     }
     return counts;
   }
 
   function getCorrectAnswersInRankOrder(): Array<{ emoji: string; name: string; rank: number; points: number }> {
-    const q = getCurrentQuestion();
+    const q = currentQuestion;
     if (!q || !state?.submissions || !state?.wrongAnswers) return [];
     const wrongPlayerIds = new Set(
       state.wrongAnswers.filter((w) => w.questionId === q.id).map((w) => w.playerId)
@@ -169,10 +173,10 @@
         {/if}
       </div>
     {:else if state?.type === 'Question'}
-      <div class="bg-pub-darker rounded-lg p-6" data-question-id={getCurrentQuestion()?.id}>
+      <div class="bg-pub-darker rounded-lg p-6" data-question-id={currentQuestion?.id}>
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
-        {@const q = getCurrentQuestion()}
-        {#if q}
+        {#if currentQuestion}
+        {@const q = currentQuestion}
           <div class="flex items-start justify-between gap-6 mb-2">
             <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
@@ -202,6 +206,21 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'multi_select'}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          {:else if q.type === 'slider'}
+            <p class="text-xl text-pub-muted">Choose a value on the slider</p>
           {:else if q.type === 'input'}
             <p class="text-xl text-pub-muted">Fill in the blank</p>
           {/if}
@@ -227,8 +246,8 @@
       </div>
     {:else if state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-6">
-        {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()!}
+        {#if currentQuestion}
+          {@const q = currentQuestion}
           <div class="flex items-start justify-between gap-6 mb-2">
             <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
@@ -261,6 +280,23 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'multi_select'}
+            {@const counts = getOptionCounts(q.id)}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded-lg {q.answer.includes(i) ? 'ring-2 ring-green-500' : 'opacity-60'}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if q.answer.includes(i)}(correct){/if}
+                    </span>
+                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">
@@ -276,6 +312,15 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'slider'}
+            <div class="space-y-3">
+              <p class="px-4 py-2 bg-pub-dark rounded-lg text-pub-muted">
+                Range: {q.min} to {q.max} in steps of {q.step}
+              </p>
+              <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-green-500 text-pub-gold">
+                Correct: {q.answer}
+              </p>
+            </div>
           {:else if q.type === 'input'}
             <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}

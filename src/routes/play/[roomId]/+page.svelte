@@ -145,7 +145,11 @@
 
   let submitError = '';
   let selectedAnswer: { questionId: string; answerIndex: number } | null = null;
+  let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
+  let selectedSlider: { questionId: string; answerNumber: number } | null = null;
   let selectedInput: string | null = null;
+  let multiSelectDraft: number[] = [];
+  let sliderAnswer: number | null = null;
 
   $: currentQuestionKey =
     state?.type === 'Question'
@@ -157,13 +161,21 @@
     if (key && key !== prevQuestionKey) {
       prevQuestionKey = key;
       selectedAnswer = null;
+      selectedMultiSelect = null;
+      selectedSlider = null;
       selectedInput = null;
+      multiSelectDraft = [];
+      sliderAnswer = null;
+      inputAnswer = '';
     }
   }
 
   $: currentQuestion =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
   $: currentQuestionId = currentQuestion?.id ?? '';
+  $: if (currentQuestion?.type === 'slider' && sliderAnswer === null) {
+    sliderAnswer = currentQuestion.min;
+  }
   $: questionTimeExpired = !!(
     state?.type === 'Question' &&
     state?.timerEndsAt &&
@@ -173,6 +185,8 @@
   $: hasAnsweredCurrentQuestion =
     hasSubmitted(currentQuestionId) ||
     selectedAnswer?.questionId === currentQuestionId ||
+    selectedMultiSelect?.questionId === currentQuestionId ||
+    selectedSlider?.questionId === currentQuestionId ||
     selectedInput === currentQuestionId;
   $: showTimesUpMessage = !!(questionTimeExpired && !hasAnsweredCurrentQuestion);
 
@@ -216,6 +230,76 @@
     });
   }
 
+  function submitMultiSelect(questionId: string, answerIndexes: number[]) {
+    if (
+      hasSubmitted(questionId) ||
+      selectedMultiSelect?.questionId === questionId ||
+      questionTimeExpired
+    ) {
+      return;
+    }
+    const normalized = [...new Set(answerIndexes)].sort((a, b) => a - b);
+    if (normalized.length === 0) return;
+    submitError = '';
+    selectedMultiSelect = { questionId, answerIndexes: normalized };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? {
+          ...state,
+          submissions: [...(state.submissions ?? []), { playerId, questionId, answerIndexes: normalized }],
+        }
+      : state;
+    socket?.emit('player:answer', { questionId, answerIndexes: normalized }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedMultiSelect = null;
+        state =
+          state?.submissions != null
+            ? {
+                ...state,
+                submissions: state.submissions.filter(
+                  (s) => !(s.playerId === playerId && s.questionId === questionId)
+                ),
+              }
+            : state;
+      }
+    });
+  }
+
+  function submitSlider(questionId: string, answerNumber: number) {
+    if (
+      hasSubmitted(questionId) ||
+      selectedSlider?.questionId === questionId ||
+      questionTimeExpired
+    ) {
+      return;
+    }
+    submitError = '';
+    selectedSlider = { questionId, answerNumber };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? {
+          ...state,
+          submissions: [...(state.submissions ?? []), { playerId, questionId, answerNumber }],
+        }
+      : state;
+    socket?.emit('player:answer', { questionId, answerNumber }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedSlider = null;
+        state =
+          state?.submissions != null
+            ? {
+                ...state,
+                submissions: state.submissions.filter(
+                  (s) => !(s.playerId === playerId && s.questionId === questionId)
+                ),
+              }
+            : state;
+      }
+    });
+  }
+
   function hasSubmitted(questionId: string): boolean {
     const playerId = getOrCreatePlayerId();
     return state?.submissions?.some(
@@ -235,6 +319,22 @@
     return sub?.answerIndex;
   }
 
+  function getSubmittedAnswerIndexes(questionId: string): number[] {
+    const playerId = getOrCreatePlayerId();
+    const sub = state?.submissions?.find(
+      (s) => s.playerId === playerId && s.questionId === questionId
+    );
+    return sub?.answerIndexes ?? [];
+  }
+
+  function getSubmittedAnswerNumber(questionId: string): number | undefined {
+    const playerId = getOrCreatePlayerId();
+    const sub = state?.submissions?.find(
+      (s) => s.playerId === playerId && s.questionId === questionId
+    );
+    return sub?.answerNumber;
+  }
+
   function getSubmittedAnswerText(questionId: string): string {
     const playerId = getOrCreatePlayerId();
     const sub = state?.submissions?.find(
@@ -249,15 +349,22 @@
 
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
     return [];
   }
 
   function getOptionCounts(questionId: string): Map<number, number> {
     const counts = new Map<number, number>();
     for (const submission of state?.submissions ?? []) {
-      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
-      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      if (submission.questionId !== questionId) continue;
+      if (submission.answerIndex != null) {
+        counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      }
+      if (submission.answerIndexes?.length) {
+        for (const answerIndex of submission.answerIndexes) {
+          counts.set(answerIndex, (counts.get(answerIndex) ?? 0) + 1);
+        }
+      }
     }
     return counts;
   }
@@ -266,6 +373,30 @@
     const index = getSubmittedAnswerIndex(q.id);
     if (index == null) return '';
     return getQuestionOptions(q)[index] ?? '';
+  }
+
+  function getSelectedOptionLabels(q: Question): string[] {
+    const indexes =
+      getSubmittedAnswerIndexes(q.id).length > 0
+        ? getSubmittedAnswerIndexes(q.id)
+        : selectedMultiSelect?.questionId === q.id
+          ? selectedMultiSelect.answerIndexes
+          : multiSelectDraft;
+    return indexes.map((index) => getQuestionOptions(q)[index]).filter(Boolean);
+  }
+
+  function isMultiSelectSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedMultiSelect?.questionId === questionId;
+  }
+
+  function isSliderSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedSlider?.questionId === questionId;
+  }
+
+  function toggleMultiSelectDraft(optionIndex: number) {
+    multiSelectDraft = multiSelectDraft.includes(optionIndex)
+      ? multiSelectDraft.filter((index) => index !== optionIndex)
+      : [...multiSelectDraft, optionIndex].sort((a, b) => a - b);
   }
 
   $: playerId = getOrCreatePlayerId();
@@ -531,6 +662,62 @@
                 </button>
               {/each}
             </div>
+          {:else if q.type === 'multi_select'}
+            <div class="space-y-2">
+              {#each q.options as opt, i}
+                {@const isChosen = getSubmittedAnswerIndexes(q.id).includes(i) || (selectedMultiSelect?.questionId === q.id ? selectedMultiSelect.answerIndexes.includes(i) : multiSelectDraft.includes(i))}
+                <button
+                  class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
+                  disabled={isMultiSelectSubmitted(q.id) || questionTimeExpired}
+                  on:click={() => toggleMultiSelectDraft(i)}
+                >
+                  <span class="w-4 text-pub-gold" aria-hidden="true">
+                    {#if isChosen}
+                      ●
+                    {/if}
+                  </span>
+                  <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                    {formatOptionLabel(i, optionLabelStyle)}
+                  </span>
+                  <span class="flex-1 break-words">{opt}</span>
+                </button>
+              {/each}
+              <button
+                type="button"
+                class="mt-2 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                disabled={isMultiSelectSubmitted(q.id) || multiSelectDraft.length === 0 || questionTimeExpired}
+                on:click={() => submitMultiSelect(q.id, multiSelectDraft)}
+              >
+                Submit
+              </button>
+            </div>
+          {:else if q.type === 'slider'}
+            <div class="space-y-4">
+              <div class="px-4 py-4 bg-pub-dark rounded-lg {isSliderSubmitted(q.id) ? 'opacity-60' : ''}">
+                <div class="flex items-center justify-between gap-4 mb-3">
+                  <span class="text-sm text-pub-muted">{q.min}</span>
+                  <span class="text-lg font-semibold text-pub-gold">{sliderAnswer ?? q.min}</span>
+                  <span class="text-sm text-pub-muted">{q.max}</span>
+                </div>
+                <input
+                  type="range"
+                  min={q.min}
+                  max={q.max}
+                  step={q.step}
+                  bind:value={sliderAnswer}
+                  class="w-full"
+                  disabled={isSliderSubmitted(q.id) || questionTimeExpired}
+                />
+              </div>
+              <button
+                type="button"
+                class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                disabled={isSliderSubmitted(q.id) || sliderAnswer == null || questionTimeExpired}
+                on:click={() => submitSlider(q.id, Number(sliderAnswer))}
+              >
+                Submit
+              </button>
+            </div>
           {:else if q.type === 'input'}
             <form
               class="flex gap-2"
@@ -574,6 +761,14 @@
           {#if (currentQuestion?.type === 'true_false' || currentQuestion?.type === 'poll') && getSelectedOptionLabel(currentQuestion)}
             <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
               You selected: {getSelectedOptionLabel(currentQuestion)}
+            </p>
+          {:else if currentQuestion?.type === 'multi_select' && getSelectedOptionLabels(currentQuestion).length > 0}
+            <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+              You selected: {getSelectedOptionLabels(currentQuestion).join(', ')}
+            </p>
+          {:else if currentQuestion?.type === 'slider' && getSubmittedAnswerNumber(currentQuestion.id) != null}
+            <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+              You selected: {getSubmittedAnswerNumber(currentQuestion.id)}
             </p>
           {/if}
         {:else if showTimesUpMessage}
@@ -623,6 +818,28 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'multi_select'}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                {@const isCorrect = q.answer.includes(i)}
+                {@const isChosen = getSubmittedAnswerIndexes(q.id).includes(i) || (selectedMultiSelect?.questionId === q.id && selectedMultiSelect.answerIndexes.includes(i))}
+                <li class="px-4 py-2 bg-pub-dark rounded {isCorrect ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 text-pub-gold" aria-hidden="true">
+                      {#if isChosen}
+                        ●
+                      {/if}
+                    </span>
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if isCorrect}(correct){/if}
+                    </span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">
@@ -644,6 +861,17 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'slider'}
+            <div class="space-y-3">
+              <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-green-500 text-pub-gold">
+                Correct: {q.answer}
+              </p>
+              {#if getSubmittedAnswerNumber(q.id) != null}
+                <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted">
+                  You selected: {getSubmittedAnswerNumber(q.id)}
+                </p>
+              {/if}
+            </div>
           {:else if q.type === 'input'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}

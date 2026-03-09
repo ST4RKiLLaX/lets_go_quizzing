@@ -84,6 +84,8 @@ The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` is intended 
 - `input`
 - `true_false`
 - `poll`
+- `multi_select`
+- `slider`
 
 **Example Quiz Structure:**
 ```yaml
@@ -116,6 +118,20 @@ rounds:
         type: "poll"
         text: "Which snack should the host bring to the next quiz night?"
         options: ["Popcorn", "Nachos", "Cookies", "Fruit"]
+  - name: "Round 2"
+    questions:
+      - id: "q5"
+        type: "multi_select"
+        text: "Which of these are prime numbers?"
+        options: ["2", "4", "5", "9"]
+        answer: [0, 2]
+      - id: "q6"
+        type: "slider"
+        text: "How many players are on a standard soccer team on the field at once?"
+        min: 5
+        max: 15
+        step: 1
+        answer: 11
 ```
 
 ---

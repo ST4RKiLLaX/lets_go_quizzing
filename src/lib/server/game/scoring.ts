@@ -1,6 +1,13 @@
 import { compareTwoStrings } from 'string-similarity';
 import type { GameState, AnswerSubmission } from './state-machine.js';
-import type { ChoiceQuestion, TrueFalseQuestion, PollQuestion, InputQuestion } from '../storage/parser.js';
+import type {
+  ChoiceQuestion,
+  TrueFalseQuestion,
+  PollQuestion,
+  MultiSelectQuestion,
+  SliderQuestion,
+  InputQuestion,
+} from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 
@@ -44,8 +51,32 @@ function isInputCorrectFuzzy(
   });
 }
 
+function isMultiSelectCorrect(
+  question: MultiSelectQuestion,
+  submission: AnswerSubmission
+): boolean {
+  if (!submission.answerIndexes?.length) return false;
+  const actual = [...new Set(submission.answerIndexes)].sort((a, b) => a - b);
+  const expected = [...new Set(question.answer)].sort((a, b) => a - b);
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+function isSliderCorrect(
+  question: SliderQuestion,
+  submission: AnswerSubmission
+): boolean {
+  if (submission.answerNumber == null) return false;
+  return Math.abs(submission.answerNumber - question.answer) < 1e-9;
+}
+
 function isCorrect(
-  question: ChoiceQuestion | TrueFalseQuestion | PollQuestion | InputQuestion,
+  question:
+    | ChoiceQuestion
+    | TrueFalseQuestion
+    | PollQuestion
+    | MultiSelectQuestion
+    | SliderQuestion
+    | InputQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
@@ -58,10 +89,31 @@ function isCorrect(
   if (question.type === 'poll') {
     return false;
   }
+  if (question.type === 'multi_select') {
+    return isMultiSelectCorrect(question, submission);
+  }
+  if (question.type === 'slider') {
+    return isSliderCorrect(question, submission);
+  }
   return (
     isInputCorrectExact(question, submission) ||
     isInputCorrectFuzzy(question, submission, fuzzyThreshold)
   );
+}
+
+function getWrongAnswerValue(
+  submission: AnswerSubmission
+): string | number | number[] {
+  if (submission.answerIndexes?.length) {
+    return submission.answerIndexes;
+  }
+  if (submission.answerNumber != null) {
+    return submission.answerNumber;
+  }
+  if (submission.answerIndex != null) {
+    return submission.answerIndex;
+  }
+  return submission.answerText ?? '';
 }
 
 export function scoreSubmissions(
@@ -122,9 +174,7 @@ export function scoreSubmissions(
           playerId: sub.playerId,
           questionId: question.id,
           answer:
-            question.type === 'choice' || question.type === 'true_false'
-              ? (sub.answerIndex ?? -1)
-              : (sub.answerText ?? ''),
+            getWrongAnswerValue(sub),
         });
       }
     }
@@ -145,9 +195,7 @@ export function scoreSubmissions(
           playerId: sub.playerId,
           questionId: question.id,
           answer:
-            question.type === 'choice' || question.type === 'true_false'
-              ? (sub.answerIndex ?? -1)
-              : (sub.answerText ?? ''),
+            getWrongAnswerValue(sub),
         });
       }
     }

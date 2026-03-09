@@ -57,13 +57,13 @@ export const QUIZ_JSON_SCHEMA = {
             description: 'List of questions in this round',
             items: {
               type: 'object',
-              description: 'A question: choice, true_false, poll, or input',
+              description: 'A question: choice, true_false, poll, multi_select, slider, or input',
               required: ['id', 'type', 'text'],
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'true_false', 'poll', 'input'],
-                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, input = fill in the blank',
+                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'slider', 'input'],
+                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, slider = numeric range, input = fill in the blank',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -81,12 +81,27 @@ export const QUIZ_JSON_SCHEMA = {
                   description: 'Answer choices; one per line (required for choice and poll)',
                 },
                 answer: {
-                  description: 'Choice: index of correct option (0-based). True/false: true or false. Input: accepted answers',
+                  description: 'Choice: index of correct option (0-based). True/false: true or false. Multi-select: correct option indexes. Slider: correct numeric value. Input: accepted answers',
                   oneOf: [
                     { type: 'integer', minimum: 0 },
                     { type: 'boolean' },
+                    { type: 'number' },
+                    { type: 'array', items: { type: 'integer', minimum: 0 } },
                     { type: 'array', items: { type: 'string' } },
                   ],
+                },
+                min: {
+                  type: 'number',
+                  description: 'Slider minimum value',
+                },
+                max: {
+                  type: 'number',
+                  description: 'Slider maximum value',
+                },
+                step: {
+                  type: 'number',
+                  exclusiveMinimum: 0,
+                  description: 'Slider step size',
                 },
               },
               allOf: [
@@ -119,6 +134,38 @@ export const QUIZ_JSON_SCHEMA = {
                         items: { type: 'string' },
                         description: 'Poll options; no correct answer is stored',
                       },
+                    },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'multi_select' } }, required: ['type'] },
+                  then: {
+                    required: ['options', 'answer'],
+                    properties: {
+                      options: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'string' },
+                        description: 'Options players may choose from',
+                      },
+                      answer: {
+                        type: 'array',
+                        minItems: 1,
+                        items: { type: 'integer', minimum: 0 },
+                        description: 'Indexes of all correct options (0-based)',
+                      },
+                    },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'slider' } }, required: ['type'] },
+                  then: {
+                    required: ['min', 'max', 'step', 'answer'],
+                    properties: {
+                      min: { type: 'number', description: 'Lowest allowed slider value' },
+                      max: { type: 'number', description: 'Highest allowed slider value' },
+                      step: { type: 'number', exclusiveMinimum: 0, description: 'Increment between slider values' },
+                      answer: { type: 'number', description: 'Correct slider value' },
                     },
                   },
                 },

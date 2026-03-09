@@ -61,6 +61,28 @@ const PollQuestionSchema = z.object({
   options: z.array(z.string()).min(2),
 });
 
+const MultiSelectQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('multi_select'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  options: z.array(z.string()).min(2),
+  answer: z.array(z.number().int().min(0)).min(1),
+});
+
+const SliderQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('slider'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  min: z.number(),
+  max: z.number(),
+  step: z.number().positive(),
+  answer: z.number(),
+});
+
 const InputQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('input'),
@@ -76,6 +98,8 @@ const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
   TrueFalseQuestionSchema,
   PollQuestionSchema,
+  MultiSelectQuestionSchema,
+  SliderQuestionSchema,
   InputQuestionSchema,
 ]);
 
@@ -87,9 +111,20 @@ const RoundSchema = z
   .refine(
     (round) =>
       round.questions.every((q) =>
-        q.type !== 'choice' || (q.answer >= 0 && q.answer < q.options.length)
+        (q.type !== 'choice' || (q.answer >= 0 && q.answer < q.options.length)) &&
+        (q.type !== 'multi_select' ||
+          (new Set(q.answer).size === q.answer.length &&
+            q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
+        (q.type !== 'slider' ||
+          (q.max > q.min &&
+            q.answer >= q.min &&
+            q.answer <= q.max &&
+            Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9))
       ),
-    { message: 'choice answer must be less than options length' }
+    {
+      message:
+        'choice answers must be valid indices, multi_select answers must be unique valid indices, and slider answers must fit the min/max/step range',
+    }
   );
 
 const QuizMetaSchema = z.object({
@@ -111,6 +146,8 @@ export const QuizSchema = z.object({
 export type ChoiceQuestion = z.infer<typeof ChoiceQuestionSchema>;
 export type TrueFalseQuestion = z.infer<typeof TrueFalseQuestionSchema>;
 export type PollQuestion = z.infer<typeof PollQuestionSchema>;
+export type MultiSelectQuestion = z.infer<typeof MultiSelectQuestionSchema>;
+export type SliderQuestion = z.infer<typeof SliderQuestionSchema>;
 export type InputQuestion = z.infer<typeof InputQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;

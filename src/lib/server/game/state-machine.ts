@@ -19,6 +19,8 @@ export interface AnswerSubmission {
   playerId: string;
   questionId: string;
   answerIndex?: number;
+  answerIndexes?: number[];
+  answerNumber?: number;
   answerText?: string;
   submittedAt: number;
 }
@@ -34,7 +36,7 @@ export interface GameState {
   currentRoundIndex: number;
   currentQuestionIndex: number;
   submissions: AnswerSubmission[];
-  wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number }>;
+  wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number | number[] }>;
   timerEndsAt?: number;
   startedAt?: number;
 }

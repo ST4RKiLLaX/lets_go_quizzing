@@ -114,29 +114,38 @@
 
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
     return [];
   }
 
   function getOptionCounts(questionId: string): Map<number, number> {
     const counts = new Map<number, number>();
     for (const submission of state?.submissions ?? []) {
-      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
-      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      if (submission.questionId !== questionId) continue;
+      if (submission.answerIndex != null) {
+        counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+      }
+      if (submission.answerIndexes?.length) {
+        for (const answerIndex of submission.answerIndexes) {
+          counts.set(answerIndex, (counts.get(answerIndex) ?? 0) + 1);
+        }
+      }
     }
     return counts;
   }
 
-  function getWrongAnswerDisplay(wa: { playerId: string; questionId: string; answer: string | number }) {
+  function getWrongAnswerDisplay(wa: { playerId: string; questionId: string; answer: string | number | number[] }) {
     const player = state?.players?.find((p) => p.id === wa.playerId);
     const q = currentQuestion;
     let display = wa.answer;
     if (
       typeof wa.answer === 'number' &&
-      (q?.type === 'choice' || q?.type === 'poll') &&
+      (q?.type === 'choice' || q?.type === 'poll' || q?.type === 'multi_select') &&
       q.options?.[wa.answer] !== undefined
     ) {
       display = q.options[wa.answer];
+    } else if (Array.isArray(wa.answer) && q?.type === 'multi_select') {
+      display = wa.answer.map((index) => q.options[index] ?? String(index)).join(', ');
     } else if (typeof wa.answer === 'number' && q?.type === 'true_false') {
       display = wa.answer === 0 ? 'True' : 'False';
     }
@@ -229,6 +238,23 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'multi_select'}
+            {@const counts = getOptionCounts(q.id)}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (q.answer.includes(i) ? 'ring-2 ring-green-500' : 'opacity-60') : ''}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">
+                      {opt} {#if state?.type === 'RevealAnswer' && q.answer.includes(i)}(correct){/if}
+                    </span>
+                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">
@@ -244,6 +270,17 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'slider'}
+            <div class="space-y-3">
+              <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted">
+                Range: {q.min} to {q.max} in steps of {q.step}
+              </p>
+              {#if state?.type === 'RevealAnswer'}
+                <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-green-500 text-pub-gold">
+                  Correct: {q.answer}
+                </p>
+              {/if}
+            </div>
           {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
@@ -278,7 +315,7 @@
           </button>
         </div>
 
-        {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false') && state.wrongAnswers?.length > 0}
+        {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider') && state.wrongAnswers?.length > 0}
           <div class="mt-6 pt-6 border-t border-pub-muted">
             <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">

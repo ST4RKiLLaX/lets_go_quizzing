@@ -353,7 +353,18 @@ export function initSocket(httpServer: import('http').Server): Server {
       io.to(roomId).emit('state:update', { state: serializeState(next) });
     });
 
-    socket.on('player:answer', (payload: { questionId: string; answerIndex?: number; answerText?: string }, ack) => {
+    socket.on(
+      'player:answer',
+      (
+        payload: {
+          questionId: string;
+          answerIndex?: number;
+          answerIndexes?: number[];
+          answerNumber?: number;
+          answerText?: string;
+        },
+        ack
+      ) => {
       const roomId = socket.data.roomId;
       const playerId = socket.data.playerId;
       if (!roomId || !playerId) {
@@ -365,9 +376,14 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Not accepting answers' });
         return;
       }
-      const { questionId, answerIndex, answerText } = payload ?? {};
+      const { questionId, answerIndex, answerIndexes, answerNumber, answerText } = payload ?? {};
       if (!questionId) {
         ack?.({ error: 'questionId required' });
+        return;
+      }
+      const question = state.quiz.rounds[state.currentRoundIndex]?.questions[state.currentQuestionIndex];
+      if (!question || question.id !== questionId) {
+        ack?.({ error: 'Invalid question' });
         return;
       }
       const existing = state.submissions.find((s) => s.playerId === playerId && s.questionId === questionId);
@@ -379,13 +395,82 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Time is up' });
         return;
       }
-      const submissions = [...state.submissions, {
-        playerId,
-        questionId,
-        answerIndex,
-        answerText,
-        submittedAt: Date.now(),
-      }];
+      let submission:
+        | {
+            playerId: string;
+            questionId: string;
+            answerIndex?: number;
+            answerIndexes?: number[];
+            answerNumber?: number;
+            answerText?: string;
+            submittedAt: number;
+          }
+        | null = null;
+
+      if (question.type === 'choice' || question.type === 'true_false' || question.type === 'poll') {
+        if (
+          answerIndex == null ||
+          !Number.isInteger(answerIndex) ||
+          answerIndex < 0 ||
+          answerIndex >= (question.type === 'true_false' ? 2 : question.options.length)
+        ) {
+          ack?.({ error: 'Invalid answer' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerIndex,
+          submittedAt: Date.now(),
+        };
+      } else if (question.type === 'multi_select') {
+        const normalized =
+          Array.isArray(answerIndexes)
+            ? [...new Set(answerIndexes.filter((value) => Number.isInteger(value) && value >= 0 && value < question.options.length))].sort(
+                (a, b) => a - b
+              )
+            : [];
+        if (normalized.length === 0) {
+          ack?.({ error: 'Select at least one option' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerIndexes: normalized,
+          submittedAt: Date.now(),
+        };
+      } else if (question.type === 'slider') {
+        if (
+          answerNumber == null ||
+          !Number.isFinite(answerNumber) ||
+          answerNumber < question.min ||
+          answerNumber > question.max
+        ) {
+          ack?.({ error: 'Invalid answer' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerNumber,
+          submittedAt: Date.now(),
+        };
+      } else {
+        const normalized = answerText?.trim();
+        if (!normalized) {
+          ack?.({ error: 'Answer required' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerText: normalized,
+          submittedAt: Date.now(),
+        };
+      }
+
+      const submissions = [...state.submissions, submission];
       const next = { ...state, submissions };
       setRoom(roomId, next);
       ack?.({ ok: true });
@@ -393,7 +478,8 @@ export function initSocket(httpServer: import('http').Server): Server {
       io.to(roomId).emit('room:update', { state: serialized });
       io.to(roomId).emit('state:update', { state: serialized });
       socket.emit('room:update', { state: serialized });
-    });
+      }
+    );
 
     socket.on('disconnect', () => {
       const roomId = socket.data.roomId;

@@ -1,9 +1,20 @@
 <script lang="ts">
-  import type { Quiz, Question, ChoiceQuestion, TrueFalseQuestion, PollQuestion, InputQuestion } from '$lib/types/quiz.js';
+  import type {
+    Quiz,
+    Question,
+    ChoiceQuestion,
+    TrueFalseQuestion,
+    PollQuestion,
+    MultiSelectQuestion,
+    SliderQuestion,
+    InputQuestion,
+  } from '$lib/types/quiz.js';
   import {
     createEmptyChoiceQuestion,
     createEmptyTrueFalseQuestion,
     createEmptyPollQuestion,
+    createEmptyMultiSelectQuestion,
+    createEmptySliderQuestion,
     generateQuestionId,
   } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
@@ -94,7 +105,11 @@
     };
   }
 
-  function setQuestionType(ri: number, qi: number, type: 'choice' | 'true_false' | 'poll' | 'input') {
+  function setQuestionType(
+    ri: number,
+    qi: number,
+    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input'
+  ) {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
     const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image };
@@ -105,7 +120,11 @@
           ? { ...base, type: 'true_false', answer: true }
           : type === 'poll'
             ? { ...base, type: 'poll', options: ['', ''] }
-        : { ...base, type: 'input', answer: [''] };
+            : type === 'multi_select'
+              ? { ...base, type: 'multi_select', options: ['', ''], answer: [0] }
+              : type === 'slider'
+                ? { ...base, type: 'slider', min: 0, max: 10, step: 1, answer: 5 }
+                : { ...base, type: 'input', answer: [''] };
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -115,8 +134,8 @@
   }
 
   function addOption(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion;
-    if (q.type !== 'choice' && q.type !== 'poll') return;
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion;
+    if (q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select') return;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -133,10 +152,16 @@
   }
 
   function removeOption(ri: number, qi: number, oi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion;
-    if ((q.type !== 'choice' && q.type !== 'poll') || q.options.length <= 2) return;
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion;
+    if ((q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select') || q.options.length <= 2) return;
     const newOptions = q.options.filter((_, i) => i !== oi);
     const newAnswer = q.type === 'choice' ? Math.min(q.answer, newOptions.length - 1) : undefined;
+    const newMultiSelectAnswer =
+      q.type === 'multi_select'
+        ? q.answer
+            .filter((index) => index !== oi)
+            .map((index) => (index > oi ? index - 1 : index))
+        : undefined;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -144,7 +169,57 @@
           ? {
               ...r,
               questions: r.questions.map((qu, j) =>
-                j === qi ? (q.type === 'choice' ? { ...q, options: newOptions, answer: newAnswer! } : { ...q, options: newOptions }) : qu
+                j === qi
+                  ? q.type === 'choice'
+                    ? { ...q, options: newOptions, answer: newAnswer! }
+                    : q.type === 'multi_select'
+                      ? { ...q, options: newOptions, answer: newMultiSelectAnswer?.length ? newMultiSelectAnswer : [0] }
+                      : { ...q, options: newOptions }
+                  : qu
+              ),
+            }
+          : r
+      ),
+    };
+  }
+
+  function toggleMultiSelectAnswer(ri: number, qi: number, oi: number, checked: boolean) {
+    const q = quiz.rounds[ri].questions[qi] as MultiSelectQuestion;
+    if (q.type !== 'multi_select') return;
+    const answer = checked
+      ? [...new Set([...q.answer, oi])].sort((a, b) => a - b)
+      : q.answer.filter((index) => index !== oi);
+    quiz = {
+      ...quiz,
+      rounds: quiz.rounds.map((r, i) =>
+        i === ri
+          ? {
+              ...r,
+              questions: r.questions.map((qu, j) =>
+                j === qi ? { ...q, answer: answer.length ? answer : [oi] } : qu
+              ),
+            }
+          : r
+      ),
+    };
+  }
+
+  function updateSliderQuestion(
+    ri: number,
+    qi: number,
+    field: 'min' | 'max' | 'step' | 'answer',
+    value: number
+  ) {
+    const q = quiz.rounds[ri].questions[qi] as SliderQuestion;
+    if (q.type !== 'slider') return;
+    quiz = {
+      ...quiz,
+      rounds: quiz.rounds.map((r, i) =>
+        i === ri
+          ? {
+              ...r,
+              questions: r.questions.map((qu, j) =>
+                j === qi ? { ...q, [field]: value } : qu
               ),
             }
           : r
@@ -396,12 +471,19 @@
           <div class="flex gap-2 mb-2">
             <select
               value={question.type}
-              on:change={(e) => setQuestionType(ri, qi, (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'input'))}
+              on:change={(e) =>
+                setQuestionType(
+                  ri,
+                  qi,
+                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input')
+                )}
               class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
             >
               <option value="choice">Multiple choice</option>
               <option value="true_false">True / False</option>
               <option value="poll">Poll</option>
+              <option value="multi_select">Multi-select</option>
+              <option value="slider">Slider</option>
               <option value="input">Fill in the blank</option>
             </select>
             <button
@@ -462,10 +544,14 @@
               </button>
             {/if}
           </div>
-          {#if question.type === 'choice' || question.type === 'poll'}
+          {#if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select'}
             <div class="space-y-2" role="group" aria-label="Options (select correct)">
               <span class="block text-sm text-pub-muted">
-                {question.type === 'poll' ? 'Poll options' : 'Options (select correct)'}
+                {question.type === 'poll'
+                  ? 'Poll options'
+                  : question.type === 'multi_select'
+                    ? 'Options (check all correct)'
+                    : 'Options (select correct)'}
               </span>
               {#each question.options as opt, oi}
                 <div class="flex gap-2 items-center">
@@ -485,6 +571,12 @@
                           ),
                         };
                       }}
+                    />
+                  {:else if question.type === 'multi_select'}
+                    <input
+                      type="checkbox"
+                      checked={question.answer.includes(oi)}
+                      on:change={(e) => toggleMultiSelectAnswer(ri, qi, oi, e.currentTarget.checked)}
                     />
                   {/if}
                   <input
@@ -510,6 +602,52 @@
               >
                 + Add option
               </button>
+            </div>
+          {:else if question.type === 'slider'}
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="slider-min-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Minimum</label>
+                <input
+                  id="slider-min-{ri}-{qi}"
+                  type="number"
+                  bind:value={question.min}
+                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+                  on:change={(e) => updateSliderQuestion(ri, qi, 'min', Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </div>
+              <div>
+                <label for="slider-max-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Maximum</label>
+                <input
+                  id="slider-max-{ri}-{qi}"
+                  type="number"
+                  bind:value={question.max}
+                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+                  on:change={(e) => updateSliderQuestion(ri, qi, 'max', Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </div>
+              <div>
+                <label for="slider-step-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Step</label>
+                <input
+                  id="slider-step-{ri}-{qi}"
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  bind:value={question.step}
+                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+                  on:change={(e) => updateSliderQuestion(ri, qi, 'step', Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </div>
+              <div>
+                <label for="slider-answer-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Correct value</label>
+                <input
+                  id="slider-answer-{ri}-{qi}"
+                  type="number"
+                  step="any"
+                  bind:value={question.answer}
+                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+                  on:change={(e) => updateSliderQuestion(ri, qi, 'answer', Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </div>
             </div>
           {:else if question.type === 'true_false'}
             <div class="space-y-2" role="group" aria-label="Correct answer">

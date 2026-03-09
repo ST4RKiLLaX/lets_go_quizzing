@@ -12,6 +12,8 @@ export interface SerializedSubmission {
   playerId: string;
   questionId: string;
   answerIndex?: number;
+  answerIndexes?: number[];
+  answerNumber?: number;
   answerText?: string;
   submittedAt?: number;
 }
@@ -19,7 +21,7 @@ export interface SerializedSubmission {
 export interface SerializedWrongAnswer {
   playerId: string;
   questionId: string;
-  answer: string | number;
+  answer: string | number | number[];
 }
 
 export interface SerializedState {

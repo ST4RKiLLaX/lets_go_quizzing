@@ -31,10 +31,13 @@ function getAtPath(data: unknown, pointer: string): unknown {
  * Custom completion source:
  * - in a choice question, show option indexes based on the options array above
  * - in a true_false question, show true / false
+ * - in a multi_select question, show option indexes for each answer item
  */
 export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult | null {
   const pointer = jsonPointerForPosition(ctx.state, ctx.pos, -1, MODES_YAML);
-  if (!pointer.endsWith('/answer')) return null;
+  const isAnswerValue =
+    pointer.endsWith('/answer') || /\/answer\/\d+$/.test(pointer);
+  if (!isAnswerValue) return null;
 
   let data: unknown;
   try {
@@ -44,7 +47,9 @@ export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult
   }
   if (!data || typeof data !== 'object') return null;
 
-  const questionPath = pointer.slice(0, -'/answer'.length);
+  const questionPath = pointer.includes('/answer/')
+    ? pointer.replace(/\/answer\/\d+$/, '')
+    : pointer.slice(0, -'/answer'.length);
   const question = getAtPath(data, questionPath) as { type?: string; options?: string[] } | undefined;
   const match = ctx.matchBefore(/[a-z\d]*/i);
   const from = match ? match.from : ctx.pos;
@@ -62,7 +67,11 @@ export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult
     };
   }
 
-  if (question?.type !== 'choice' || !Array.isArray(question.options) || question.options.length === 0) {
+  if (
+    (question?.type !== 'choice' && question?.type !== 'multi_select') ||
+    !Array.isArray(question.options) ||
+    question.options.length === 0
+  ) {
     return null;
   }
 
@@ -129,6 +138,8 @@ const QUESTION_TYPES: { value: string; detail: string }[] = [
   { value: 'choice', detail: 'Multiple choice' },
   { value: 'true_false', detail: 'True or false' },
   { value: 'poll', detail: 'Opinion poll' },
+  { value: 'multi_select', detail: 'Choose multiple options' },
+  { value: 'slider', detail: 'Numeric range slider' },
   { value: 'input', detail: 'Fill in the blank' },
 ];
 

@@ -37,6 +37,28 @@ export interface PollQuestion {
   options: string[];
 }
 
+export interface MultiSelectQuestion {
+  id: string;
+  type: 'multi_select';
+  text: string;
+  explanation?: string;
+  image?: string;
+  options: string[];
+  answer: number[];
+}
+
+export interface SliderQuestion {
+  id: string;
+  type: 'slider';
+  text: string;
+  explanation?: string;
+  image?: string;
+  min: number;
+  max: number;
+  step: number;
+  answer: number;
+}
+
 export interface InputQuestion {
   id: string;
   type: 'input';
@@ -46,7 +68,13 @@ export interface InputQuestion {
   answer: string[];
 }
 
-export type Question = ChoiceQuestion | TrueFalseQuestion | PollQuestion | InputQuestion;
+export type Question =
+  | ChoiceQuestion
+  | TrueFalseQuestion
+  | PollQuestion
+  | MultiSelectQuestion
+  | SliderQuestion
+  | InputQuestion;
 
 export interface Round {
   name: string;
@@ -90,6 +118,28 @@ export function createEmptyPollQuestion(id: string): PollQuestion {
     type: 'poll',
     text: '',
     options: ['', ''],
+  };
+}
+
+export function createEmptyMultiSelectQuestion(id: string): MultiSelectQuestion {
+  return {
+    id,
+    type: 'multi_select',
+    text: '',
+    options: ['', ''],
+    answer: [0],
+  };
+}
+
+export function createEmptySliderQuestion(id: string): SliderQuestion {
+  return {
+    id,
+    type: 'slider',
+    text: '',
+    min: 0,
+    max: 10,
+    step: 1,
+    answer: 5,
   };
 }
 
