@@ -28,8 +28,9 @@ function getAtPath(data: unknown, pointer: string): unknown {
 }
 
 /**
- * Custom completion source: when typing the value for `answer:` in a choice question,
- * show options like "0 - What?", "1 - No", "2 - Yes" based on the options array above.
+ * Custom completion source:
+ * - in a choice question, show option indexes based on the options array above
+ * - in a true_false question, show true / false
  */
 export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult | null {
   const pointer = jsonPointerForPosition(ctx.state, ctx.pos, -1, MODES_YAML);
@@ -45,14 +46,27 @@ export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult
 
   const questionPath = pointer.slice(0, -'/answer'.length);
   const question = getAtPath(data, questionPath) as { type?: string; options?: string[] } | undefined;
+  const match = ctx.matchBefore(/[a-z\d]*/i);
+  const from = match ? match.from : ctx.pos;
+  const to = ctx.pos;
+
+  if (question?.type === 'true_false') {
+    return {
+      from,
+      to,
+      options: [
+        { label: 'true', detail: 'True is correct', type: 'constant', apply: 'true' },
+        { label: 'false', detail: 'False is correct', type: 'constant', apply: 'false' },
+      ],
+      filter: false,
+    };
+  }
+
   if (question?.type !== 'choice' || !Array.isArray(question.options) || question.options.length === 0) {
     return null;
   }
 
   const options = question.options;
-  const match = ctx.matchBefore(/\d*/);
-  const from = match ? match.from : ctx.pos;
-  const to = ctx.pos;
 
   const completions: Completion[] = options.map((opt, i) => ({
     label: String(i),
@@ -113,12 +127,14 @@ export function wrapSchemaCompletionWithOptionsList(schemaCompletion: SchemaComp
 
 const QUESTION_TYPES: { value: string; detail: string }[] = [
   { value: 'choice', detail: 'Multiple choice' },
+  { value: 'true_false', detail: 'True or false' },
+  { value: 'poll', detail: 'Opinion poll' },
   { value: 'input', detail: 'Fill in the blank' },
 ];
 
 /**
  * Custom completion source: when typing the value for `type:` in a question,
- * show "choice" (Multiple choice) and "input" (Fill in the blank).
+ * show the supported quiz question types.
  */
 export function questionTypeCompletion(ctx: CompletionContext): CompletionResult | null {
   const pointer = jsonPointerForPosition(ctx.state, ctx.pos, -1, MODES_YAML);

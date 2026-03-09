@@ -1,6 +1,11 @@
 <script lang="ts">
-  import type { Quiz, Question, ChoiceQuestion, InputQuestion } from '$lib/types/quiz.js';
-  import { createEmptyChoiceQuestion, generateQuestionId } from '$lib/types/quiz.js';
+  import type { Quiz, Question, ChoiceQuestion, TrueFalseQuestion, PollQuestion, InputQuestion } from '$lib/types/quiz.js';
+  import {
+    createEmptyChoiceQuestion,
+    createEmptyTrueFalseQuestion,
+    createEmptyPollQuestion,
+    generateQuestionId,
+  } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
   import type { ComponentType } from 'svelte';
@@ -89,13 +94,17 @@
     };
   }
 
-  function setQuestionType(ri: number, qi: number, type: 'choice' | 'input') {
+  function setQuestionType(ri: number, qi: number, type: 'choice' | 'true_false' | 'poll' | 'input') {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
     const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image };
     const newQ: Question =
       type === 'choice'
         ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
+        : type === 'true_false'
+          ? { ...base, type: 'true_false', answer: true }
+          : type === 'poll'
+            ? { ...base, type: 'poll', options: ['', ''] }
         : { ...base, type: 'input', answer: [''] };
     quiz = {
       ...quiz,
@@ -106,8 +115,8 @@
   }
 
   function addOption(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion;
-    if (q.type !== 'choice') return;
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion;
+    if (q.type !== 'choice' && q.type !== 'poll') return;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -124,10 +133,10 @@
   }
 
   function removeOption(ri: number, qi: number, oi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion;
-    if (q.type !== 'choice' || q.options.length <= 2) return;
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion;
+    if ((q.type !== 'choice' && q.type !== 'poll') || q.options.length <= 2) return;
     const newOptions = q.options.filter((_, i) => i !== oi);
-    const newAnswer = Math.min(q.answer, newOptions.length - 1);
+    const newAnswer = q.type === 'choice' ? Math.min(q.answer, newOptions.length - 1) : undefined;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -135,7 +144,7 @@
           ? {
               ...r,
               questions: r.questions.map((qu, j) =>
-                j === qi ? { ...q, options: newOptions, answer: newAnswer } : qu
+                j === qi ? (q.type === 'choice' ? { ...q, options: newOptions, answer: newAnswer! } : { ...q, options: newOptions }) : qu
               ),
             }
           : r
@@ -387,10 +396,12 @@
           <div class="flex gap-2 mb-2">
             <select
               value={question.type}
-              on:change={(e) => setQuestionType(ri, qi, (e.currentTarget.value as 'choice' | 'input'))}
+              on:change={(e) => setQuestionType(ri, qi, (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'input'))}
               class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
             >
               <option value="choice">Multiple choice</option>
+              <option value="true_false">True / False</option>
+              <option value="poll">Poll</option>
               <option value="input">Fill in the blank</option>
             </select>
             <button
@@ -451,27 +462,31 @@
               </button>
             {/if}
           </div>
-          {#if question.type === 'choice'}
+          {#if question.type === 'choice' || question.type === 'poll'}
             <div class="space-y-2" role="group" aria-label="Options (select correct)">
-              <span class="block text-sm text-pub-muted">Options (select correct)</span>
+              <span class="block text-sm text-pub-muted">
+                {question.type === 'poll' ? 'Poll options' : 'Options (select correct)'}
+              </span>
               {#each question.options as opt, oi}
                 <div class="flex gap-2 items-center">
-                  <input
-                    type="radio"
-                    name="correct-{ri}-{qi}"
-                    checked={question.answer === oi}
-                    on:change={() => {
-                      const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion;
-                      quiz = {
-                        ...quiz,
-                        rounds: quiz.rounds.map((r, i) =>
-                          i === ri
-                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: oi } : qu)) }
-                            : r
-                        ),
-                      };
-                    }}
-                  />
+                  {#if question.type === 'choice'}
+                    <input
+                      type="radio"
+                      name="correct-{ri}-{qi}"
+                      checked={question.answer === oi}
+                      on:change={() => {
+                        const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion;
+                        quiz = {
+                          ...quiz,
+                          rounds: quiz.rounds.map((r, i) =>
+                            i === ri
+                              ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: oi } : qu)) }
+                              : r
+                          ),
+                        };
+                      }}
+                    />
+                  {/if}
                   <input
                     type="text"
                     bind:value={question.options[oi]}
@@ -495,6 +510,48 @@
               >
                 + Add option
               </button>
+            </div>
+          {:else if question.type === 'true_false'}
+            <div class="space-y-2" role="group" aria-label="Correct answer">
+              <span class="block text-sm text-pub-muted">Correct answer</span>
+              <label class="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="tf-{ri}-{qi}"
+                  checked={question.answer === true}
+                  on:change={() => {
+                    const q = quiz.rounds[ri].questions[qi] as TrueFalseQuestion;
+                    quiz = {
+                      ...quiz,
+                      rounds: quiz.rounds.map((r, i) =>
+                        i === ri
+                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: true } : qu)) }
+                          : r
+                      ),
+                    };
+                  }}
+                />
+                <span>True</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="tf-{ri}-{qi}"
+                  checked={question.answer === false}
+                  on:change={() => {
+                    const q = quiz.rounds[ri].questions[qi] as TrueFalseQuestion;
+                    quiz = {
+                      ...quiz,
+                      rounds: quiz.rounds.map((r, i) =>
+                        i === ri
+                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: false } : qu)) }
+                          : r
+                      ),
+                    };
+                  }}
+                />
+                <span>False</span>
+              </label>
             </div>
           {:else}
             <div class="space-y-2" role="group" aria-label="Accepted answers">

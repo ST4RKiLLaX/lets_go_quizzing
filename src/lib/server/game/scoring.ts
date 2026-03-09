@@ -1,6 +1,6 @@
 import { compareTwoStrings } from 'string-similarity';
 import type { GameState, AnswerSubmission } from './state-machine.js';
-import type { ChoiceQuestion, InputQuestion } from '../storage/parser.js';
+import type { ChoiceQuestion, TrueFalseQuestion, PollQuestion, InputQuestion } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 
@@ -10,6 +10,14 @@ function isChoiceCorrect(
 ): boolean {
   if (submission.answerIndex === undefined) return false;
   return submission.answerIndex === question.answer;
+}
+
+function isTrueFalseCorrect(
+  question: TrueFalseQuestion,
+  submission: AnswerSubmission
+): boolean {
+  if (submission.answerIndex === undefined) return false;
+  return submission.answerIndex === (question.answer ? 0 : 1);
 }
 
 function isInputCorrectExact(
@@ -37,12 +45,18 @@ function isInputCorrectFuzzy(
 }
 
 function isCorrect(
-  question: ChoiceQuestion | InputQuestion,
+  question: ChoiceQuestion | TrueFalseQuestion | PollQuestion | InputQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
   if (question.type === 'choice') {
     return isChoiceCorrect(question, submission);
+  }
+  if (question.type === 'true_false') {
+    return isTrueFalseCorrect(question, submission);
+  }
+  if (question.type === 'poll') {
+    return false;
   }
   return (
     isInputCorrectExact(question, submission) ||
@@ -59,6 +73,12 @@ export function scoreSubmissions(
 
   const question = round.questions[state.currentQuestionIndex];
   if (!question) return state;
+  if (question.type === 'poll') {
+    return {
+      ...state,
+      wrongAnswers: [],
+    };
+  }
 
   const fuzzyThreshold =
     state.quiz.meta.fuzzy_threshold ?? DEFAULT_FUZZY_THRESHOLD;
@@ -102,7 +122,7 @@ export function scoreSubmissions(
           playerId: sub.playerId,
           questionId: question.id,
           answer:
-            question.type === 'choice'
+            question.type === 'choice' || question.type === 'true_false'
               ? (sub.answerIndex ?? -1)
               : (sub.answerText ?? ''),
         });
@@ -125,7 +145,7 @@ export function scoreSubmissions(
           playerId: sub.playerId,
           questionId: question.id,
           answer:
-            question.type === 'choice'
+            question.type === 'choice' || question.type === 'true_false'
               ? (sub.answerIndex ?? -1)
               : (sub.answerText ?? ''),
         });

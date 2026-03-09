@@ -4,6 +4,7 @@
   import PlayerConfetti from '$lib/components/PlayerConfetti.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -160,7 +161,9 @@
     }
   }
 
-  $: currentQuestionId = getCurrentQuestion()?.id ?? '';
+  $: currentQuestion =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
+  $: currentQuestionId = currentQuestion?.id ?? '';
   $: questionTimeExpired = !!(
     state?.type === 'Question' &&
     state?.timerEndsAt &&
@@ -199,7 +202,7 @@
     selectedInput = questionId;
     const playerId = getOrCreatePlayerId();
     state = state
-      ? { ...state, submissions: [...(state.submissions ?? []), { playerId, questionId }] }
+      ? { ...state, submissions: [...(state.submissions ?? []), { playerId, questionId, answerText }] }
       : state;
     socket?.emit('player:answer', { questionId, answerText }, (ack: { error?: string }) => {
       if (ack?.error) {
@@ -220,6 +223,10 @@
     ) ?? false;
   }
 
+  function isInputSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedInput === questionId;
+  }
+
   function getSubmittedAnswerIndex(questionId: string): number | undefined {
     const playerId = getOrCreatePlayerId();
     const sub = state?.submissions?.find(
@@ -228,10 +235,37 @@
     return sub?.answerIndex;
   }
 
-  function getCurrentQuestion() {
-    if (!state) return null;
-    const round = state.quiz?.rounds?.[state.currentRoundIndex];
-    return round?.questions?.[state.currentQuestionIndex] ?? null;
+  function getSubmittedAnswerText(questionId: string): string {
+    const playerId = getOrCreatePlayerId();
+    const sub = state?.submissions?.find(
+      (s) => s.playerId === playerId && s.questionId === questionId
+    );
+    return sub?.answerText ?? '';
+  }
+
+  function getDisplayedInputAnswer(questionId: string): string {
+    return getSubmittedAnswerText(questionId) || (selectedInput === questionId ? inputAnswer.trim() : '');
+  }
+
+  function getQuestionOptions(q: Question): string[] {
+    if (q.type === 'true_false') return ['True', 'False'];
+    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    return [];
+  }
+
+  function getOptionCounts(questionId: string): Map<number, number> {
+    const counts = new Map<number, number>();
+    for (const submission of state?.submissions ?? []) {
+      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
+      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+    }
+    return counts;
+  }
+
+  function getSelectedOptionLabel(q: Question): string {
+    const index = getSubmittedAnswerIndex(q.id);
+    if (index == null) return '';
+    return getQuestionOptions(q)[index] ?? '';
   }
 
   $: playerId = getOrCreatePlayerId();
@@ -254,7 +288,7 @@
   $: currentRoundQuestionTotal =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
-  $: revealQuestion = state?.type === 'RevealAnswer' ? getCurrentQuestion() : null;
+  $: revealQuestion = state?.type === 'RevealAnswer' ? currentQuestion : null;
   $: canAttemptWakeNow = !!(registered && state && (state.type === 'Lobby' || isActiveQuizPhase));
   $: if (
     wakeManager &&
@@ -458,8 +492,8 @@
       </div>
     {:else if state?.type === 'Question'}
       <div class="bg-pub-darker rounded-lg p-6">
-        {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()!}
+        {#if currentQuestion}
+          {@const q = currentQuestion}
           <div class="flex items-start justify-between gap-4 mb-2">
             <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
@@ -475,9 +509,10 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if q.type === 'choice'}
+          {#if q.type === 'choice' || q.type === 'true_false' || q.type === 'poll'}
+            {@const options = getQuestionOptions(q)}
             <div class="space-y-2">
-              {#each q.options as opt, i}
+              {#each options as opt, i}
                 {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
                 <button
                   class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
@@ -500,9 +535,8 @@
             <form
               class="flex gap-2"
               on:submit|preventDefault={() => {
-                if (inputAnswer.trim() && !hasSubmitted(q.id) && !questionTimeExpired) {
+                if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
                   submitInput(q.id, inputAnswer.trim());
-                  inputAnswer = '';
                 }
               }}
             >
@@ -510,12 +544,12 @@
                 type="text"
                 bind:value={inputAnswer}
                 placeholder="Your answer"
-                class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+                class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2 {isInputSubmitted(q.id) ? 'opacity-60' : ''}"
+                disabled={isInputSubmitted(q.id) || questionTimeExpired}
                 on:keydown={(e) => {
                   if (e.key === 'Enter') {
-                    if (inputAnswer.trim() && !questionTimeExpired) {
+                    if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
                       submitInput(q.id, inputAnswer.trim());
-                      inputAnswer = '';
                     }
                   }
                 }}
@@ -523,7 +557,7 @@
               <button
                 type="submit"
                 class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                disabled={hasSubmitted(q.id) || !inputAnswer.trim() || questionTimeExpired}
+                disabled={isInputSubmitted(q.id) || !inputAnswer.trim() || questionTimeExpired}
               >
                 Submit
               </button>
@@ -535,8 +569,13 @@
             </p>
           {/if}
         {/if}
-        {#if hasAnsweredCurrentQuestion}
+        {#if hasAnsweredCurrentQuestion && currentQuestion?.type !== 'input'}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
+          {#if (currentQuestion?.type === 'true_false' || currentQuestion?.type === 'poll') && getSelectedOptionLabel(currentQuestion)}
+            <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+              You selected: {getSelectedOptionLabel(currentQuestion)}
+            </p>
+          {/if}
         {:else if showTimesUpMessage}
           <p class="mt-4 text-red-400">Time's Up!</p>
         {:else if submitError}
@@ -545,8 +584,8 @@
       </div>
     {:else if state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-6">
-        {#if getCurrentQuestion()}
-          {@const q = getCurrentQuestion()!}
+        {#if currentQuestion}
+          {@const q = currentQuestion}
           <div class="flex items-start justify-between gap-4 mb-2">
             <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
@@ -562,11 +601,12 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if q.type === 'choice'}
+          {#if q.type === 'choice' || q.type === 'true_false'}
+            {@const options = getQuestionOptions(q)}
             <ul class="space-y-2">
-              {#each q.options as opt, i}
+              {#each options as opt, i}
                 {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
-                <li class="px-4 py-2 bg-pub-dark rounded {q.answer === i ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
+                <li class="px-4 py-2 bg-pub-dark rounded {(q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)) === i ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
                   <div class="flex items-center gap-2">
                     <span class="w-4 text-pub-gold" aria-hidden="true">
                       {#if isChosen}
@@ -577,8 +617,29 @@
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
-                      {opt} {#if q.answer === i}(correct){/if}
+                      {opt} {#if (q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)) === i}(correct){/if}
                     </span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          {:else if q.type === 'poll'}
+            {@const counts = getOptionCounts(q.id)}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+                <li class="px-4 py-2 bg-pub-dark rounded {isChosen ? 'ring-2 ring-pub-gold' : 'opacity-60'}">
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 text-pub-gold" aria-hidden="true">
+                      {#if isChosen}
+                        ●
+                      {/if}
+                    </span>
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
                   </div>
                 </li>
               {/each}

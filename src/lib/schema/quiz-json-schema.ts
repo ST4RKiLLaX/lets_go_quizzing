@@ -57,13 +57,13 @@ export const QUIZ_JSON_SCHEMA = {
             description: 'List of questions in this round',
             items: {
               type: 'object',
-              description: 'A question: choice (multiple choice) or input (fill in the blank)',
+              description: 'A question: choice, true_false, poll, or input',
               required: ['id', 'type', 'text'],
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'input'],
-                  description: "choice = multiple choice, input = fill in the blank",
+                  enum: ['choice', 'true_false', 'poll', 'input'],
+                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, input = fill in the blank',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -78,33 +78,64 @@ export const QUIZ_JSON_SCHEMA = {
                 options: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Answer choices; one per line (required for choice)',
+                  description: 'Answer choices; one per line (required for choice and poll)',
                 },
                 answer: {
-                  description: 'Choice: index of correct option (0-based). Input: accepted answers',
+                  description: 'Choice: index of correct option (0-based). True/false: true or false. Input: accepted answers',
                   oneOf: [
                     { type: 'integer', minimum: 0 },
+                    { type: 'boolean' },
                     { type: 'array', items: { type: 'string' } },
                   ],
                 },
               },
-              if: { properties: { type: { const: 'choice' } }, required: ['type'] },
-              then: {
-                required: ['options', 'answer'],
-                properties: {
-                  answer: { type: 'integer', minimum: 0, description: 'Index of correct option (0-based)' },
-                },
-              },
-              else: {
-                required: ['answer'],
-                properties: {
-                  answer: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: 'Accepted answers; add alternatives for common typos',
+              allOf: [
+                {
+                  if: { properties: { type: { const: 'choice' } }, required: ['type'] },
+                  then: {
+                    required: ['options', 'answer'],
+                    properties: {
+                      answer: { type: 'integer', minimum: 0, description: 'Index of correct option (0-based)' },
+                    },
                   },
                 },
-              },
+                {
+                  if: { properties: { type: { const: 'true_false' } }, required: ['type'] },
+                  then: {
+                    required: ['answer'],
+                    properties: {
+                      answer: { type: 'boolean', description: 'true = True is correct, false = False is correct' },
+                    },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'poll' } }, required: ['type'] },
+                  then: {
+                    required: ['options'],
+                    properties: {
+                      options: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'string' },
+                        description: 'Poll options; no correct answer is stored',
+                      },
+                    },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'input' } }, required: ['type'] },
+                  then: {
+                    required: ['answer'],
+                    properties: {
+                      answer: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Accepted answers; add alternatives for common typos',
+                      },
+                    },
+                  },
+                },
+              ],
             },
           },
         },

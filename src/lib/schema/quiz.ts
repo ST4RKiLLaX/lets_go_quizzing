@@ -43,6 +43,24 @@ const ChoiceQuestionSchema = z.object({
   answer: z.number().int().min(0),
 });
 
+const TrueFalseQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('true_false'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  answer: z.boolean(),
+});
+
+const PollQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('poll'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  options: z.array(z.string()).min(2),
+});
+
 const InputQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('input'),
@@ -56,6 +74,8 @@ const InputQuestionSchema = z.object({
 
 const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
+  TrueFalseQuestionSchema,
+  PollQuestionSchema,
   InputQuestionSchema,
 ]);
 
@@ -89,6 +109,8 @@ export const QuizSchema = z.object({
 });
 
 export type ChoiceQuestion = z.infer<typeof ChoiceQuestionSchema>;
+export type TrueFalseQuestion = z.infer<typeof TrueFalseQuestionSchema>;
+export type PollQuestion = z.infer<typeof PollQuestionSchema>;
 export type InputQuestion = z.infer<typeof InputQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;

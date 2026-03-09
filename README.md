@@ -79,6 +79,12 @@ When running behind a reverse proxy that handles TLS/SSL, ensure you forward the
 
 You can use the built-in **Quiz Creator** at `/creator` to author games directly in your browser, or you can drop manually written `.yaml` files into the `data/quizzes/` directory.
 
+The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` is intended as the phase-by-phase reference file. At this stop point it includes:
+- `choice`
+- `input`
+- `true_false`
+- `poll`
+
 **Example Quiz Structure:**
 ```yaml
 meta:
@@ -102,6 +108,14 @@ rounds:
         text: "Complete: 'Is this the real life? Is this just _____?'"
         answer: ["fantasy", "fantsy"]
         explanation: "This lyric is from Queen's Bohemian Rhapsody."
+      - id: "q3"
+        type: "true_false"
+        text: "Lightning is hotter than the surface of the sun."
+        answer: true
+      - id: "q4"
+        type: "poll"
+        text: "Which snack should the host bring to the next quiz night?"
+        options: ["Popcorn", "Nachos", "Cookies", "Fruit"]
 ```
 
 ---

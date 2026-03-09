@@ -19,6 +19,24 @@ export interface ChoiceQuestion {
   answer: number;
 }
 
+export interface TrueFalseQuestion {
+  id: string;
+  type: 'true_false';
+  text: string;
+  explanation?: string;
+  image?: string;
+  answer: boolean;
+}
+
+export interface PollQuestion {
+  id: string;
+  type: 'poll';
+  text: string;
+  explanation?: string;
+  image?: string;
+  options: string[];
+}
+
 export interface InputQuestion {
   id: string;
   type: 'input';
@@ -28,7 +46,7 @@ export interface InputQuestion {
   answer: string[];
 }
 
-export type Question = ChoiceQuestion | InputQuestion;
+export type Question = ChoiceQuestion | TrueFalseQuestion | PollQuestion | InputQuestion;
 
 export interface Round {
   name: string;
@@ -54,6 +72,24 @@ export function createEmptyChoiceQuestion(id: string): ChoiceQuestion {
     text: '',
     options: ['', ''],
     answer: 0,
+  };
+}
+
+export function createEmptyTrueFalseQuestion(id: string): TrueFalseQuestion {
+  return {
+    id,
+    type: 'true_false',
+    text: '',
+    answer: true,
+  };
+}
+
+export function createEmptyPollQuestion(id: string): PollQuestion {
+  return {
+    id,
+    type: 'poll',
+    text: '',
+    options: ['', ''],
   };
 }
 

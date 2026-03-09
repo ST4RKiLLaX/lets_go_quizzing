@@ -1,0 +1,43 @@
+meta:
+  name: "Quiz Reference Sample"
+  author: "Lets Go Quizzing"
+  default_timer: 30
+  option_label_style: letters
+
+rounds:
+  - name: "Phase 1 Basics"
+    questions:
+      - id: q1
+        type: choice
+        text: "What is the capital of Australia?"
+        options:
+          - Sydney
+          - Melbourne
+          - Canberra
+          - Perth
+        answer: 2
+        explanation: "Canberra is the capital city of Australia."
+
+      - id: q2
+        type: input
+        text: "Complete: 'Is this the real life? Is this just _____?'"
+        answer:
+          - fantasy
+          - fantsy
+        explanation: "The lyric is from Queen's Bohemian Rhapsody."
+
+      - id: q3
+        type: true_false
+        text: "Lightning is hotter than the surface of the sun."
+        answer: true
+        explanation: "A lightning bolt can briefly be much hotter than the sun's surface."
+
+      - id: q4
+        type: poll
+        text: "Which snack should the host bring to the next quiz night?"
+        options:
+          - Popcorn
+          - Nachos
+          - Cookies
+          - Fruit
+        explanation: "Poll questions collect opinions and do not affect scores."

@@ -3,6 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
+  import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -23,6 +24,8 @@
   $: currentRoundQuestionTotal =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
+  $: currentQuestion =
+    state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
@@ -74,9 +77,7 @@
     const onRoomUpdate = (payload: { state: SerializedState }) => {
       const incoming = payload?.state;
       if (!incoming) return;
-      const incomingQ = incoming.currentQuestionIndex ?? -1;
-      const currentQ = state?.currentQuestionIndex ?? -1;
-      if (incomingQ >= currentQ) state = incoming;
+      state = incoming;
     };
     socket.on('state:update', onStateUpdate);
     socket.on('room:update', onRoomUpdate);
@@ -111,18 +112,33 @@
     socket?.emit('host:override', { playerId, questionId, delta }, () => {});
   }
 
-  function getCurrentQuestion() {
-    if (!state) return null;
-    const round = state.quiz?.rounds?.[state.currentRoundIndex];
-    return round?.questions?.[state.currentQuestionIndex] ?? null;
+  function getQuestionOptions(q: Question): string[] {
+    if (q.type === 'true_false') return ['True', 'False'];
+    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    return [];
+  }
+
+  function getOptionCounts(questionId: string): Map<number, number> {
+    const counts = new Map<number, number>();
+    for (const submission of state?.submissions ?? []) {
+      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
+      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+    }
+    return counts;
   }
 
   function getWrongAnswerDisplay(wa: { playerId: string; questionId: string; answer: string | number }) {
     const player = state?.players?.find((p) => p.id === wa.playerId);
-    const q = getCurrentQuestion();
+    const q = currentQuestion;
     let display = wa.answer;
-    if (typeof wa.answer === 'number' && q?.type === 'choice' && q.options?.[wa.answer] !== undefined) {
+    if (
+      typeof wa.answer === 'number' &&
+      (q?.type === 'choice' || q?.type === 'poll') &&
+      q.options?.[wa.answer] !== undefined
+    ) {
       display = q.options[wa.answer];
+    } else if (typeof wa.answer === 'number' && q?.type === 'true_false') {
+      display = wa.answer === 0 ? 'True' : 'False';
     }
     return player ? `${player.emoji} ${player.name}: ${display}` : String(display);
   }
@@ -179,8 +195,8 @@
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
-        {@const q = getCurrentQuestion()}
-        {#if q}
+        {#if currentQuestion}
+        {@const q = currentQuestion}
           <div class="flex items-start justify-between gap-4 mb-2">
             <p class="text-pub-gold text-base font-semibold">
               {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
@@ -196,17 +212,34 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if q.type === 'choice'}
+          {#if q.type === 'choice' || q.type === 'true_false'}
+            {@const options = getQuestionOptions(q)}
             <ul class="space-y-2">
-              {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60') : (q.answer === i ? 'ring-2 ring-green-500' : '')}">
+              {#each options as opt, i}
+                {@const correctIndex = q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)}
+                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (correctIndex === i ? 'ring-2 ring-green-500' : 'opacity-60') : (correctIndex === i ? 'ring-2 ring-green-500' : '')}">
                   <div class="flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
-                      {opt} {#if state?.type === 'RevealAnswer' && q.answer === i}(correct){/if}
+                      {opt} {#if state?.type === 'RevealAnswer' && correctIndex === i}(correct){/if}
                     </span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          {:else if q.type === 'poll'}
+            {@const counts = getOptionCounts(q.id)}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
                   </div>
                 </li>
               {/each}
@@ -230,8 +263,7 @@
         {/key}
 
         {#if state?.type === 'Question' && state.submissions}
-          {@const currentQ = getCurrentQuestion()}
-          {@const submitted = state.submissions.filter((s) => s.questionId === currentQ?.id)}
+          {@const submitted = state.submissions.filter((s) => s.questionId === currentQuestion?.id)}
           <p class="text-pub-muted text-sm mt-4">
             {submitted.length} of {(state.players ?? []).length} submitted
           </p>
@@ -246,7 +278,7 @@
           </button>
         </div>
 
-        {#if state?.type === 'RevealAnswer' && getCurrentQuestion()?.type === 'input' && state.wrongAnswers?.length > 0}
+        {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false') && state.wrongAnswers?.length > 0}
           <div class="mt-6 pt-6 border-t border-pub-muted">
             <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">

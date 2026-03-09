@@ -67,6 +67,21 @@
     });
   }
 
+  function getQuestionOptions(q: NonNullable<ReturnType<typeof getCurrentQuestion>>): string[] {
+    if (q.type === 'true_false') return ['True', 'False'];
+    if (q.type === 'choice' || q.type === 'poll') return q.options;
+    return [];
+  }
+
+  function getOptionCounts(questionId: string): Map<number, number> {
+    const counts = new Map<number, number>();
+    for (const submission of state?.submissions ?? []) {
+      if (submission.questionId !== questionId || submission.answerIndex == null) continue;
+      counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
+    }
+    return counts;
+  }
+
   function getCorrectAnswersInRankOrder(): Array<{ emoji: string; name: string; rank: number; points: number }> {
     const q = getCurrentQuestion();
     if (!q || !state?.submissions || !state?.wrongAnswers) return [];
@@ -173,9 +188,10 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if q.type === 'choice'}
+          {#if q.type === 'choice' || q.type === 'true_false' || q.type === 'poll'}
+            {@const options = getQuestionOptions(q)}
             <ul class="space-y-2">
-              {#each q.options as opt, i}
+              {#each options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded-lg">
                   <div class="flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
@@ -228,17 +244,34 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          {#if q.type === 'choice'}
+          {#if q.type === 'choice' || q.type === 'true_false'}
+            {@const options = getQuestionOptions(q)}
             <ul class="space-y-2">
-              {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded-lg {q.answer === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
+              {#each options as opt, i}
+                {@const correctIndex = q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)}
+                <li class="px-4 py-2 bg-pub-dark rounded-lg {correctIndex === i ? 'ring-2 ring-green-500' : 'opacity-60'}">
                   <div class="flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">
-                      {opt} {#if q.answer === i}(correct){/if}
+                      {opt} {#if correctIndex === i}(correct){/if}
                     </span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          {:else if q.type === 'poll'}
+            {@const counts = getOptionCounts(q.id)}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
                   </div>
                 </li>
               {/each}
