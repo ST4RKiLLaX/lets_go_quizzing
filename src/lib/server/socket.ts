@@ -86,8 +86,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         socket.data.role = 'host';
         socket.data.roomId = roomId;
         const state = getRoom(roomId)!;
-        ack?.({ roomId, state: serializeState(state) });
-        io.to(roomId).emit('state:update', { state: serializeState(state) });
+        ack?.({ roomId, state: serializeHostState(state) });
+        void broadcastStateToRoom(io, roomId, state, ['state:update']);
       } catch (e) {
         ack?.({ error: String(e) });
       }
@@ -109,6 +109,11 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
       const state = getRoom(roomId)!;
       const resolvedPlayerId = playerId ?? crypto.randomUUID();
+      const existingPlayer = state.players.get(resolvedPlayerId);
+      if (existingPlayer?.socketId) {
+        ack?.({ error: 'That player is already in the room' });
+        return;
+      }
       const roomJoinPassword = state.playerJoinPassword;
       if (roomJoinPassword) {
         // Allow seamless refresh/rejoin for already admitted players.
@@ -124,18 +129,30 @@ export function initSocket(httpServer: import('http').Server): Server {
           }
         }
       }
+      const players = new Map(state.players);
+      const isReturning = !!existingPlayer;
+      players.set(resolvedPlayerId, {
+        id: resolvedPlayerId,
+        name: isReturning ? existingPlayer!.name : '',
+        emoji: isReturning ? existingPlayer!.emoji : '👤',
+        score: isReturning ? existingPlayer!.score : 0,
+        socketId: socket.id,
+      });
+      const nextState = { ...state, players };
+      setRoom(roomId, nextState);
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.role = 'player';
       socket.data.playerId = resolvedPlayerId;
-      ack?.({ roomId, playerId: socket.data.playerId, state: serializeState(state) });
-      io.to(roomId).emit('room:update', { state: serializeState(state) });
+      ack?.({ roomId, playerId: socket.data.playerId, state: serializePlayerState(nextState) });
+      void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
     });
 
     socket.on('player:register', (payload: { playerId: string; name: string; emoji: string }, ack) => {
-      const { playerId, name, emoji } = payload ?? {};
+      const { name, emoji } = payload ?? {};
       const roomId = socket.data.roomId;
-      if (!roomId) {
+      const playerId = socket.data.playerId;
+      if (!roomId || !playerId) {
         ack?.({ error: 'Not in a room' });
         return;
       }
@@ -144,7 +161,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Invalid state' });
         return;
       }
-      const requestedEmoji = emoji || '👤';
+      const cappedName = (name || 'Anonymous').slice(0, 50);
+      const requestedEmoji = (emoji || '👤').slice(0, 4);
       const takenByActivePlayer = Array.from(state.players.entries()).some(
         ([id, p]) => id !== playerId && !!p.socketId && p.emoji === requestedEmoji
       );
@@ -155,16 +173,15 @@ export function initSocket(httpServer: import('http').Server): Server {
       const players = new Map(state.players);
       players.set(playerId, {
         id: playerId,
-        name: name || 'Anonymous',
+        name: cappedName,
         emoji: requestedEmoji,
         score: 0,
         socketId: socket.id,
       });
       const next: GameState = { ...state, players };
       setRoom(roomId, next);
-      socket.data.playerId = playerId;
       ack?.({ ok: true });
-      io.to(roomId).emit('room:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['room:update']);
     });
 
     socket.on('host:join', (payload: { roomId: string; password?: string }, ack) => {
@@ -197,7 +214,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       socket.data.role = 'host';
       socket.data.roomId = roomId;
       const state = getRoom(roomId)!;
-      ack?.({ state: serializeState(state) });
+      ack?.({ state: serializeHostState(state) });
     });
 
     socket.on('host:get_state', (payload: { roomId: string }, ack) => {
@@ -219,7 +236,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Room not found' });
         return;
       }
-      ack?.({ state: serializeState(state) });
+      ack?.({ state: serializeHostState(state) });
     });
 
     socket.on('host:start', (_, ack) => {
@@ -236,7 +253,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = transition(state, { type: 'START_GAME' });
       setRoom(roomId, next);
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on('host:next', (_, ack) => {
@@ -261,9 +278,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         saveHistory(next);
       }
       ack?.({ ok: true });
-      const serialized = serializeState(next);
-      io.to(roomId).emit('state:update', { state: serialized });
-      socket.emit('state:update', { state: serialized });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on('host:stop_timer', (_, ack) => {
@@ -283,7 +298,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = transition(state, { type: 'STOP_TIMER' });
       setRoom(roomId, next);
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on('host:show_leaderboard', (_, ack) => {
@@ -300,7 +315,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = transition(state, { type: 'SHOW_LEADERBOARD' });
       setRoom(roomId, next);
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on('host:end_game', (_, ack) => {
@@ -320,7 +335,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         saveHistory(next);
       }
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on('host:override', (payload: { playerId: string; questionId: string; delta?: number }, ack) => {
@@ -350,7 +365,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = { ...state, players };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      io.to(roomId).emit('state:update', { state: serializeState(next) });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
     });
 
     socket.on(
@@ -502,10 +517,12 @@ export function initSocket(httpServer: import('http').Server): Server {
           ack?.({ error: 'Answer required' });
           return;
         }
+        const maxLen =
+          question.type === 'word_cloud' ? 75 : question.type === 'input' ? 75 : 200;
         submission = {
           playerId,
           questionId,
-          answerText: normalized,
+          answerText: normalized.slice(0, maxLen),
           submittedAt: Date.now(),
         };
       }
@@ -514,10 +531,7 @@ export function initSocket(httpServer: import('http').Server): Server {
       const next = { ...state, submissions };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      const serialized = serializeState(next);
-      io.to(roomId).emit('room:update', { state: serialized });
-      io.to(roomId).emit('state:update', { state: serialized });
-      socket.emit('room:update', { state: serialized });
+      void broadcastStateToRoom(io, roomId, next, ['room:update', 'state:update']);
       }
     );
 
@@ -532,7 +546,7 @@ export function initSocket(httpServer: import('http').Server): Server {
           if (p) {
             players.set(playerId, { ...p, socketId: undefined });
             setRoom(roomId, { ...state, players });
-            io.to(roomId).emit('room:update', { state: serializeState(getRoom(roomId)!) });
+            void broadcastStateToRoom(io, roomId, getRoom(roomId)!, ['room:update']);
           }
         }
       }
@@ -577,6 +591,48 @@ function serializeState(state: GameState) {
       isActive: !!p.socketId,
     })),
   };
+}
+
+function serializeHostState(state: GameState) {
+  return serializeState(state);
+}
+
+function serializePlayerState(state: GameState) {
+  const base = serializeState(state);
+  const { type, currentRoundIndex, currentQuestionIndex } = state;
+  const isRevealPhase = type === 'RevealAnswer' || type === 'Scoreboard' || type === 'End';
+  const quiz = {
+    ...state.quiz,
+    rounds: state.quiz.rounds.map((round, r) => ({
+      ...round,
+      questions: round.questions.map((q, i) => {
+        const revealed =
+          r < currentRoundIndex ||
+          (r === currentRoundIndex && (isRevealPhase ? i <= currentQuestionIndex : i < currentQuestionIndex));
+        if (revealed || !('answer' in q)) return q;
+        const { answer, ...rest } = q as { answer?: unknown; [k: string]: unknown };
+        return rest;
+      }),
+    })),
+  };
+  return { ...base, quiz };
+}
+
+async function broadcastStateToRoom(
+  io: Server,
+  roomId: string,
+  state: GameState,
+  events: ('state:update' | 'room:update')[] = ['state:update', 'room:update']
+) {
+  const sockets = await io.in(roomId).fetchSockets();
+  const hostState = serializeHostState(state);
+  const playerState = serializePlayerState(state);
+  for (const s of sockets) {
+    const st = s.data.role === 'host' ? hostState : playerState;
+    for (const ev of events) {
+      s.emit(ev, { state: st });
+    }
+  }
 }
 
 function saveHistory(state: GameState) {

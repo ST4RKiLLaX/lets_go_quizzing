@@ -53,6 +53,10 @@
     void wakeManager?.destroy();
   });
   let socket: ReturnType<typeof createSocket> | null = null;
+  let joinError = '';
+  let needsRoomPassword = false;
+  let joinPassword = '';
+  let joiningRoom = false;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
 
   function getAnsweredInOrder(): Array<{ emoji: string; name: string }> {
@@ -124,6 +128,9 @@
     });
   }
 
+  $: if (import.meta.env.DEV && typeof window !== 'undefined') {
+    (window as any).__lgqDebug = { socket, state };
+  }
   $: answeredList = state?.type === 'Question' ? getAnsweredInOrder() : [];
   $: rankedCorrectList =
     state?.type === 'RevealAnswer' &&
@@ -131,21 +138,40 @@
       ? getCorrectAnswersInRankOrder()
       : [];
 
+  function joinRoom(password: string) {
+    if (!socket) return;
+    joiningRoom = true;
+    socket.emit(
+      'player:join',
+      { roomId, password: password.trim() || undefined },
+      (ack: { state?: SerializedState; error?: string }) => {
+        joiningRoom = false;
+        if (ack?.error) {
+          if (ack.error === 'Room password required') {
+            needsRoomPassword = true;
+            joinError = '';
+            return;
+          }
+          if (ack.error === 'Invalid room password') {
+            needsRoomPassword = true;
+            joinError = ack.error;
+            return;
+          }
+          window.location.href = '/';
+          return;
+        }
+        needsRoomPassword = false;
+        joinError = '';
+        if (ack?.state) state = ack.state;
+      }
+    );
+  }
+
   onMount(() => {
     wakeManager = createWakeManager();
 
     socket = createSocket();
-    socket.emit(
-      'player:join',
-      { roomId },
-      (ack: { state?: SerializedState; error?: string }) => {
-        if (ack?.error) {
-          window.location.href = '/';
-          return;
-        }
-        if (ack?.state) state = ack.state;
-      }
-    );
+    joinRoom('');
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
@@ -157,10 +183,44 @@
 
 <div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
-    {#if state?.quiz?.meta?.name}
-      <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
-    {/if}
-    {#if state?.type === 'Lobby'}
+    {#if !state}
+      <div class="bg-pub-darker rounded-lg p-6">
+        <h2 class="text-xl font-bold mb-4">Projector – Room {roomId}</h2>
+        {#if needsRoomPassword}
+          <form
+            class="space-y-3"
+            on:submit|preventDefault={() => joinRoom(joinPassword)}
+          >
+            <label for="projector-join-password" class="block text-sm text-pub-muted">
+              This room requires a password
+            </label>
+            <input
+              id="projector-join-password"
+              type="password"
+              bind:value={joinPassword}
+              placeholder="Enter room password"
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+            {#if joinError === 'Invalid room password'}
+              <p class="text-sm text-red-400">Invalid room password. Please try again.</p>
+            {/if}
+            <button
+              type="submit"
+              class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              disabled={joiningRoom || !joinPassword.trim()}
+            >
+              {joiningRoom ? 'Joining...' : 'Join'}
+            </button>
+          </form>
+        {:else}
+          <p class="text-pub-muted">Joining room...</p>
+        {/if}
+      </div>
+    {:else}
+      {#if state?.quiz?.meta?.name}
+        <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
+      {/if}
+      {#if state?.type === 'Lobby'}
       <div class="text-center">
         <h2 class="text-xl font-bold mb-6">Waiting for host to start</h2>
         <p class="text-pub-muted mb-6">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
@@ -474,6 +534,7 @@
       </div>
     {:else}
       <p class="text-pub-muted text-center">Connecting...</p>
+    {/if}
     {/if}
   </div>
 </div>

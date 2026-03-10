@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 
 const SESSION_COOKIE = 'lgq_host_auth';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
@@ -35,9 +35,8 @@ if (!hostAuthState.cleanupStarted) {
 
 export function verifyPasswordConstantTime(input: string, expected: string): boolean {
   if (typeof input !== 'string' || typeof expected !== 'string') return false;
-  const a = Buffer.from(input, 'utf8');
-  const b = Buffer.from(expected, 'utf8');
-  if (a.length !== b.length) return false;
+  const a = createHash('sha256').update(input, 'utf8').digest();
+  const b = createHash('sha256').update(expected, 'utf8').digest();
   return timingSafeEqual(a, b);
 }
 

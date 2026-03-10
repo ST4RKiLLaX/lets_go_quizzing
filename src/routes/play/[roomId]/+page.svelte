@@ -48,6 +48,9 @@
     void wakeManager.setAutoActive(false);
     void wakeManager.setUserEnabled(wakeRequested);
   }
+  $: if (import.meta.env.DEV && typeof window !== 'undefined') {
+    (window as any).__lgqDebug = { socket, state };
+  }
   onDestroy(() => {
     countdown?.destroy?.();
     stopWakeSubscription?.();
@@ -55,7 +58,7 @@
   });
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
-  let emoji = '👤';
+  let emoji = '😀';
   let registerError = '';
   let registered = false;
   let inputAnswer = '';
@@ -65,7 +68,7 @@
   let needsRoomPassword = false;
 
   const EMOJI_OPTIONS = [
-    '👤', '😀', '😎', '🤓', '😇', '🥳', '🤩', '😊', '🙂', '😏',
+    '😀', '😎', '🤓', '😇', '🥳', '🤩', '😊', '🙂', '😏',
     '🎉', '🧠', '⭐', '🔥', '🚀', '🎯', '💡', '🏆', '🎮', '🎸',
     '🐶', '🐱', '🦊', '🐻', '🐼', '🦁', '🐯', '🐸', '🦉', '🐙',
     '🍕', '🍔', '☕', '🍩', '🌮', '🥑', '🍎', '🍋', '🌶️', '🍿',
@@ -131,6 +134,10 @@
           }
           if (ack.error === 'Invalid room password') {
             needsRoomPassword = true;
+            joinError = ack.error;
+            return;
+          }
+          if (ack.error === 'That player is already in the room') {
             joinError = ack.error;
             return;
           }
@@ -528,7 +535,7 @@
       if (firstAvailable) emoji = firstAvailable;
     }
   }
-  $: if (currentPlayer && !registered) registered = true;
+  $: if (currentPlayer?.name && !registered) registered = true;
   $: myScore = currentPlayer?.score ?? 0;
   $: playerDisplayName = (currentPlayer?.name ?? name.trim()) || 'Anonymous';
   $: playerDisplayEmoji = currentPlayer?.emoji ?? emoji;
@@ -676,6 +683,9 @@
               {joiningRoom ? 'Joining...' : 'Join Room'}
             </button>
           </form>
+        {:else if joinError === 'That player is already in the room'}
+          <p class="text-sm text-red-400 mb-2">{joinError}</p>
+          <p class="text-pub-muted text-sm">Open this room in a different browser or incognito window to join as another player.</p>
         {:else}
           <p class="text-pub-muted">Joining room...</p>
         {/if}
@@ -691,8 +701,15 @@
               type="text"
               bind:value={name}
               placeholder="Enter your name"
-              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+              maxlength={50}
+              class="w-full bg-pub-dark border rounded-lg px-4 py-2 {name.length >= 50 ? 'border-amber-500' : 'border-pub-muted'}"
             />
+            <p class="mt-1 text-sm {name.length >= 50 ? 'text-amber-500' : 'text-pub-muted'}">
+              {name.length}/50 characters
+              {#if name.length >= 50}
+                <span class="font-medium"> — at limit</span>
+              {/if}
+            </p>
           </div>
           <div>
             <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
@@ -928,35 +945,46 @@
               </button>
             </div>
           {:else if q.type === 'input' || q.type === 'open_ended' || q.type === 'word_cloud'}
+            {@const maxChars = q.type === 'word_cloud' ? 75 : q.type === 'input' ? 75 : 200}
+            {@const atLimit = inputAnswer.length >= maxChars}
             <form
-              class="flex gap-2"
+              class="flex flex-col gap-2"
               on:submit|preventDefault={() => {
                 if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
                   submitInput(q.id, inputAnswer.trim());
                 }
               }}
             >
-              <input
-                type="text"
-                bind:value={inputAnswer}
-                placeholder="Your answer"
-                class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2 {isInputSubmitted(q.id) ? 'opacity-60' : ''}"
-                disabled={isInputSubmitted(q.id) || questionTimeExpired}
-                on:keydown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
-                      submitInput(q.id, inputAnswer.trim());
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  bind:value={inputAnswer}
+                  placeholder="Your answer"
+                  maxlength={maxChars}
+                  class="flex-1 bg-pub-dark border rounded-lg px-4 py-2 {atLimit ? 'border-amber-500' : 'border-pub-muted'} {isInputSubmitted(q.id) ? 'opacity-60' : ''}"
+                  disabled={isInputSubmitted(q.id) || questionTimeExpired}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
+                        submitInput(q.id, inputAnswer.trim());
+                      }
                     }
-                  }
-                }}
-              />
-              <button
-                type="submit"
-                class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                disabled={isInputSubmitted(q.id) || !inputAnswer.trim() || questionTimeExpired}
-              >
-                Submit
-              </button>
+                  }}
+                />
+                <button
+                  type="submit"
+                  class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                  disabled={isInputSubmitted(q.id) || !inputAnswer.trim() || questionTimeExpired}
+                >
+                  Submit
+                </button>
+              </div>
+              <p class="text-sm {atLimit ? 'text-amber-500' : 'text-pub-muted'}">
+                {inputAnswer.length}/{maxChars} characters
+                {#if atLimit}
+                  <span class="font-medium"> — at limit</span>
+                {/if}
+              </p>
             </form>
           {/if}
           {#if currentRoundQuestionTotal > 0}
