@@ -20,6 +20,7 @@ rounds:
         type: input
         text: "Complete: 'Is this the real life? Is this just __________'"
         explanation: The lyric is from Queen's Bohemian Rhapsody.
+        points: 2
         answer:
           - fantasy
           - fantsy
@@ -90,9 +91,11 @@ rounds:
         type: hotspot
         text: Where is the Eiffel Tower on this map?
         explanation: The Eiffel Tower is located in Paris, France.
-        image: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Europe_geography_map.svg/640px-Europe_geography_map.svg.png
-        imageAspectRatio: 0.75
+        image: https://openclipart.org/image/800px/235243
+        imageAspectRatio: 0.73875
         answer:
-          x: 0.48
-          y: 0.42
-          radius: 0.08
+          x: 0.33450885656574886
+          y: 0.6691486969780007
+          radius: 0.03
+          radiusY: 0.09
+          rotation: 20

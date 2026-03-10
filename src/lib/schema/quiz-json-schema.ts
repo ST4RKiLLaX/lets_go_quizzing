@@ -75,6 +75,11 @@ export const QUIZ_JSON_SCHEMA = {
                   description:
                     'Optional image. File: q1.png (upload via Form view). URL: https://example.com/photo.jpg',
                 },
+                points: {
+                  type: 'number',
+                  minimum: 0.01,
+                  description: 'Points multiplier for this question (e.g. 2 = double, 3 = triple). Default 1.',
+                },
                 options: {
                   type: 'array',
                   items: { type: 'string' },

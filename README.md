@@ -94,6 +94,8 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 | `reorder` | Arrange options in the correct order | ✓ |
 | `hotspot` | Tap a region on an image (e.g. map, diagram) | ✓ |
 
+Scored question types support an optional `points` multiplier (e.g. `points: 2` = double points, `points: 3` = triple). Default is 1. Works in both Standard and Ranked modes.
+
 ### Examples by Type
 
 **choice** — Single correct option (0-based index):
@@ -144,12 +146,13 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
   answer: 11
 ```
 
-**input** — Accepted answers (add alternatives for typos):
+**input** — Accepted answers (add alternatives for typos). Optional `points` multiplier:
 ```yaml
 - id: q6
   type: input
   text: "Complete: 'Is this the real life? Is this just _____?'"
   answer: [fantasy, fantsy, Phantasy]
+  points: 2
   explanation: Queen's Bohemian Rhapsody.
 ```
 

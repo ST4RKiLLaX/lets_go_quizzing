@@ -96,8 +96,9 @@
     const correct = state.submissions
       .filter((s) => s.questionId === q.id && !wrongPlayerIds.has(s.playerId))
       .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0));
-    const maxPts = state.quiz?.meta?.ranked_max_points ?? 100;
-    const minPts = state.quiz?.meta?.ranked_min_points ?? 10;
+    const weight = (q as { points?: number }).points ?? 1;
+    const maxPts = (state.quiz?.meta?.ranked_max_points ?? 100) * weight;
+    const minPts = (state.quiz?.meta?.ranked_min_points ?? 10) * weight;
     const players = state.players ?? [];
     let currentRank = 1;
     let prevTime = -1;

@@ -187,10 +187,13 @@ export function scoreSubmissions(
   const wrongAnswers: typeof state.wrongAnswers = [];
 
   const scoringMode = state.quiz.meta.scoring_mode ?? 'standard';
+  const weight = (question as { points?: number }).points ?? 1;
 
   if (scoringMode === 'ranked') {
-    const maxPts = state.quiz.meta.ranked_max_points ?? 100;
-    const minPts = state.quiz.meta.ranked_min_points ?? 10;
+    const baseMax = state.quiz.meta.ranked_max_points ?? 100;
+    const baseMin = state.quiz.meta.ranked_min_points ?? 10;
+    const maxPts = baseMax * weight;
+    const minPts = baseMin * weight;
 
     const correct = state.submissions
       .filter((sub) => players.has(sub.playerId) && isCorrect(question, sub, fuzzyThreshold))
@@ -234,9 +237,10 @@ export function scoreSubmissions(
       const correct = isCorrect(question, sub, fuzzyThreshold);
 
       if (correct) {
+        const pts = basePoints * weight;
         players.set(sub.playerId, {
           ...player,
-          score: player.score + basePoints,
+          score: player.score + pts,
         });
       } else {
         wrongAnswers.push({

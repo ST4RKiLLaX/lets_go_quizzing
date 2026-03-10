@@ -15,6 +15,7 @@ export interface ChoiceQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   options: string[];
   answer: number;
 }
@@ -25,6 +26,7 @@ export interface TrueFalseQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   answer: boolean;
 }
 
@@ -43,6 +45,7 @@ export interface MultiSelectQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   options: string[];
   answer: number[];
 }
@@ -53,6 +56,7 @@ export interface SliderQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   min: number;
   max: number;
   step: number;
@@ -65,6 +69,7 @@ export interface InputQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   answer: string[];
 }
 
@@ -90,6 +95,7 @@ export interface ReorderQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   options: string[];
   answer: number[];
 }
@@ -101,6 +107,7 @@ export interface HotspotQuestion {
   explanation?: string;
   image: string;
   imageAspectRatio?: number;
+  points?: number;
   answer: { x: number; y: number; radius: number; radiusY?: number; rotation?: number };
 }
 

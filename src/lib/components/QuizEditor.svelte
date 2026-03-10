@@ -122,7 +122,7 @@ import {
   ) {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
-    const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image };
+    const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image, points: (q as { points?: number }).points };
     const newQ: Question =
       type === 'choice'
         ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
@@ -540,6 +540,20 @@ import {
               class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
             ></textarea>
           </div>
+          {#if ['choice', 'true_false', 'multi_select', 'slider', 'input', 'reorder', 'hotspot'].includes(question.type)}
+            <div class="mb-3">
+              <label for="points-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Points multiplier</label>
+              <input
+                id="points-{ri}-{qi}"
+                type="number"
+                min="0.1"
+                step="0.5"
+                placeholder="1 (default)"
+                class="w-24 bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+                bind:value={question.points}
+              />
+            </div>
+          {/if}
           <div class="mb-3">
             <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
               {question.type === 'hotspot' ? 'Image (required)' : 'Image (optional)'}

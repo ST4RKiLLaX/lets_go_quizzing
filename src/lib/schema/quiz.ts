@@ -49,6 +49,7 @@ const ChoiceQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   options: z.array(z.string()),
   answer: z.number().int().min(0),
 });
@@ -59,6 +60,7 @@ const TrueFalseQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   answer: z.boolean(),
 });
 
@@ -68,6 +70,7 @@ const PollQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   options: z.array(z.string()).min(2),
 });
 
@@ -77,6 +80,7 @@ const MultiSelectQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   options: z.array(z.string()).min(2),
   answer: z.array(z.number().int().min(0)).min(1),
 });
@@ -87,6 +91,7 @@ const SliderQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   min: z.number(),
   max: z.number(),
   step: z.number().positive(),
@@ -99,6 +104,7 @@ const InputQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   answer: z.union([z.string(), z.array(z.string())]).transform((v) =>
     Array.isArray(v) ? v : [v]
   ),
@@ -110,6 +116,7 @@ const OpenEndedQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
 });
 
 const WordCloudQuestionSchema = z.object({
@@ -118,6 +125,7 @@ const WordCloudQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
 });
 
 const ReorderQuestionSchema = z.object({
@@ -126,6 +134,7 @@ const ReorderQuestionSchema = z.object({
   text: z.string(),
   explanation: z.string().optional(),
   image: imageSchema,
+  points: z.number().positive().optional(),
   options: z.array(z.string()).min(2),
   answer: z.array(z.number().int().min(0)).min(2),
 });
@@ -137,6 +146,7 @@ const HotspotQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: requiredImageSchema,
   imageAspectRatio: z.number().positive().optional(),
+  points: z.number().positive().optional(),
   answer: z.object({
     x: z.number().min(0).max(1),
     y: z.number().min(0).max(1),
