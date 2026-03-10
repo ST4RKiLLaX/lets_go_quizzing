@@ -22,6 +22,8 @@ export interface AnswerSubmission {
   answerIndexes?: number[];
   answerNumber?: number;
   answerText?: string;
+  answerX?: number;
+  answerY?: number;
   submittedAt: number;
 }
 

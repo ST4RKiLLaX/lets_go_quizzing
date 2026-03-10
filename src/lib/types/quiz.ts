@@ -94,6 +94,16 @@ export interface ReorderQuestion {
   answer: number[];
 }
 
+export interface HotspotQuestion {
+  id: string;
+  type: 'hotspot';
+  text: string;
+  explanation?: string;
+  image: string;
+  imageAspectRatio?: number;
+  answer: { x: number; y: number; radius: number; radiusY?: number; rotation?: number };
+}
+
 export type Question =
   | ChoiceQuestion
   | TrueFalseQuestion
@@ -103,7 +113,8 @@ export type Question =
   | InputQuestion
   | OpenEndedQuestion
   | WordCloudQuestion
-  | ReorderQuestion;
+  | ReorderQuestion
+  | HotspotQuestion;
 
 export interface Round {
   name: string;
@@ -204,6 +215,16 @@ export function createEmptyReorderQuestion(id: string): ReorderQuestion {
     text: '',
     options: ['', ''],
     answer: [0, 1],
+  };
+}
+
+export function createEmptyHotspotQuestion(id: string): HotspotQuestion {
+  return {
+    id,
+    type: 'hotspot',
+    text: '',
+    image: '',
+    answer: { x: 0.5, y: 0.5, radius: 0.1 },
   };
 }
 

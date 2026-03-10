@@ -62,8 +62,8 @@ export const QUIZ_JSON_SCHEMA = {
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'puzzle', 'slider', 'input', 'open_ended', 'word_cloud'],
-                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle = order items, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
+                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'puzzle', 'reorder', 'hotspot', 'slider', 'input', 'open_ended', 'word_cloud'],
+                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -212,6 +212,31 @@ export const QUIZ_JSON_SCHEMA = {
                   if: { properties: { type: { const: 'word_cloud' } }, required: ['type'] },
                   then: {
                     properties: {},
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'hotspot' } }, required: ['type'] },
+                  then: {
+                    required: ['image', 'answer'],
+                    properties: {
+                      image: { type: 'string', description: 'Required image URL or filename' },
+                      imageAspectRatio: {
+                        type: 'number',
+                        exclusiveMinimum: 0,
+                        description: 'height/width of image; captured automatically when using Form editor',
+                      },
+                      answer: {
+                        type: 'object',
+                        required: ['x', 'y', 'radius'],
+                        properties: {
+                          x: { type: 'number', minimum: 0, maximum: 1, description: 'Target center X (0-1, left to right)' },
+                          y: { type: 'number', minimum: 0, maximum: 1, description: 'Target center Y (0-1, top to bottom)' },
+                          radius: { type: 'number', minimum: 0.01, maximum: 0.5, description: 'Tolerance radius as fraction of image (e.g. 0.1 = 10%)' },
+                          radiusY: { type: 'number', minimum: 0.01, maximum: 0.5, description: 'Optional Y radius for elliptical hotspot' },
+                          rotation: { type: 'number', minimum: 0, maximum: 360, description: 'Hotspot rotation in degrees (0–360)' },
+                        },
+                      },
+                    },
                   },
                 },
               ],

@@ -84,3 +84,15 @@ rounds:
           - 2
           - 0
           - 1
+  - name: Phase 5 Hotspot
+    questions:
+      - id: q10
+        type: hotspot
+        text: Where is the Eiffel Tower on this map?
+        explanation: The Eiffel Tower is located in Paris, France.
+        image: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Europe_geography_map.svg/640px-Europe_geography_map.svg.png
+        imageAspectRatio: 0.75
+        answer:
+          x: 0.48
+          y: 0.42
+          radius: 0.08

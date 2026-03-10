@@ -92,6 +92,7 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 | `open_ended` | Long text response; not scored | — |
 | `word_cloud` | Short text aggregated into a visual cloud | — |
 | `reorder` | Arrange options in the correct order | ✓ |
+| `hotspot` | Tap a region on an image (e.g. map, diagram) | ✓ |
 
 ### Examples by Type
 
@@ -176,6 +177,20 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
   options: [French Revolution, Moon Landing, Declaration of Independence]
   answer: [2, 0, 1]
   explanation: 1776, 1789, 1969.
+```
+
+**hotspot** — Tap a region on an image. Requires `image`, `answer` with `x`, `y` (0–1, center), and `radius` (tolerance as fraction, e.g. 0.1 = 10%). Use the Form editor to click the image to set the target:
+```yaml
+- id: q10
+  type: hotspot
+  text: Where is the Eiffel Tower on this map?
+  image: https://example.com/europe-map.png
+  imageAspectRatio: 0.75
+  answer:
+    x: 0.48
+    y: 0.42
+    radius: 0.08
+  explanation: The Eiffel Tower is in Paris, France.
 ```
 
 ### Full Example Quiz

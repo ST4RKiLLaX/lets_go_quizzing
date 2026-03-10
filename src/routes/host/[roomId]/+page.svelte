@@ -115,6 +115,7 @@
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
     if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
+    if (q.type === 'hotspot') return [];
     return [];
   }
 
@@ -148,6 +149,8 @@
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(', ');
     } else if (Array.isArray(wa.answer) && q?.type === 'reorder') {
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(' → ');
+    } else if (Array.isArray(wa.answer) && q?.type === 'hotspot' && wa.answer.length >= 2) {
+      display = `(${(wa.answer[0] * 100).toFixed(0)}%, ${(wa.answer[1] * 100).toFixed(0)}%)`;
     } else if (typeof wa.answer === 'number' && q?.type === 'true_false') {
       display = wa.answer === 0 ? 'True' : 'False';
     }
@@ -217,7 +220,24 @@
             {/if}
           </div>
           <p class="text-xl mb-6">{q.text}</p>
-          {#if q.image}
+          {#if q.type === 'hotspot'}
+            {@const hq = q}
+            {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
+            {@const ar = hq.imageAspectRatio ?? 1}
+            {@const rY = hq.answer.radiusY ?? hq.answer.radius}
+            {@const rot = hq.answer.rotation ?? 0}
+            {#if src}
+              <div class="relative inline-block max-w-full my-4">
+                <img src={src} alt="" class="max-w-full rounded-lg block" />
+                {#if state?.type === 'RevealAnswer'}
+                  <div
+                    class="absolute border-2 border-green-500 bg-green-500/30 pointer-events-none rounded-full origin-center"
+                    style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
+                  ></div>
+                {/if}
+              </div>
+            {/if}
+          {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
@@ -303,6 +323,8 @@
                 </p>
               {/if}
             </div>
+          {:else if q.type === 'hotspot'}
+            <!-- Hotspot: image with circle overlay shown above -->
           {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
             <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
@@ -364,7 +386,7 @@
           </button>
         </div>
 
-          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder') && state.wrongAnswers?.length > 0}
+          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder' || currentQuestion?.type === 'hotspot') && state.wrongAnswers?.length > 0}
             <div class="mt-6 pt-6 border-t border-pub-muted">
               <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">

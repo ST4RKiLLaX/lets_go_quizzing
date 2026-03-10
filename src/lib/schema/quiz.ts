@@ -33,6 +33,16 @@ const imageSchema = z.string().optional().superRefine((val, ctx) => {
   }
 });
 
+const requiredImageSchema = z.string().min(1).superRefine((val, ctx) => {
+  const r = isValidImageUrl(val);
+  if (!r.ok) {
+    ctx.addIssue({
+      code: 'custom',
+      message: r.message,
+    });
+  }
+});
+
 const ChoiceQuestionSchema = z.object({
   id: z.string(),
   type: z.literal('choice'),
@@ -120,6 +130,22 @@ const ReorderQuestionSchema = z.object({
   answer: z.array(z.number().int().min(0)).min(2),
 });
 
+const HotspotQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('hotspot'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: requiredImageSchema,
+  imageAspectRatio: z.number().positive().optional(),
+  answer: z.object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    radius: z.number().positive().max(0.5),
+    radiusY: z.number().positive().max(0.5).optional(),
+    rotation: z.number().min(0).max(360).optional(),
+  }),
+});
+
 const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
   TrueFalseQuestionSchema,
@@ -130,6 +156,7 @@ const QuestionSchema = z.discriminatedUnion('type', [
   OpenEndedQuestionSchema,
   WordCloudQuestionSchema,
   ReorderQuestionSchema,
+  HotspotQuestionSchema,
 ]);
 
 const RoundSchema = z
@@ -152,11 +179,18 @@ const RoundSchema = z
           (q.max > q.min &&
             q.answer >= q.min &&
             q.answer <= q.max &&
-            Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9))
+            Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9)) &&
+        (q.type !== 'hotspot' ||
+          (q.answer.x >= 0 &&
+            q.answer.x <= 1 &&
+            q.answer.y >= 0 &&
+            q.answer.y <= 1 &&
+            q.answer.radius > 0 &&
+            q.answer.radius <= 0.5))
       ),
     {
         message:
-          'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, and slider answers must fit the min/max/step range',
+          'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, slider answers must fit the min/max/step range, and hotspot answer must have valid x/y/radius',
       }
   );
 
@@ -185,6 +219,7 @@ export type InputQuestion = z.infer<typeof InputQuestionSchema>;
 export type OpenEndedQuestion = z.infer<typeof OpenEndedQuestionSchema>;
 export type WordCloudQuestion = z.infer<typeof WordCloudQuestionSchema>;
 export type ReorderQuestion = z.infer<typeof ReorderQuestionSchema>;
+export type HotspotQuestion = z.infer<typeof HotspotQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;

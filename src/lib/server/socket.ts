@@ -362,6 +362,8 @@ export function initSocket(httpServer: import('http').Server): Server {
           answerIndexes?: number[];
           answerNumber?: number;
           answerText?: string;
+          answerX?: number;
+          answerY?: number;
         },
         ack
       ) => {
@@ -376,7 +378,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Not accepting answers' });
         return;
       }
-      const { questionId, answerIndex, answerIndexes, answerNumber, answerText } = payload ?? {};
+      const { questionId, answerIndex, answerIndexes, answerNumber, answerText, answerX, answerY } = payload ?? {};
       if (!questionId) {
         ack?.({ error: 'questionId required' });
         return;
@@ -403,6 +405,8 @@ export function initSocket(httpServer: import('http').Server): Server {
             answerIndexes?: number[];
             answerNumber?: number;
             answerText?: string;
+            answerX?: number;
+            answerY?: number;
             submittedAt: number;
           }
         | null = null;
@@ -469,6 +473,27 @@ export function initSocket(httpServer: import('http').Server): Server {
           playerId,
           questionId,
           answerNumber,
+          submittedAt: Date.now(),
+        };
+      } else if (question.type === 'hotspot') {
+        if (
+          answerX == null ||
+          answerY == null ||
+          !Number.isFinite(answerX) ||
+          !Number.isFinite(answerY) ||
+          answerX < 0 ||
+          answerX > 1 ||
+          answerY < 0 ||
+          answerY > 1
+        ) {
+          ack?.({ error: 'Invalid answer' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerX,
+          answerY,
           submittedAt: Date.now(),
         };
       } else {

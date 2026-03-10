@@ -68,7 +68,7 @@ export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult
   }
 
   if (
-    (question?.type !== 'choice' && question?.type !== 'multi_select' && question?.type !== 'puzzle') ||
+    (question?.type !== 'choice' && question?.type !== 'multi_select' && question?.type !== 'reorder') ||
     !Array.isArray(question.options) ||
     question.options.length === 0
   ) {
@@ -139,7 +139,8 @@ const QUESTION_TYPES: { value: string; detail: string }[] = [
   { value: 'true_false', detail: 'True or false' },
   { value: 'poll', detail: 'Opinion poll' },
   { value: 'multi_select', detail: 'Choose multiple options' },
-  { value: 'puzzle', detail: 'Order items correctly' },
+  { value: 'reorder', detail: 'Order items correctly' },
+  { value: 'hotspot', detail: 'Tap region on image' },
   { value: 'slider', detail: 'Numeric range slider' },
   { value: 'input', detail: 'Fill in the blank' },
   { value: 'open_ended', detail: 'Long text response' },

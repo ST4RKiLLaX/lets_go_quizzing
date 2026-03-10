@@ -15,6 +15,8 @@ export interface SerializedSubmission {
   answerIndexes?: number[];
   answerNumber?: number;
   answerText?: string;
+  answerX?: number;
+  answerY?: number;
   submittedAt?: number;
 }
 

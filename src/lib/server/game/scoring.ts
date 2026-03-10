@@ -10,6 +10,7 @@ import type {
   OpenEndedQuestion,
   WordCloudQuestion,
   ReorderQuestion,
+  HotspotQuestion,
 } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
@@ -80,6 +81,29 @@ function isReorderCorrect(
   return submission.answerIndexes.every((value, index) => value === question.answer[index]);
 }
 
+function isHotspotCorrect(
+  question: HotspotQuestion,
+  submission: AnswerSubmission
+): boolean {
+  if (submission.answerX == null || submission.answerY == null) return false;
+  const ar = question.imageAspectRatio ?? 1;
+  const { x: ax, y: ay, radius, radiusY, rotation = 0 } = question.answer;
+  const rX = radius;
+  const rY = radiusY ?? radius;
+  let u = (submission.answerX - ax) * ar;
+  let v = submission.answerY - ay;
+  if (rotation !== 0) {
+    const theta = (-rotation * Math.PI) / 180;
+    const c = Math.cos(theta);
+    const s = Math.sin(theta);
+    const uRot = u * c - v * s;
+    const vRot = u * s + v * c;
+    u = uRot;
+    v = vRot;
+  }
+  return (u * u) / (rX * rX) + (v * v) / (rY * rY) <= 1;
+}
+
 function isCorrect(
   question:
     | ChoiceQuestion
@@ -90,7 +114,8 @@ function isCorrect(
     | InputQuestion
     | OpenEndedQuestion
     | WordCloudQuestion
-    | ReorderQuestion,
+    | ReorderQuestion
+    | HotspotQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
@@ -109,6 +134,9 @@ function isCorrect(
   if (question.type === 'reorder') {
     return isReorderCorrect(question, submission);
   }
+  if (question.type === 'hotspot') {
+    return isHotspotCorrect(question, submission);
+  }
   if (question.type === 'slider') {
     return isSliderCorrect(question, submission);
   }
@@ -121,6 +149,9 @@ function isCorrect(
 function getWrongAnswerValue(
   submission: AnswerSubmission
 ): string | number | number[] {
+  if (submission.answerX != null && submission.answerY != null) {
+    return [submission.answerX, submission.answerY];
+  }
   if (submission.answerIndexes?.length) {
     return submission.answerIndexes;
   }

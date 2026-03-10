@@ -3,7 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
-  import type { Question } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -186,7 +186,14 @@
             {/if}
           </div>
           <p class="text-xl mb-6">{q.text}</p>
-          {#if q.image}
+          {#if q.type === 'hotspot'}
+            {@const hq = q as HotspotQuestion}
+            {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
+            {#if src}
+              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+              <p class="text-xl text-pub-muted text-center mt-4">Tap the correct area</p>
+            {/if}
+          {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
@@ -275,7 +282,22 @@
             {/if}
           </div>
           <p class="text-xl mb-4">{q.text}</p>
-          {#if q.image}
+          {#if q.type === 'hotspot'}
+            {@const hq = q as HotspotQuestion}
+            {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
+            {@const ar = hq.imageAspectRatio ?? 1}
+            {@const rY = hq.answer.radiusY ?? hq.answer.radius}
+            {@const rot = hq.answer.rotation ?? 0}
+            {#if src}
+              <div class="relative inline-block max-w-full my-4">
+                <img src={src} alt="" class="max-w-full rounded-lg block" />
+                <div
+                  class="absolute border-2 border-green-500 bg-green-500/30 pointer-events-none rounded-full origin-center"
+                  style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
+                ></div>
+              </div>
+            {/if}
+          {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />

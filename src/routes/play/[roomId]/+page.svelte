@@ -4,7 +4,7 @@
   import PlayerConfetti from '$lib/components/PlayerConfetti.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
-  import type { Question } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -148,6 +148,7 @@
   let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedReorder: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedSlider: { questionId: string; answerNumber: number } | null = null;
+  let selectedHotspot: { questionId: string; x: number; y: number } | null = null;
   let selectedInput: string | null = null;
   let multiSelectDraft: number[] = [];
   let reorderDraft: number[] = [];
@@ -166,6 +167,7 @@
       selectedMultiSelect = null;
       selectedReorder = null;
       selectedSlider = null;
+      selectedHotspot = null;
       selectedInput = null;
       multiSelectDraft = [];
       reorderDraft = [];
@@ -192,6 +194,7 @@
     selectedMultiSelect?.questionId === currentQuestionId ||
     selectedReorder?.questionId === currentQuestionId ||
     selectedSlider?.questionId === currentQuestionId ||
+    selectedHotspot?.questionId === currentQuestionId ||
     selectedInput === currentQuestionId;
   $: showTimesUpMessage = !!(questionTimeExpired && !hasAnsweredCurrentQuestion);
 
@@ -339,6 +342,49 @@
     });
   }
 
+  function submitHotspot(questionId: string, x: number, y: number) {
+    if (
+      hasSubmitted(questionId) ||
+      selectedHotspot?.questionId === questionId ||
+      questionTimeExpired
+    ) {
+      return;
+    }
+    const clampedX = Math.max(0, Math.min(1, x));
+    const clampedY = Math.max(0, Math.min(1, y));
+    submitError = '';
+    selectedHotspot = { questionId, x: clampedX, y: clampedY };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? {
+          ...state,
+          submissions: [
+            ...(state.submissions ?? []),
+            { playerId, questionId, answerX: clampedX, answerY: clampedY },
+          ],
+        }
+      : state;
+    socket?.emit(
+      'player:answer',
+      { questionId, answerX: clampedX, answerY: clampedY },
+      (ack: { error?: string }) => {
+        if (ack?.error) {
+          submitError = ack.error;
+          selectedHotspot = null;
+          state =
+            state?.submissions != null
+              ? {
+                  ...state,
+                  submissions: state.submissions.filter(
+                    (s) => !(s.playerId === playerId && s.questionId === questionId)
+                  ),
+                }
+              : state;
+        }
+      }
+    );
+  }
+
   function hasSubmitted(questionId: string): boolean {
     const playerId = getOrCreatePlayerId();
     return state?.submissions?.some(
@@ -374,6 +420,16 @@
     return sub?.answerNumber;
   }
 
+  function getSubmittedHotspot(questionId: string): { x: number; y: number } | undefined {
+    const playerId = getOrCreatePlayerId();
+    const sub = state?.submissions?.find(
+      (s) => s.playerId === playerId && s.questionId === questionId
+    );
+    if (sub?.answerX != null && sub?.answerY != null) return { x: sub.answerX, y: sub.answerY };
+    if (selectedHotspot?.questionId === questionId) return { x: selectedHotspot.x, y: selectedHotspot.y };
+    return undefined;
+  }
+
   function getSubmittedAnswerText(questionId: string): string {
     const playerId = getOrCreatePlayerId();
     const sub = state?.submissions?.find(
@@ -389,6 +445,7 @@
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
     if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
+    if (q.type === 'hotspot') return [];
     return [];
   }
 
@@ -443,6 +500,10 @@
 
   function isReorderSubmitted(questionId: string): boolean {
     return hasSubmitted(questionId) || selectedReorder?.questionId === questionId;
+  }
+
+  function isHotspotSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedHotspot?.questionId === questionId;
   }
 
   function toggleMultiSelectDraft(optionIndex: number) {
@@ -690,7 +751,39 @@
             {/if}
           </div>
           <p class="text-xl mb-6">{q.text}</p>
-          {#if q.image}
+          {#if q.type === 'hotspot'}
+            {@const hq = q as HotspotQuestion}
+            {@const src = getQuestionImageSrc(hq.image, state.quizFilename)}
+            {#if src}
+              <div
+                class="relative inline-block max-w-full cursor-crosshair my-4"
+                role="button"
+                tabindex="0"
+                on:click={(e) => {
+                  const img = e.currentTarget.querySelector('img');
+                  if (!img || isHotspotSubmitted(q.id) || questionTimeExpired) return;
+                  const rect = img.getBoundingClientRect();
+                  const x = (e.clientX - rect.left) / rect.width;
+                  const y = (e.clientY - rect.top) / rect.height;
+                  submitHotspot(q.id, x, y);
+                }}
+                on:touchend={(e) => {
+                  const img = e.currentTarget.querySelector('img');
+                  if (!img || isHotspotSubmitted(q.id) || questionTimeExpired) return;
+                  const touch = e.changedTouches?.[0];
+                  if (!touch) return;
+                  const rect = img.getBoundingClientRect();
+                  const x = (touch.clientX - rect.left) / rect.width;
+                  const y = (touch.clientY - rect.top) / rect.height;
+                  submitHotspot(q.id, x, y);
+                }}
+                on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+              >
+                <img src={src} alt="" class="max-w-full rounded-lg block" />
+              </div>
+              <p class="text-sm text-pub-muted mb-2">Tap the correct area on the image</p>
+            {/if}
+          {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
@@ -866,7 +959,11 @@
         {/if}
         {#if hasAnsweredCurrentQuestion && currentQuestion?.type !== 'input' && currentQuestion?.type !== 'open_ended' && currentQuestion?.type !== 'word_cloud'}
           <p class="mt-4 text-pub-gold">Answer submitted!</p>
-          {#if (currentQuestion?.type === 'true_false' || currentQuestion?.type === 'poll') && getSelectedOptionLabel(currentQuestion)}
+          {#if currentQuestion?.type === 'hotspot' && getSubmittedHotspot(currentQuestion.id)}
+            <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+              You tapped at ({Math.round(getSubmittedHotspot(currentQuestion.id)!.x * 100)}%, {Math.round(getSubmittedHotspot(currentQuestion.id)!.y * 100)}%)
+            </p>
+          {:else if (currentQuestion?.type === 'true_false' || currentQuestion?.type === 'poll') && getSelectedOptionLabel(currentQuestion)}
             <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
               You selected: {getSelectedOptionLabel(currentQuestion)}
             </p>
@@ -902,7 +999,29 @@
             {/if}
           </div>
           <p class="text-xl mb-4">{q.text}</p>
-          {#if q.image}
+          {#if q.type === 'hotspot'}
+            {@const hq = q as HotspotQuestion}
+            {@const src = getQuestionImageSrc(hq.image, state.quizFilename)}
+            {@const ar = hq.imageAspectRatio ?? 1}
+            {@const rY = hq.answer.radiusY ?? hq.answer.radius}
+            {@const rot = hq.answer.rotation ?? 0}
+            {@const tap = getSubmittedHotspot(q.id)}
+            {#if src}
+              <div class="relative inline-block max-w-full my-4">
+                <img src={src} alt="" class="max-w-full rounded-lg block" />
+                <div
+                  class="absolute border-2 border-green-500 bg-green-500/30 pointer-events-none rounded-full origin-center"
+                  style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
+                ></div>
+                {#if tap}
+                  <div
+                    class="absolute w-3 h-3 rounded-full bg-pub-gold border-2 border-white pointer-events-none"
+                    style="left: {(tap.x * 100)}%; top: {(tap.y * 100)}%; transform: translate(-50%, -50%);"
+                  ></div>
+                {/if}
+              </div>
+            {/if}
+          {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state.quizFilename)}
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />

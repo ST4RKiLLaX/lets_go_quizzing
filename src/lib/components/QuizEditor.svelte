@@ -11,6 +11,7 @@
   OpenEndedQuestion,
   WordCloudQuestion,
   ReorderQuestion,
+  HotspotQuestion,
 } from '$lib/types/quiz.js';
 import {
   createEmptyChoiceQuestion,
@@ -22,9 +23,11 @@ import {
   createEmptyOpenEndedQuestion,
   createEmptyWordCloudQuestion,
   createEmptyReorderQuestion,
+  createEmptyHotspotQuestion,
   generateQuestionId,
 } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
+  import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
   import type { ComponentType } from 'svelte';
   import { onMount } from 'svelte';
@@ -115,7 +118,7 @@ import {
   function setQuestionType(
     ri: number,
     qi: number,
-    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder'
+    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'hotspot'
   ) {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
@@ -137,7 +140,9 @@ import {
                     ? { ...base, type: 'open_ended' }
                     : type === 'word_cloud'
                       ? { ...base, type: 'word_cloud' }
-                      : { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] };
+                      : type === 'reorder'
+                        ? { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] }
+                        : { ...base, type: 'hotspot', image: (base.image as string) ?? '', answer: { x: 0.5, y: 0.5, radius: 0.1 } };
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -331,11 +336,12 @@ import {
 
   function clearImage(ri: number, qi: number) {
     const q = quiz.rounds[ri].questions[qi];
+    const clearedImage = q.type === 'hotspot' ? '' : undefined;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: undefined } : qu)) }
+          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: clearedImage } : qu)) }
           : r
       ),
     };
@@ -500,7 +506,7 @@ import {
                 setQuestionType(
                   ri,
                   qi,
-                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud')
+                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'hotspot')
                 )}
               class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
             >
@@ -509,6 +515,7 @@ import {
               <option value="poll">Poll</option>
               <option value="multi_select">Multi-select</option>
               <option value="reorder">Reorder</option>
+              <option value="hotspot">Hotspot (image click)</option>
               <option value="slider">Slider</option>
               <option value="input">Fill in the blank</option>
               <option value="open_ended">Long text response</option>
@@ -534,12 +541,14 @@ import {
             ></textarea>
           </div>
           <div class="mb-3">
-            <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Image (optional)</label>
+            <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+              {question.type === 'hotspot' ? 'Image (required)' : 'Image (optional)'}
+            </label>
             <input
               id="img-{ri}-{qi}"
               type="text"
               bind:value={question.image}
-              placeholder="https://... or leave empty"
+              placeholder={question.type === 'hotspot' ? 'https://... or upload above' : 'https://... or leave empty'}
               class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
             />
             {#if quizFilename}
@@ -572,7 +581,149 @@ import {
               </button>
             {/if}
           </div>
-          {#if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select' || question.type === 'reorder'}
+          {#if question.type === 'hotspot'}
+            {@const hq = question as HotspotQuestion}
+            {@const imgSrc = getQuestionImageSrc(hq.image, quizFilename)}
+            {#if imgSrc}
+              <div class="space-y-3 mb-3">
+                <span class="block text-sm text-pub-muted">Click image to set target</span>
+                <div
+                  class="relative inline-block max-w-full cursor-crosshair"
+                  role="button"
+                  tabindex="0"
+                  on:click={(e) => {
+                    const target = e.currentTarget;
+                    const img = target.querySelector('img');
+                    if (!img) return;
+                    const rect = img.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width;
+                    const y = (e.clientY - rect.top) / rect.height;
+                    const clampedX = Math.max(0, Math.min(1, x));
+                    const clampedY = Math.max(0, Math.min(1, y));
+                    const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
+                    quiz = {
+                      ...quiz,
+                      rounds: quiz.rounds.map((r, i) =>
+                        i === ri
+                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, x: clampedX, y: clampedY } } : qu)) }
+                          : r
+                      ),
+                    };
+                  }}
+                  on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+                >
+                  <img
+                    src={imgSrc}
+                    alt=""
+                    class="max-w-full rounded-lg block"
+                    on:load={(e) => {
+                      const img = e.currentTarget;
+                      const ar = img.naturalHeight / img.naturalWidth;
+                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
+                      if (q.imageAspectRatio === undefined || Math.abs(q.imageAspectRatio - ar) > 0.001) {
+                        quiz = {
+                          ...quiz,
+                          rounds: quiz.rounds.map((r, i) =>
+                            i === ri
+                              ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, imageAspectRatio: ar } : qu)) }
+                              : r
+                          ),
+                        };
+                      }
+                    }}
+                  />
+                  <div
+                    class="absolute border-2 border-pub-gold bg-pub-gold/20 pointer-events-none rounded-full origin-center"
+                    style="left: {((hq.answer.x - hq.answer.radius / (hq.imageAspectRatio ?? 1)) * 100)}%; top: {((hq.answer.y - (hq.answer.radiusY ?? hq.answer.radius)) * 100)}%; width: {(hq.answer.radius * 2 / (hq.imageAspectRatio ?? 1)) * 100}%; height: {((hq.answer.radiusY ?? hq.answer.radius) * 2) * 100}%; transform: rotate({hq.answer.rotation ?? 0}deg);"
+                  ></div>
+                  <div
+                    class="absolute w-2 h-2 rounded-full bg-pub-gold border border-white pointer-events-none"
+                    style="left: {(hq.answer.x * 100)}%; top: {(hq.answer.y * 100)}%; transform: translate(-50%, -50%);"
+                  ></div>
+                </div>
+                <div>
+                  <label for="hotspot-radius-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+                    Tolerance radius: {Math.round(hq.answer.radius * 100)}%
+                  </label>
+                  <input
+                    id="hotspot-radius-{ri}-{qi}"
+                    type="range"
+                    min="0.02"
+                    max="0.3"
+                    step="0.01"
+                    value={hq.answer.radius}
+                    class="w-full"
+                    on:input={(e) => {
+                      const val = Number((e.currentTarget as HTMLInputElement).value);
+                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
+                      quiz = {
+                        ...quiz,
+                        rounds: quiz.rounds.map((r, i) =>
+                          i === ri
+                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, radius: val } } : qu)) }
+                            : r
+                        ),
+                      };
+                    }}
+                  />
+                </div>
+                <div>
+                  <label for="hotspot-radiusY-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+                    Radius Y (optional, for ellipse): {Math.round((hq.answer.radiusY ?? hq.answer.radius) * 100)}%
+                  </label>
+                  <input
+                    id="hotspot-radiusY-{ri}-{qi}"
+                    type="range"
+                    min="0.02"
+                    max="0.3"
+                    step="0.01"
+                    value={hq.answer.radiusY ?? hq.answer.radius}
+                    class="w-full"
+                    on:input={(e) => {
+                      const val = Number((e.currentTarget as HTMLInputElement).value);
+                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
+                      quiz = {
+                        ...quiz,
+                        rounds: quiz.rounds.map((r, i) =>
+                          i === ri
+                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, radiusY: val } } : qu)) }
+                            : r
+                        ),
+                      };
+                    }}
+                  />
+                </div>
+                <div>
+                  <label for="hotspot-rotation-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+                    Hotspot rotation: {Math.round(hq.answer.rotation ?? 0)}°
+                  </label>
+                  <input
+                    id="hotspot-rotation-{ri}-{qi}"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="5"
+                    value={hq.answer.rotation ?? 0}
+                    class="w-full"
+                    on:input={(e) => {
+                      const val = Number((e.currentTarget as HTMLInputElement).value);
+                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
+                      quiz = {
+                        ...quiz,
+                        rounds: quiz.rounds.map((r, i) =>
+                          i === ri
+                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, rotation: val } } : qu)) }
+                            : r
+                        ),
+                      };
+                    }}
+                  />
+                </div>
+              </div>
+            {:else}
+              <p class="text-sm text-pub-muted">Add an image above to set the target</p>
+            {/if}
+          {:else if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select' || question.type === 'reorder'}
             <div class="space-y-2" role="group" aria-label="Options">
               <span class="block text-sm text-pub-muted">
                 {question.type === 'poll'
