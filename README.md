@@ -79,18 +79,108 @@ When running behind a reverse proxy that handles TLS/SSL, ensure you forward the
 
 You can use the built-in **Quiz Creator** at `/creator` to author games directly in your browser, or you can drop manually written `.yaml` files into the `data/quizzes/` directory.
 
-The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` is intended as the phase-by-phase reference file. At this stop point it includes:
-- `choice`
-- `input`
-- `true_false`
-- `poll`
-- `multi_select`
-- `slider`
-- `open_ended`
-- `word_cloud`
-- `reorder`
+### Question Types
 
-**Example Quiz Structure:**
+| Type | Description | Scoring |
+| :--- | :--- | :--- |
+| `choice` | Multiple choice: pick one correct option | ✓ |
+| `true_false` | True or false | ✓ |
+| `poll` | Opinion poll; no correct answer | — |
+| `multi_select` | Choose multiple correct options | ✓ |
+| `slider` | Numeric value within a range | ✓ |
+| `input` | Fill in the blank (exact or fuzzy match) | ✓ |
+| `open_ended` | Long text response; not scored | — |
+| `word_cloud` | Short text aggregated into a visual cloud | — |
+| `reorder` | Arrange options in the correct order | ✓ |
+
+### Examples by Type
+
+**choice** — Single correct option (0-based index):
+```yaml
+- id: q1
+  type: choice
+  text: What is the capital of Australia?
+  options: [Sydney, Melbourne, Canberra, Perth]
+  answer: 2
+  explanation: Canberra is Australia's capital city.
+```
+
+**true_false** — `true` = True is correct, `false` = False is correct:
+```yaml
+- id: q2
+  type: true_false
+  text: Lightning is hotter than the surface of the sun.
+  answer: true
+  explanation: A lightning bolt can briefly reach ~30,000 K.
+```
+
+**poll** — Collect opinions; no answer stored:
+```yaml
+- id: q3
+  type: poll
+  text: Which snack should the host bring next?
+  options: [Popcorn, Nachos, Cookies, Fruit]
+```
+
+**multi_select** — Indexes of all correct options:
+```yaml
+- id: q4
+  type: multi_select
+  text: Which of these are prime numbers?
+  options: ["2", "4", "5", "9"]
+  answer: [0, 2]
+  explanation: 2 and 5 are prime.
+```
+
+**slider** — Min, max, step, and correct value:
+```yaml
+- id: q5
+  type: slider
+  text: How many players on a soccer team on the field?
+  min: 5
+  max: 15
+  step: 1
+  answer: 11
+```
+
+**input** — Accepted answers (add alternatives for typos):
+```yaml
+- id: q6
+  type: input
+  text: "Complete: 'Is this the real life? Is this just _____?'"
+  answer: [fantasy, fantsy, Phantasy]
+  explanation: Queen's Bohemian Rhapsody.
+```
+
+**open_ended** — Long text; responses shown on reveal:
+```yaml
+- id: q7
+  type: open_ended
+  text: In one sentence, why do you like pub quizzes?
+  explanation: Open-ended questions are not scored.
+```
+
+**word_cloud** — Short text aggregated by frequency:
+```yaml
+- id: q8
+  type: word_cloud
+  text: Describe your current mood in one word!
+  explanation: Repeated words appear larger in the cloud.
+```
+
+**reorder** — Correct order of option indexes:
+```yaml
+- id: q9
+  type: reorder
+  text: Order these historical events from earliest to most recent.
+  options: [French Revolution, Moon Landing, Declaration of Independence]
+  answer: [2, 0, 1]
+  explanation: 1776, 1789, 1969.
+```
+
+### Full Example Quiz
+
+The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` includes all of the above types. A complete example:
 ```yaml
 meta:
   name: "Pub Quiz Night"
