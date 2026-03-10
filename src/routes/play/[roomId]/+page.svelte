@@ -755,6 +755,7 @@
           {#if q.type === 'hotspot'}
             {@const hq = q as HotspotQuestion}
             {@const src = getQuestionImageSrc(hq.image, state.quizFilename)}
+            {@const tap = getSubmittedHotspot(q.id)}
             {#if src}
               <div
                 class="relative inline-block max-w-full cursor-crosshair my-4"
@@ -781,6 +782,12 @@
                 on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
               >
                 <img src={src} alt="" class="max-w-full rounded-lg block" />
+                {#if tap}
+                  <div
+                    class="absolute w-3 h-3 rounded-full bg-pub-gold border-2 border-white pointer-events-none"
+                    style="left: {(tap.x * 100)}%; top: {(tap.y * 100)}%; transform: translate(-50%, -50%);"
+                  ></div>
+                {/if}
               </div>
               <p class="text-sm text-pub-muted mb-2">Tap the correct area on the image</p>
             {/if}
