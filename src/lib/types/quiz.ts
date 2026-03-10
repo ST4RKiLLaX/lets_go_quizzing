@@ -84,6 +84,16 @@ export interface WordCloudQuestion {
   image?: string;
 }
 
+export interface ReorderQuestion {
+  id: string;
+  type: 'reorder';
+  text: string;
+  explanation?: string;
+  image?: string;
+  options: string[];
+  answer: number[];
+}
+
 export type Question =
   | ChoiceQuestion
   | TrueFalseQuestion
@@ -92,7 +102,8 @@ export type Question =
   | SliderQuestion
   | InputQuestion
   | OpenEndedQuestion
-  | WordCloudQuestion;
+  | WordCloudQuestion
+  | ReorderQuestion;
 
 export interface Round {
   name: string;
@@ -183,6 +194,16 @@ export function createEmptyWordCloudQuestion(id: string): WordCloudQuestion {
     id,
     type: 'word_cloud',
     text: '',
+  };
+}
+
+export function createEmptyReorderQuestion(id: string): ReorderQuestion {
+  return {
+    id,
+    type: 'reorder',
+    text: '',
+    options: ['', ''],
+    answer: [0, 1],
   };
 }
 

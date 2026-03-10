@@ -62,8 +62,8 @@ export const QUIZ_JSON_SCHEMA = {
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'slider', 'input', 'open_ended', 'word_cloud'],
-                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
+                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'puzzle', 'slider', 'input', 'open_ended', 'word_cloud'],
+                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle = order items, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -153,6 +153,26 @@ export const QUIZ_JSON_SCHEMA = {
                         minItems: 1,
                         items: { type: 'integer', minimum: 0 },
                         description: 'Indexes of all correct options (0-based)',
+                      },
+                    },
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'puzzle' } }, required: ['type'] },
+                  then: {
+                    required: ['options', 'answer'],
+                    properties: {
+                      options: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'string' },
+                        description: 'Items to be ordered',
+                      },
+                      answer: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'integer', minimum: 0 },
+                        description: 'Correct order of option indexes (0-based)',
                       },
                     },
                   },

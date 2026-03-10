@@ -70,3 +70,17 @@ rounds:
         type: word_cloud
         text: Describe your current mood in one word!
         explanation: Word clouds aggregate repeated answers into a visual display.
+  - name: Phase 4 Custom Visual Types (Reorder)
+    questions:
+      - id: q9
+        type: reorder
+        text: Order these historical events from earliest to most recent.
+        explanation: The Declaration of Independence (1776), French Revolution (1789), and Moon Landing (1969).
+        options:
+          - French Revolution
+          - Moon Landing
+          - Declaration of Independence
+        answer:
+          - 2
+          - 0
+          - 1

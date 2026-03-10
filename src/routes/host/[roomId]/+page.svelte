@@ -114,7 +114,7 @@
 
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
     return [];
   }
 
@@ -146,6 +146,8 @@
       display = q.options[wa.answer];
     } else if (Array.isArray(wa.answer) && q?.type === 'multi_select') {
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(', ');
+    } else if (Array.isArray(wa.answer) && q?.type === 'reorder') {
+      display = wa.answer.map((index) => q.options[index] ?? String(index)).join(' → ');
     } else if (typeof wa.answer === 'number' && q?.type === 'true_false') {
       display = wa.answer === 0 ? 'True' : 'False';
     }
@@ -255,6 +257,26 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'reorder'}
+            <div class="space-y-4">
+              <div>
+                {#if state?.type === 'RevealAnswer'}
+                  <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Order:</h3>
+                {/if}
+                <ul class="space-y-2 {state?.type !== 'RevealAnswer' ? 'opacity-60' : ''}">
+                  {#each state?.type === 'RevealAnswer' ? q.answer : q.options.map((_, i) => i) as optIndex, i}
+                    <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
+                      <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                          {state?.type === 'RevealAnswer' ? i + 1 : formatOptionLabel(i, optionLabelStyle)}
+                        </span>
+                        <span class="flex-1 break-words">{q.options[optIndex]}</span>
+                      </div>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            </div>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">
@@ -342,9 +364,9 @@
           </button>
         </div>
 
-        {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider') && state.wrongAnswers?.length > 0}
-          <div class="mt-6 pt-6 border-t border-pub-muted">
-            <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
+          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder') && state.wrongAnswers?.length > 0}
+            <div class="mt-6 pt-6 border-t border-pub-muted">
+              <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">
               {#each state.wrongAnswers as wa}
                 <div class="flex items-center gap-1 px-3 py-1 bg-pub-dark rounded text-sm">

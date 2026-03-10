@@ -146,9 +146,11 @@
   let submitError = '';
   let selectedAnswer: { questionId: string; answerIndex: number } | null = null;
   let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
+  let selectedReorder: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedSlider: { questionId: string; answerNumber: number } | null = null;
   let selectedInput: string | null = null;
   let multiSelectDraft: number[] = [];
+  let reorderDraft: number[] = [];
   let sliderAnswer: number | null = null;
 
   $: currentQuestionKey =
@@ -162,9 +164,11 @@
       prevQuestionKey = key;
       selectedAnswer = null;
       selectedMultiSelect = null;
+      selectedReorder = null;
       selectedSlider = null;
       selectedInput = null;
       multiSelectDraft = [];
+      reorderDraft = [];
       sliderAnswer = null;
       inputAnswer = '';
     }
@@ -186,6 +190,7 @@
     hasSubmitted(currentQuestionId) ||
     selectedAnswer?.questionId === currentQuestionId ||
     selectedMultiSelect?.questionId === currentQuestionId ||
+    selectedReorder?.questionId === currentQuestionId ||
     selectedSlider?.questionId === currentQuestionId ||
     selectedInput === currentQuestionId;
   $: showTimesUpMessage = !!(questionTimeExpired && !hasAnsweredCurrentQuestion);
@@ -253,6 +258,40 @@
       if (ack?.error) {
         submitError = ack.error;
         selectedMultiSelect = null;
+        state =
+          state?.submissions != null
+            ? {
+                ...state,
+                submissions: state.submissions.filter(
+                  (s) => !(s.playerId === playerId && s.questionId === questionId)
+                ),
+              }
+            : state;
+      }
+    });
+  }
+
+  function submitReorder(questionId: string, answerIndexes: number[]) {
+    if (
+      hasSubmitted(questionId) ||
+      selectedReorder?.questionId === questionId ||
+      questionTimeExpired
+    ) {
+      return;
+    }
+    submitError = '';
+    selectedReorder = { questionId, answerIndexes: [...answerIndexes] };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? {
+          ...state,
+          submissions: [...(state.submissions ?? []), { playerId, questionId, answerIndexes: [...answerIndexes] }],
+        }
+      : state;
+    socket?.emit('player:answer', { questionId, answerIndexes: [...answerIndexes] }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedReorder = null;
         state =
           state?.submissions != null
             ? {
@@ -349,7 +388,7 @@
 
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
     return [];
   }
 
@@ -376,6 +415,15 @@
   }
 
   function getSelectedOptionLabels(q: Question): string[] {
+    if (q.type === 'reorder') {
+      const indexes =
+        getSubmittedAnswerIndexes(q.id).length > 0
+          ? getSubmittedAnswerIndexes(q.id)
+          : selectedReorder?.questionId === q.id
+            ? selectedReorder.answerIndexes
+            : reorderDraft;
+      return indexes.map((index) => q.options[index]).filter(Boolean);
+    }
     const indexes =
       getSubmittedAnswerIndexes(q.id).length > 0
         ? getSubmittedAnswerIndexes(q.id)
@@ -393,10 +441,18 @@
     return hasSubmitted(questionId) || selectedSlider?.questionId === questionId;
   }
 
+  function isReorderSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedReorder?.questionId === questionId;
+  }
+
   function toggleMultiSelectDraft(optionIndex: number) {
     multiSelectDraft = multiSelectDraft.includes(optionIndex)
       ? multiSelectDraft.filter((index) => index !== optionIndex)
       : [...multiSelectDraft, optionIndex].sort((a, b) => a - b);
+  }
+
+  $: if (currentQuestion?.type === 'reorder' && reorderDraft.length === 0) {
+    reorderDraft = currentQuestion.options.map((_, i) => i);
   }
 
   $: playerId = getOrCreatePlayerId();
@@ -691,6 +747,58 @@
                 Submit
               </button>
             </div>
+          {:else if q.type === 'reorder'}
+            <div class="space-y-2">
+              <p class="text-sm text-pub-muted mb-4">Use arrows to reorder items</p>
+              {#each reorderDraft as optIndex, currentPos}
+                <div class="flex items-center gap-2 bg-pub-dark rounded-lg p-2 {questionTimeExpired || isReorderSubmitted(q.id) ? 'opacity-60' : ''}">
+                  <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center leading-none">
+                    {currentPos + 1}
+                  </span>
+                  <span class="flex-1 break-words px-2">{q.options[optIndex]}</span>
+                  {#if !isReorderSubmitted(q.id) && !questionTimeExpired}
+                    <div class="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
+                        disabled={currentPos === 0}
+                        on:click={() => {
+                          if (currentPos > 0) {
+                            const newDraft = [...reorderDraft];
+                            [newDraft[currentPos - 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos - 1]];
+                            reorderDraft = newDraft;
+                          }
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
+                        disabled={currentPos === reorderDraft.length - 1}
+                        on:click={() => {
+                          if (currentPos < reorderDraft.length - 1) {
+                            const newDraft = [...reorderDraft];
+                            [newDraft[currentPos + 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos + 1]];
+                            reorderDraft = newDraft;
+                          }
+                        }}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+              <button
+                type="button"
+                class="mt-4 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                disabled={isReorderSubmitted(q.id) || questionTimeExpired}
+                on:click={() => submitReorder(q.id, reorderDraft)}
+              >
+                Submit Ordering
+              </button>
+            </div>
           {:else if q.type === 'slider'}
             <div class="space-y-4">
               <div class="px-4 py-4 bg-pub-dark rounded-lg {isSliderSubmitted(q.id) ? 'opacity-60' : ''}">
@@ -766,6 +874,10 @@
             <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
               You selected: {getSelectedOptionLabels(currentQuestion).join(', ')}
             </p>
+          {:else if currentQuestion?.type === 'reorder'}
+            <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+              Your order: {getSelectedOptionLabels(currentQuestion).join(', ')}
+            </p>
           {:else if currentQuestion?.type === 'slider' && getSubmittedAnswerNumber(currentQuestion.id) != null}
             <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
               You selected: {getSubmittedAnswerNumber(currentQuestion.id)}
@@ -840,6 +952,41 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'reorder'}
+            <div class="space-y-4">
+              <div>
+                <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Order:</h3>
+                <ul class="space-y-2">
+                  {#each q.answer as optIndex, i}
+                    <li class="px-4 py-2 bg-pub-dark rounded ring-2 ring-green-500">
+                      <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                          {i + 1}
+                        </span>
+                        <span class="flex-1 break-words">{q.options[optIndex]}</span>
+                      </div>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+              {#if isReorderSubmitted(q.id)}
+                <div>
+                  <h3 class="text-sm font-semibold text-pub-muted mb-2">Your Order:</h3>
+                  <ul class="space-y-2 opacity-60">
+                    {#each getSubmittedAnswerIndexes(q.id) as optIndex, i}
+                      <li class="px-4 py-2 bg-pub-dark rounded {q.answer[i] === optIndex ? 'ring-1 ring-green-500/50' : 'ring-1 ring-red-500/50'}">
+                        <div class="flex items-center gap-2">
+                          <span class="w-7 h-7 rounded-full bg-pub-muted text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                            {i + 1}
+                          </span>
+                          <span class="flex-1 break-words">{q.options[optIndex]}</span>
+                        </div>
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
+            </div>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">

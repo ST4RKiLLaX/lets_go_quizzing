@@ -440,6 +440,21 @@ export function initSocket(httpServer: import('http').Server): Server {
           answerIndexes: normalized,
           submittedAt: Date.now(),
         };
+      } else if (question.type === 'reorder') {
+        const normalized =
+          Array.isArray(answerIndexes)
+            ? answerIndexes.filter((value) => Number.isInteger(value) && value >= 0 && value < question.options.length)
+            : [];
+        if (normalized.length !== question.options.length || new Set(normalized).size !== question.options.length) {
+          ack?.({ error: 'Invalid answer sequence' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerIndexes: normalized,
+          submittedAt: Date.now(),
+        };
       } else if (question.type === 'slider') {
         if (
           answerNumber == null ||

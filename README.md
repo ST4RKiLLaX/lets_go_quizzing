@@ -88,6 +88,7 @@ The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` is intended 
 - `slider`
 - `open_ended`
 - `word_cloud`
+- `reorder`
 
 **Example Quiz Structure:**
 ```yaml
@@ -144,6 +145,13 @@ rounds:
         type: "word_cloud"
         text: "Describe your current mood in one word!"
         explanation: "Word clouds aggregate repeated answers into a visual display."
+  - name: "Round 4"
+    questions:
+      - id: "q9"
+        type: "reorder"
+        text: "Order these historical events from earliest to most recent."
+        options: ["French Revolution", "Moon Landing", "Declaration of Independence"]
+        answer: [2, 0, 1]
 ```
 
 ---

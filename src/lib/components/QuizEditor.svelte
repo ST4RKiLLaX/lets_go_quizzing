@@ -2,26 +2,28 @@
   import type {
     Quiz,
     Question,
-    ChoiceQuestion,
-    TrueFalseQuestion,
-    PollQuestion,
-    MultiSelectQuestion,
-    SliderQuestion,
-    InputQuestion,
-    OpenEndedQuestion,
-    WordCloudQuestion,
-  } from '$lib/types/quiz.js';
-  import {
-    createEmptyChoiceQuestion,
-    createEmptyTrueFalseQuestion,
-    createEmptyPollQuestion,
-    createEmptyMultiSelectQuestion,
-    createEmptySliderQuestion,
-    createEmptyInputQuestion,
-    createEmptyOpenEndedQuestion,
-    createEmptyWordCloudQuestion,
-    generateQuestionId,
-  } from '$lib/types/quiz.js';
+  ChoiceQuestion,
+  TrueFalseQuestion,
+  PollQuestion,
+  MultiSelectQuestion,
+  SliderQuestion,
+  InputQuestion,
+  OpenEndedQuestion,
+  WordCloudQuestion,
+  ReorderQuestion,
+} from '$lib/types/quiz.js';
+import {
+  createEmptyChoiceQuestion,
+  createEmptyTrueFalseQuestion,
+  createEmptyPollQuestion,
+  createEmptyMultiSelectQuestion,
+  createEmptySliderQuestion,
+  createEmptyInputQuestion,
+  createEmptyOpenEndedQuestion,
+  createEmptyWordCloudQuestion,
+  createEmptyReorderQuestion,
+  generateQuestionId,
+} from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
   import type { ComponentType } from 'svelte';
@@ -113,7 +115,7 @@
   function setQuestionType(
     ri: number,
     qi: number,
-    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud'
+    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder'
   ) {
     const q = quiz.rounds[ri].questions[qi];
     if (q.type === type) return;
@@ -133,7 +135,9 @@
                   ? { ...base, type: 'input', answer: [''] }
                   : type === 'open_ended'
                     ? { ...base, type: 'open_ended' }
-                    : { ...base, type: 'word_cloud' };
+                    : type === 'word_cloud'
+                      ? { ...base, type: 'word_cloud' }
+                      : { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] };
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
@@ -143,17 +147,21 @@
   }
 
   function addOption(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion;
-    if (q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select') return;
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion | ReorderQuestion;
+    if (q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select' && q.type !== 'reorder') return;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
           ? {
               ...r,
-              questions: r.questions.map((qu, j) =>
-                j === qi ? { ...q, options: [...q.options, ''] } : qu
-              ),
+              questions: r.questions.map((qu, j) => {
+                if (j !== qi) return qu;
+                if (q.type === 'reorder') {
+                  return { ...q, options: [...q.options, ''], answer: [...q.answer, q.options.length] } as ReorderQuestion;
+                }
+                return { ...q, options: [...q.options, ''] } as Question;
+              }),
             }
           : r
       ),
@@ -161,15 +169,21 @@
   }
 
   function removeOption(ri: number, qi: number, oi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion;
-    if ((q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select') || q.options.length <= 2) return;
-    const newOptions = q.options.filter((_, i) => i !== oi);
+    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion | ReorderQuestion;
+    if ((q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select' && q.type !== 'reorder') || q.options.length <= 2) return;
+    const newOptions = q.options.filter((_: string, i: number) => i !== oi);
     const newAnswer = q.type === 'choice' ? Math.min(q.answer, newOptions.length - 1) : undefined;
     const newMultiSelectAnswer =
       q.type === 'multi_select'
         ? q.answer
-            .filter((index) => index !== oi)
-            .map((index) => (index > oi ? index - 1 : index))
+            .filter((index: number) => index !== oi)
+            .map((index: number) => (index > oi ? index - 1 : index))
+        : undefined;
+    const newReorderAnswer = 
+      q.type === 'reorder'
+        ? q.answer
+            .filter((index: number) => index !== oi)
+            .map((index: number) => (index > oi ? index - 1 : index))
         : undefined;
     quiz = {
       ...quiz,
@@ -183,7 +197,9 @@
                     ? { ...q, options: newOptions, answer: newAnswer! }
                     : q.type === 'multi_select'
                       ? { ...q, options: newOptions, answer: newMultiSelectAnswer?.length ? newMultiSelectAnswer : [0] }
-                      : { ...q, options: newOptions }
+                      : q.type === 'reorder'
+                      ? { ...q, options: newOptions, answer: newReorderAnswer?.length ? newReorderAnswer : [0, 1] }
+                        : { ...q, options: newOptions }
                   : qu
               ),
             }
@@ -492,6 +508,7 @@
               <option value="true_false">True / False</option>
               <option value="poll">Poll</option>
               <option value="multi_select">Multi-select</option>
+              <option value="reorder">Reorder</option>
               <option value="slider">Slider</option>
               <option value="input">Fill in the blank</option>
               <option value="open_ended">Long text response</option>
@@ -555,14 +572,16 @@
               </button>
             {/if}
           </div>
-          {#if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select'}
-            <div class="space-y-2" role="group" aria-label="Options (select correct)">
+          {#if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select' || question.type === 'reorder'}
+            <div class="space-y-2" role="group" aria-label="Options">
               <span class="block text-sm text-pub-muted">
                 {question.type === 'poll'
                   ? 'Poll options'
                   : question.type === 'multi_select'
                     ? 'Options (check all correct)'
-                    : 'Options (select correct)'}
+                    : question.type === 'reorder'
+                      ? 'Options (enter in correct order)'
+                      : 'Options (select correct)'}
               </span>
               {#each question.options as opt, oi}
                 <div class="flex gap-2 items-center">
@@ -589,6 +608,8 @@
                       checked={question.answer.includes(oi)}
                       on:change={(e) => toggleMultiSelectAnswer(ri, qi, oi, e.currentTarget.checked)}
                     />
+                  {:else if question.type === 'reorder'}
+                    <span class="text-pub-muted font-mono w-6 text-center">{question.answer.indexOf(oi) + 1}</span>
                   {/if}
                   <input
                     type="text"

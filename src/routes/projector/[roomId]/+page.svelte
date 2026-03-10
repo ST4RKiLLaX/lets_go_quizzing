@@ -66,7 +66,7 @@
 
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select') return q.options;
+    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
     return [];
   }
 
@@ -219,6 +219,20 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'reorder'}
+            <ul class="space-y-2">
+              {#each q.options as opt, i}
+                <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-pub-muted text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                      {formatOptionLabel(i, optionLabelStyle)}
+                    </span>
+                    <span class="flex-1 break-words">{opt}</span>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+            <p class="mt-4 text-xl text-pub-muted text-center">Arrange these in the correct order</p>
           {:else if q.type === 'slider'}
             <p class="text-xl text-pub-muted">Choose a value on the slider</p>
           {:else if q.type === 'input'}
@@ -301,6 +315,22 @@
                 </li>
               {/each}
             </ul>
+          {:else if q.type === 'reorder'}
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold text-pub-muted mb-2 text-center">Correct Order</h3>
+              <ul class="space-y-2">
+                {#each q.answer as optIndex, i}
+                  <li class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-green-500">
+                    <div class="flex items-center gap-2">
+                      <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
+                        {i + 1}
+                      </span>
+                      <span class="flex-1 break-words">{q.options[optIndex]}</span>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            </div>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(q.id)}
             <ul class="space-y-2">

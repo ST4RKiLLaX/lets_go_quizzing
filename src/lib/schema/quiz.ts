@@ -110,6 +110,16 @@ const WordCloudQuestionSchema = z.object({
   image: imageSchema,
 });
 
+const ReorderQuestionSchema = z.object({
+  id: z.string(),
+  type: z.literal('reorder'),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  options: z.array(z.string()).min(2),
+  answer: z.array(z.number().int().min(0)).min(2),
+});
+
 const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
   TrueFalseQuestionSchema,
@@ -119,6 +129,7 @@ const QuestionSchema = z.discriminatedUnion('type', [
   InputQuestionSchema,
   OpenEndedQuestionSchema,
   WordCloudQuestionSchema,
+  ReorderQuestionSchema,
 ]);
 
 const RoundSchema = z
@@ -133,6 +144,10 @@ const RoundSchema = z
         (q.type !== 'multi_select' ||
           (new Set(q.answer).size === q.answer.length &&
             q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
+                  (q.type !== 'reorder' ||
+                    (q.answer.length === q.options.length &&
+                      new Set(q.answer).size === q.answer.length &&
+                      q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
         (q.type !== 'slider' ||
           (q.max > q.min &&
             q.answer >= q.min &&
@@ -140,9 +155,9 @@ const RoundSchema = z
             Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9))
       ),
     {
-      message:
-        'choice answers must be valid indices, multi_select answers must be unique valid indices, and slider answers must fit the min/max/step range',
-    }
+        message:
+          'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, and slider answers must fit the min/max/step range',
+      }
   );
 
 const QuizMetaSchema = z.object({
@@ -169,6 +184,7 @@ export type SliderQuestion = z.infer<typeof SliderQuestionSchema>;
 export type InputQuestion = z.infer<typeof InputQuestionSchema>;
 export type OpenEndedQuestion = z.infer<typeof OpenEndedQuestionSchema>;
 export type WordCloudQuestion = z.infer<typeof WordCloudQuestionSchema>;
+export type ReorderQuestion = z.infer<typeof ReorderQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;

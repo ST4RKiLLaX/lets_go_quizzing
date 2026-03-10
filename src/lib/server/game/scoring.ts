@@ -9,6 +9,7 @@ import type {
   InputQuestion,
   OpenEndedQuestion,
   WordCloudQuestion,
+  ReorderQuestion,
 } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
@@ -71,6 +72,14 @@ function isSliderCorrect(
   return Math.abs(submission.answerNumber - question.answer) < 1e-9;
 }
 
+function isReorderCorrect(
+  question: ReorderQuestion,
+  submission: AnswerSubmission
+): boolean {
+  if (!submission.answerIndexes?.length || submission.answerIndexes.length !== question.answer.length) return false;
+  return submission.answerIndexes.every((value, index) => value === question.answer[index]);
+}
+
 function isCorrect(
   question:
     | ChoiceQuestion
@@ -80,7 +89,8 @@ function isCorrect(
     | SliderQuestion
     | InputQuestion
     | OpenEndedQuestion
-    | WordCloudQuestion,
+    | WordCloudQuestion
+    | ReorderQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
@@ -95,6 +105,9 @@ function isCorrect(
   }
   if (question.type === 'multi_select') {
     return isMultiSelectCorrect(question, submission);
+  }
+  if (question.type === 'reorder') {
+    return isReorderCorrect(question, submission);
   }
   if (question.type === 'slider') {
     return isSliderCorrect(question, submission);
