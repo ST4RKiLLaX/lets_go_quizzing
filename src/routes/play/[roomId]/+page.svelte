@@ -7,6 +7,7 @@
   import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
@@ -513,7 +514,7 @@
   }
 
   $: if (currentQuestion?.type === 'reorder' && reorderDraft.length === 0) {
-    reorderDraft = currentQuestion.options.map((_, i) => i);
+    reorderDraft = getShuffledReorderIndices(currentQuestion.id, currentQuestion.options.length);
   }
 
   $: playerId = getOrCreatePlayerId();

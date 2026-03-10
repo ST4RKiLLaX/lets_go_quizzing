@@ -6,6 +6,7 @@
   import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
@@ -228,13 +229,13 @@
             </ul>
           {:else if q.type === 'reorder'}
             <ul class="space-y-2">
-              {#each q.options as opt, i}
+              {#each getShuffledReorderIndices(q.id, q.options.length) as optIndex, i}
                 <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
                   <div class="flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-pub-muted text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
-                    <span class="flex-1 break-words">{opt}</span>
+                    <span class="flex-1 break-words">{q.options[optIndex]}</span>
                   </div>
                 </li>
               {/each}

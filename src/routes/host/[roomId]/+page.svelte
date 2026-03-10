@@ -6,6 +6,7 @@
   import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
@@ -284,7 +285,7 @@
                   <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Order:</h3>
                 {/if}
                 <ul class="space-y-2 {state?.type !== 'RevealAnswer' ? 'opacity-60' : ''}">
-                  {#each state?.type === 'RevealAnswer' ? q.answer : q.options.map((_, i) => i) as optIndex, i}
+                  {#each (state?.type === 'RevealAnswer' ? q.answer : getShuffledReorderIndices(q.id, q.options.length)) as optIndex, i}
                     <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
                       <div class="flex items-center gap-2">
                         <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
