@@ -7,6 +7,7 @@
   type Tab = 'account' | 'content_filters' | 'deployment';
   let activeTab: Tab = 'account';
   let username = '';
+  let originalUsername = '';
   let origin = '';
   let roomIdLen = 6;
   let profanityFilterMode: 'off' | 'names' | 'public_text' | 'strict' = 'off';
@@ -32,6 +33,7 @@
       }
       const data = await res.json();
       username = data.username ?? '';
+      originalUsername = data.username ?? '';
       origin = data.origin ?? '';
       roomIdLen = data.roomIdLen ?? 6;
       profanityFilterMode = data.profanityFilterMode ?? 'off';
@@ -50,16 +52,15 @@
   async function save() {
     error = '';
     success = '';
-    if (!currentPassword.trim()) {
-      error = 'Current password is required to save changes';
+    const changingCredentials =
+      username.trim() !== originalUsername || newPassword.length >= 8;
+    if (changingCredentials && !currentPassword.trim()) {
+      error = 'Current password is required to change username or password';
       return;
     }
     saving = true;
     try {
-      const changingPassword = newPassword.length >= 8;
       const body: Record<string, unknown> = {
-        currentPassword: currentPassword,
-        username: username.trim(),
         origin: origin.trim() || '',
         roomIdLen: Number(roomIdLen) || 6,
         profanityFilterMode,
@@ -69,9 +70,15 @@
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
       };
-      if (changingPassword) {
+      if (username.trim() !== originalUsername) {
+        body.username = username.trim();
+      }
+      if (newPassword.length >= 8) {
         body.newPassword = newPassword;
         body.newPasswordConfirm = newPasswordConfirm;
+      }
+      if (changingCredentials) {
+        body.currentPassword = currentPassword;
       }
 
       const res = await fetch('/api/settings', {
@@ -86,11 +93,14 @@
         return;
       }
       success = 'Settings saved.';
-      if (changingPassword) {
+      if (changingCredentials) {
         success += ' Other sessions have been invalidated.';
         currentPassword = '';
         newPassword = '';
         newPasswordConfirm = '';
+        if (username.trim() !== originalUsername) {
+          originalUsername = username.trim();
+        }
       }
       if (body.origin !== undefined) {
         success += ' Changes to ORIGIN require a server restart to take effect.';
@@ -297,6 +307,7 @@
       </div>
       {/if}
 
+      <p class="text-xs text-pub-muted">Session auth is used for saving. Password required only when changing username or password.</p>
       {#if error}
         <p class="text-sm text-red-400">{error}</p>
       {/if}
