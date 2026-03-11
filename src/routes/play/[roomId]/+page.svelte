@@ -67,6 +67,10 @@
   let joinPassword = '';
   let joiningRoom = false;
   let needsRoomPassword = false;
+  let needsRequestForm = false;
+  let waitingForApproval = false;
+  let deniedByHost = false;
+  let requestFormUnavailableEmojis = new Set<string>();
   let showExitModal = false;
   let showSettingsModal = false;
   let leavingQuiz = false;
@@ -108,6 +112,19 @@
       }
       window.location.href = '/';
     });
+    socket.on('player:admitted', (payload: { state?: SerializedState }) => {
+      if (payload?.state) {
+        state = payload.state;
+        registered = true;
+        waitingForApproval = false;
+      }
+    });
+    socket.on('player:denied', (payload: { usedEmojis?: string[]; message?: string } = {}) => {
+      deniedByHost = true;
+      waitingForApproval = false;
+      requestFormUnavailableEmojis = new Set(payload?.usedEmojis ?? []);
+      if (payload?.message) joinError = payload.message;
+    });
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
@@ -143,17 +160,42 @@
     );
   }
 
-  function joinRoom(playerId: string, password: string) {
+  function joinRoom(playerId: string, password: string, requestName?: string, requestEmoji?: string) {
     if (!socket) return;
     joiningRoom = true;
+    needsRequestForm = false;
+    deniedByHost = false;
     socket.emit(
       'player:join',
-      { roomId, playerId, password: password.trim() || undefined },
-      (ack: { ok?: boolean; state?: SerializedState; error?: string; code?: string; message?: string }) => {
+      {
+        roomId,
+        playerId,
+        password: password.trim() || undefined,
+        name: requestName?.trim() || undefined,
+        emoji: requestEmoji?.trim() || undefined,
+      },
+      (ack: { ok?: boolean; state?: SerializedState; error?: string; code?: string; message?: string; status?: string }) => {
         joiningRoom = false;
         if (ack?.ok === false && ack?.code === 'BANNED') {
           wasKickedFromRoom = 'banned';
           joinError = ack.message ?? 'You have been banned from this room';
+          return;
+        }
+        if (ack?.ok === false && ack?.code === 'LATE_JOIN_DISABLED') {
+          joinError = ack.message ?? 'This game has started. Late join is disabled.';
+          return;
+        }
+        if (ack?.ok === false && ack?.code === 'REQUEST_REQUIRED') {
+          needsRequestForm = true;
+          needsRoomPassword = false;
+          joinError = '';
+          requestFormUnavailableEmojis = new Set((ack as { usedEmojis?: string[] }).usedEmojis ?? []);
+          return;
+        }
+        if (ack?.ok === true && ack?.status === 'pending') {
+          waitingForApproval = true;
+          needsRequestForm = false;
+          joinError = '';
           return;
         }
         if (ack?.error) {
@@ -171,10 +213,28 @@
             joinError = ack.error;
             return;
           }
+          if (ack.error === 'Emoji unavailable') {
+            joinError = 'That emoji was just taken. Please pick another.';
+            needsRequestForm = true;
+            deniedByHost = false;
+            requestFormUnavailableEmojis = new Set((ack as { usedEmojis?: string[] }).usedEmojis ?? []);
+            return;
+          }
+          if (ack.error === 'This name contains inappropriate content') {
+            joinError = ack.error;
+            needsRequestForm = true;
+            deniedByHost = false;
+            return;
+          }
+          if (ack?.code === 'ALREADY_WAITING') {
+            joinError = ack.message ?? 'You are already waiting for approval';
+            return;
+          }
           window.location.href = '/';
           return;
         }
         needsRoomPassword = false;
+        needsRequestForm = false;
         joinError = '';
         if (ack?.state) state = ack.state;
       }
@@ -688,7 +748,6 @@
 <div class="min-h-screen flex flex-col">
   {#if state}
     <PlayerNav
-      inLobby={inLobby}
       settingsDisabled={settingsDisabled}
       onExitClick={() => (showExitModal = true)}
       onSettingsClick={openSettingsModal}
@@ -745,6 +804,109 @@
           >
             {joiningRoom ? 'Joining...' : 'Try again'}
           </button>
+        {:else if needsRequestForm}
+          <form
+            class="space-y-3"
+            on:submit|preventDefault={() => joinRoom(getOrCreatePlayerId(), joinPassword, name, emoji)}
+          >
+            <p class="text-sm text-pub-muted mb-2">Enter your name and emoji to request access</p>
+            <div>
+              <label for="request-name" class="block text-sm text-pub-muted mb-1">Your name</label>
+              <input
+                id="request-name"
+                type="text"
+                bind:value={name}
+                placeholder="Enter your name"
+                maxlength={50}
+                class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
+              <div class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-32 overflow-y-auto p-1" style="scrollbar-width: thin;">
+                {#each EMOJI_OPTIONS as e}
+                  {@const isUnavailable = requestFormUnavailableEmojis.has(e)}
+                  <button
+                    type="button"
+                    class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
+                    disabled={isUnavailable}
+                    on:click={() => { if (!isUnavailable) emoji = e; }}
+                  >
+                    {e}
+                    {#if isUnavailable}
+                      <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">✕</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            </div>
+            {#if joinError}
+              <p class="text-sm text-red-400">{joinError}</p>
+            {/if}
+            <button
+              type="submit"
+              class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              disabled={joiningRoom || !name.trim()}
+            >
+              {joiningRoom ? 'Requesting...' : 'Request to join'}
+            </button>
+          </form>
+        {:else if waitingForApproval}
+          <p class="text-pub-muted mb-4">Waiting for host approval...</p>
+          <p class="text-sm text-pub-muted">The host will approve or deny your request shortly.</p>
+        {:else if deniedByHost}
+          <p class="text-sm text-red-400 mb-2">{joinError || 'Host denied your request. Change your name or emoji to try again.'}</p>
+          <form
+            class="space-y-3"
+            on:submit|preventDefault={() => {
+              deniedByHost = false;
+              joinError = '';
+              joinRoom(getOrCreatePlayerId(), joinPassword, name, emoji);
+            }}
+          >
+            <div>
+              <label for="denied-request-name" class="block text-sm text-pub-muted mb-1">Your name</label>
+              <input
+                id="denied-request-name"
+                type="text"
+                bind:value={name}
+                placeholder="Enter your name"
+                maxlength={50}
+                class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
+              <div class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-32 overflow-y-auto p-1" style="scrollbar-width: thin;">
+                {#each EMOJI_OPTIONS as e}
+                  {@const isUnavailable = requestFormUnavailableEmojis.has(e)}
+                  <button
+                    type="button"
+                    class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
+                    disabled={isUnavailable}
+                    on:click={() => { if (!isUnavailable) emoji = e; }}
+                  >
+                    {e}
+                    {#if isUnavailable}
+                      <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">✕</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button
+                type="submit"
+                class="px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                disabled={joiningRoom || !name.trim()}
+              >
+                {joiningRoom ? 'Requesting...' : 'Try again'}
+              </button>
+              <a href="/" class="px-6 py-3 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90">
+                Leave
+              </a>
+            </div>
+          </form>
         {:else if needsRoomPassword}
           <form
             class="space-y-3"
@@ -774,6 +936,11 @@
         {:else if joinError === 'That player is already in the room'}
           <p class="text-sm text-red-400 mb-2">{joinError}</p>
           <p class="text-pub-muted text-sm">Open this room in a different browser or incognito window to join as another player.</p>
+        {:else if joinError}
+          <p class="text-sm text-red-400 mb-2">{joinError}</p>
+          <a href="/" class="inline-block px-6 py-3 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90">
+            Back to home
+          </a>
         {:else}
           <p class="text-pub-muted">Joining room...</p>
         {/if}

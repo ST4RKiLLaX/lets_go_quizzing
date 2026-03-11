@@ -8,6 +8,14 @@ export interface SerializedPlayer {
   isActive?: boolean;
 }
 
+export interface SerializedPendingPlayer {
+  playerId: string;
+  socketId: string;
+  name: string;
+  emoji: string;
+  requestedAt: number;
+}
+
 export interface SerializedSubmission {
   playerId: string;
   questionId: string;
@@ -33,6 +41,8 @@ export interface SerializedState {
   quizFilename?: string;
   serverNow?: number;
   players: SerializedPlayer[];
+  pendingPlayers?: SerializedPendingPlayer[];
+  waitingRoomEnabled?: boolean;
   currentRoundIndex: number;
   currentQuestionIndex: number;
   submissions: SerializedSubmission[];

@@ -1,5 +1,4 @@
 <script lang="ts">
-  export let inLobby = false;
   export let settingsDisabled = false;
   export let onExitClick: () => void = () => {};
   export let onSettingsClick: () => void = () => {};

@@ -18,6 +18,10 @@
   let hostUsername = '';
   let hostPassword = '';
   let playerJoinPassword = '';
+  let waitingRoomEnabled = false;
+  let allowLateJoin = false;
+  let autoAdmitBeforeGame = true;
+  let manualAdmitAfterGame = true;
   let passwordError = '';
   let creating = false;
   let hostAuthenticated = false;
@@ -212,7 +216,7 @@
       return;
     }
 
-    const payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string } = { quizFilename };
+    const payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string; waitingRoomEnabled?: boolean; allowLateJoin?: boolean; autoAdmitBeforeGame?: boolean; manualAdmitAfterGame?: boolean } = { quizFilename };
     if (hostPasswordRequired) {
       payload.username = hostUsername.trim() || undefined;
       payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
@@ -220,6 +224,14 @@
     const trimmedPlayerJoinPassword = playerJoinPassword.trim();
     if (trimmedPlayerJoinPassword) {
       payload.playerJoinPassword = trimmedPlayerJoinPassword;
+    }
+    if (waitingRoomEnabled) {
+      payload.waitingRoomEnabled = true;
+      payload.autoAdmitBeforeGame = autoAdmitBeforeGame;
+      payload.manualAdmitAfterGame = manualAdmitAfterGame;
+    }
+    if (allowLateJoin) {
+      payload.allowLateJoin = true;
     }
     const socket = createSocket();
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -429,6 +441,56 @@
           class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
         />
       </div>
+      <div class="flex items-center gap-2">
+        <input
+          id="waiting-room-enabled"
+          type="checkbox"
+          bind:checked={waitingRoomEnabled}
+          class="rounded border-pub-muted bg-pub-dark"
+        />
+        <label for="waiting-room-enabled" class="text-sm text-pub-muted">
+          Waiting room (host approves players before they join)
+        </label>
+      </div>
+      {#if waitingRoomEnabled}
+        <div class="space-y-2 pl-4 border-l-2 border-pub-muted">
+          <div class="flex items-center gap-2">
+            <input
+              id="auto-admit-before-game"
+              type="checkbox"
+              bind:checked={autoAdmitBeforeGame}
+              class="rounded border-pub-muted bg-pub-dark"
+            />
+            <label for="auto-admit-before-game" class="text-sm text-pub-muted">
+              Auto-admit before game starts
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              id="allow-late-join"
+              type="checkbox"
+              bind:checked={allowLateJoin}
+              class="rounded border-pub-muted bg-pub-dark"
+            />
+            <label for="allow-late-join" class="text-sm text-pub-muted">
+              Allow late join (after game starts)
+            </label>
+          </div>
+          {#if allowLateJoin}
+            <div class="flex items-center gap-2">
+              <input
+                id="manual-admit-after-game"
+                type="checkbox"
+                bind:checked={manualAdmitAfterGame}
+                class="rounded border-pub-muted bg-pub-dark"
+              />
+              <label for="manual-admit-after-game" class="text-sm text-pub-muted">
+                Manual admit after game starts
+              </label>
+            </div>
+          {/if}
+        </div>
+      {/if}
       <button
         type="submit"
         class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"

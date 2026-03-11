@@ -13,7 +13,11 @@ const rooms = new Map<string, GameState>();
 export function createRoom(
   quizFilename: string,
   hostSocketId: string,
-  playerJoinPassword?: string
+  playerJoinPassword?: string,
+  waitingRoomEnabled?: boolean,
+  allowLateJoin?: boolean,
+  autoAdmitBeforeGame?: boolean,
+  manualAdmitAfterGame?: boolean
 ): string {
   const roomId = getNanoid()();
   const quiz = loadQuiz(quizFilename);
@@ -26,6 +30,11 @@ export function createRoom(
     playerJoinPassword: trimmedPlayerJoinPassword || undefined,
     hostSocketId,
     players: new Map(),
+    pendingPlayers: new Map(),
+    waitingRoomEnabled: !!waitingRoomEnabled,
+    allowLateJoin: !!allowLateJoin,
+    autoAdmitBeforeGame: autoAdmitBeforeGame ?? (!!waitingRoomEnabled),
+    manualAdmitAfterGame: manualAdmitAfterGame ?? true,
     currentRoundIndex: 0,
     currentQuestionIndex: 0,
     submissions: [],
@@ -50,4 +59,20 @@ export function generateRoomId(): string {
 
 export function roomExists(roomId: string): boolean {
   return rooms.has(roomId);
+}
+
+export function removePendingPlayerBySocketId(socketId: string): string | undefined {
+  for (const [roomId, state] of rooms) {
+    const pending = state.pendingPlayers ?? new Map();
+    if (pending.size === 0) continue;
+    for (const [playerId, p] of pending) {
+      if (p.socketId === socketId) {
+        const next = new Map(pending);
+        next.delete(playerId);
+        rooms.set(roomId, { ...state, pendingPlayers: next });
+        return roomId;
+      }
+    }
+  }
+  return undefined;
 }

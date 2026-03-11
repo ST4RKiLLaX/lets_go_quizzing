@@ -5,12 +5,14 @@ import {
   getRoom,
   setRoom,
   roomExists,
+  removePendingPlayerBySocketId,
 } from './game/rooms.js';
 import {
   transition,
   createInitialState,
   type GameState,
   type GameEvent,
+  type PendingPlayer,
 } from './game/state-machine.js';
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
@@ -71,8 +73,8 @@ export function initSocket(httpServer: import('http').Server): Server {
   });
 
   io.on('connection', (socket) => {
-    socket.on('host:create', (payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string }, ack) => {
-      const { quizFilename, username, password, playerJoinPassword } = payload ?? {};
+    socket.on('host:create', (payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string; waitingRoomEnabled?: boolean; allowLateJoin?: boolean; autoAdmitBeforeGame?: boolean; manualAdmitAfterGame?: boolean }, ack) => {
+      const { quizFilename, username, password, playerJoinPassword, waitingRoomEnabled, allowLateJoin, autoAdmitBeforeGame, manualAdmitAfterGame } = payload ?? {};
       if (!quizFilename) {
         ack?.({ error: 'quizFilename required' });
         return;
@@ -94,7 +96,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       try {
-        const roomId = createRoom(quizFilename, socket.id, playerJoinPassword);
+        const roomId = createRoom(quizFilename, socket.id, playerJoinPassword, waitingRoomEnabled, allowLateJoin, autoAdmitBeforeGame, manualAdmitAfterGame);
         socket.join(roomId);
         socket.data.role = 'host';
         socket.data.roomId = roomId;
@@ -106,8 +108,8 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
     });
 
-    socket.on('player:join', (payload: { roomId: string; playerId?: string; password?: string }, ack) => {
-      const { roomId, playerId, password } = payload ?? {};
+    socket.on('player:join', (payload: { roomId: string; playerId?: string; password?: string; name?: string; emoji?: string }, ack) => {
+      const { roomId, playerId, password, name, emoji } = payload ?? {};
       if (!roomId) {
         ack?.({ error: 'roomId required' });
         return;
@@ -131,23 +133,100 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'That player is already in the room' });
         return;
       }
+      const isReturning = !!existingPlayer;
       const roomJoinPassword = state.playerJoinPassword;
-      if (roomJoinPassword) {
-        // Allow seamless refresh/rejoin for already admitted players.
-        const returningKnownPlayer = state.players.has(resolvedPlayerId);
-        if (!returningKnownPlayer) {
-          if (!password?.trim()) {
-            ack?.({ error: 'Room password required' });
-            return;
-          }
-          if (!verifyPasswordConstantTime(password, roomJoinPassword)) {
-            ack?.({ error: 'Invalid room password' });
-            return;
-          }
+      if (roomJoinPassword && !isReturning) {
+        if (!password?.trim()) {
+          ack?.({ error: 'Room password required' });
+          return;
+        }
+        if (!verifyPasswordConstantTime(password, roomJoinPassword)) {
+          ack?.({ error: 'Invalid room password' });
+          return;
         }
       }
+      const gameStarted = state.type !== 'Lobby';
+      if (state.waitingRoomEnabled && !isReturning) {
+        if (gameStarted && !state.allowLateJoin) {
+          ack?.({ ok: false, code: 'LATE_JOIN_DISABLED', message: 'This game has started. Late join is disabled.' });
+          return;
+        }
+        const hasName = typeof name === 'string' && name.trim().length > 0;
+        const hasEmoji = typeof emoji === 'string' && emoji.trim().length > 0;
+        if (!hasName || !hasEmoji) {
+          const usedEmojis = [
+            ...Array.from(state.players.values()).filter((p) => !!p.socketId).map((p) => p.emoji),
+            ...Array.from(state.pendingPlayers?.values() ?? []).map((p) => p.emoji),
+          ];
+          ack?.({ ok: false, code: 'REQUEST_REQUIRED', message: 'Enter your name and emoji to request access', usedEmojis });
+          return;
+        }
+        const cappedName = (name || 'Anonymous').slice(0, 50);
+        const profanityMode = getProfanityFilterMode();
+        if (profanityMode !== 'off' && containsProfanityAggressive(cappedName)) {
+          ack?.({ error: 'This name contains inappropriate content' });
+          return;
+        }
+        if (getCustomKeywordFilterEnabled() && containsCustomBlockedTerm(cappedName)) {
+          ack?.({ error: 'This name contains inappropriate content' });
+          return;
+        }
+        const requestedEmoji = (emoji || '👤').slice(0, 4);
+        const emojiTakenByPlayer = Array.from(state.players.entries()).some(
+          ([, p]) => !!p.socketId && p.emoji === requestedEmoji
+        );
+        const emojiTakenByPending = Array.from(state.pendingPlayers?.values() ?? []).some(
+          (p) => p.emoji === requestedEmoji
+        );
+        if (emojiTakenByPlayer || emojiTakenByPending) {
+          const usedEmojis = [
+            ...Array.from(state.players.values()).filter((p) => !!p.socketId).map((p) => p.emoji),
+            ...Array.from(state.pendingPlayers?.values() ?? []).map((p) => p.emoji),
+          ];
+          ack?.({ error: 'Emoji unavailable', usedEmojis });
+          return;
+        }
+        if (state.pendingPlayers.has(resolvedPlayerId)) {
+          ack?.({ ok: false, code: 'ALREADY_WAITING', message: 'You are already waiting for approval' });
+          return;
+        }
+        const inLobby = state.type === 'Lobby';
+        const autoAdmit = state.autoAdmitBeforeGame ?? true;
+        if (inLobby && autoAdmit) {
+          const players = new Map(state.players);
+          players.set(resolvedPlayerId, {
+            id: resolvedPlayerId,
+            name: cappedName,
+            emoji: requestedEmoji,
+            score: 0,
+            socketId: socket.id,
+          });
+          const nextState = { ...state, players };
+          setRoom(roomId, nextState);
+          socket.join(roomId);
+          socket.data.roomId = roomId;
+          socket.data.role = 'player';
+          socket.data.playerId = resolvedPlayerId;
+          ack?.({ roomId, playerId: resolvedPlayerId, state: serializePlayerState(nextState) });
+          void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
+          return;
+        }
+        const pending: PendingPlayer = {
+          playerId: resolvedPlayerId,
+          socketId: socket.id,
+          name: cappedName,
+          emoji: requestedEmoji,
+          requestedAt: Date.now(),
+        };
+        const pendingPlayers = new Map(state.pendingPlayers);
+        pendingPlayers.set(resolvedPlayerId, pending);
+        const nextState = { ...state, pendingPlayers };
+        setRoom(roomId, nextState);
+        ack?.({ ok: true, status: 'pending' });
+        void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
+        return;
+      }
       const players = new Map(state.players);
-      const isReturning = !!existingPlayer;
       players.set(resolvedPlayerId, {
         id: resolvedPlayerId,
         name: isReturning ? existingPlayer!.name : '',
@@ -492,6 +571,157 @@ export function initSocket(httpServer: import('http').Server): Server {
       ack?.({ ok: true });
     });
 
+    socket.on('host:approve', (payload: { playerId: string }, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ ok: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ ok: false, code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+        return;
+      }
+      const { playerId } = payload ?? {};
+      if (!playerId) {
+        ack?.({ ok: false, code: 'PLAYER_ID_REQUIRED', message: 'playerId required' });
+        return;
+      }
+      const pending = state.pendingPlayers?.get(playerId);
+      if (!pending) {
+        ack?.({ ok: false, code: 'PLAYER_NOT_FOUND', message: 'Player not found in pending queue' });
+        return;
+      }
+      const emojiTakenByPlayer = Array.from(state.players.entries()).some(
+        ([id, p]) => id !== playerId && !!p.socketId && p.emoji === pending.emoji
+      );
+      const emojiTakenByOtherPending = Array.from(state.pendingPlayers?.entries() ?? []).some(
+        ([id, p]) => id !== playerId && p.emoji === pending.emoji
+      );
+      if (emojiTakenByPlayer || emojiTakenByOtherPending) {
+        ack?.({ ok: false, code: 'EMOJI_UNAVAILABLE', message: 'That emoji was taken by another player. Ask them to pick a different one and try again.' });
+        return;
+      }
+      const pendingPlayers = new Map(state.pendingPlayers);
+      pendingPlayers.delete(playerId);
+      const players = new Map(state.players);
+      players.set(playerId, {
+        id: playerId,
+        name: pending.name,
+        emoji: pending.emoji,
+        score: 0,
+        socketId: pending.socketId,
+      });
+      const nextState = { ...state, players, pendingPlayers };
+      setRoom(roomId, nextState);
+      const targetSocket = io.sockets.sockets.get(pending.socketId);
+      if (targetSocket) {
+        targetSocket.join(roomId);
+        targetSocket.data.roomId = roomId;
+        targetSocket.data.role = 'player';
+        targetSocket.data.playerId = playerId;
+        targetSocket.emit('player:admitted', { state: serializePlayerState(nextState) });
+      }
+      void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+      ack?.({ ok: true });
+    });
+
+    socket.on('host:deny', (payload: { playerId: string }, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ ok: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ ok: false, code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+        return;
+      }
+      const { playerId } = payload ?? {};
+      if (!playerId) {
+        ack?.({ ok: false, code: 'PLAYER_ID_REQUIRED', message: 'playerId required' });
+        return;
+      }
+      const pending = state.pendingPlayers?.get(playerId);
+      if (!pending) {
+        ack?.({ ok: false, code: 'PLAYER_NOT_FOUND', message: 'Player not found in pending queue' });
+        return;
+      }
+      const pendingPlayers = new Map(state.pendingPlayers);
+      pendingPlayers.delete(playerId);
+      const nextState = { ...state, pendingPlayers };
+      setRoom(roomId, nextState);
+      const usedEmojis = [
+        ...Array.from(state.players.values()).filter((p) => !!p.socketId).map((p) => p.emoji),
+        ...Array.from(state.pendingPlayers?.values() ?? []).map((p) => p.emoji),
+      ];
+      const targetSocket = io.sockets.sockets.get(pending.socketId);
+      if (targetSocket) {
+        targetSocket.emit('player:denied', { usedEmojis });
+      }
+      void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+      ack?.({ ok: true });
+    });
+
+    socket.on('host:approve_all', (_, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ ok: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ ok: false, code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+        return;
+      }
+      const pending = state.pendingPlayers;
+      if (!pending || pending.size === 0) {
+        ack?.({ ok: true });
+        return;
+      }
+      const players = new Map(state.players);
+      const pendingPlayers = new Map(pending);
+      const usedEmojis = new Set(Array.from(players.values()).filter((p) => !!p.socketId).map((p) => p.emoji));
+      const toAdmit: Array<{ playerId: string; socketId: string; name: string; emoji: string }> = [];
+      for (const [playerId, p] of pending) {
+        pendingPlayers.delete(playerId);
+        if (usedEmojis.has(p.emoji)) {
+          const targetSocket = io.sockets.sockets.get(p.socketId);
+          if (targetSocket) {
+            targetSocket.emit('player:denied', {
+              message: 'Your emoji was taken by another player. Please try again with a different emoji.',
+              usedEmojis: Array.from(usedEmojis),
+            });
+          }
+          continue;
+        }
+        usedEmojis.add(p.emoji);
+        players.set(playerId, {
+          id: playerId,
+          name: p.name,
+          emoji: p.emoji,
+          score: 0,
+          socketId: p.socketId,
+        });
+        toAdmit.push({ playerId, socketId: p.socketId, name: p.name, emoji: p.emoji });
+      }
+      const nextState = { ...state, players, pendingPlayers };
+      setRoom(roomId, nextState);
+      const serialized = serializePlayerState(nextState);
+      for (const { playerId, socketId } of toAdmit) {
+        const targetSocket = io.sockets.sockets.get(socketId);
+        if (targetSocket) {
+          targetSocket.join(roomId);
+          targetSocket.data.roomId = roomId;
+          targetSocket.data.role = 'player';
+          targetSocket.data.playerId = playerId;
+          targetSocket.emit('player:admitted', { state: serialized });
+        }
+      }
+      void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+      ack?.({ ok: true });
+    });
+
     socket.on(
       'player:answer',
       (
@@ -687,6 +917,14 @@ export function initSocket(httpServer: import('http').Server): Server {
             void broadcastStateToRoom(io, roomId, getRoom(roomId)!, ['room:update']);
           }
         }
+      } else {
+        const pendingRoomId = removePendingPlayerBySocketId(socket.id);
+        if (pendingRoomId) {
+          const state = getRoom(pendingRoomId);
+          if (state) {
+            void broadcastStateToRoom(io, pendingRoomId, state, ['room:update']);
+          }
+        }
       }
     });
   });
@@ -744,7 +982,24 @@ function serializeState(state: GameState, submissions: typeof state.submissions)
 }
 
 function serializeHostState(state: GameState) {
-  return serializeState(state, serializeSubmissions(state.submissions, true));
+  const base = serializeState(state, serializeSubmissions(state.submissions, true));
+  const pendingPlayers = state.pendingPlayers
+    ? Array.from(state.pendingPlayers.values()).map((p) => ({
+        playerId: p.playerId,
+        socketId: p.socketId,
+        name: p.name,
+        emoji: p.emoji,
+        requestedAt: p.requestedAt,
+      }))
+    : [];
+  return {
+    ...base,
+    pendingPlayers,
+    waitingRoomEnabled: state.waitingRoomEnabled,
+    allowLateJoin: state.allowLateJoin,
+    autoAdmitBeforeGame: state.autoAdmitBeforeGame,
+    manualAdmitAfterGame: state.manualAdmitAfterGame,
+  };
 }
 
 function serializePlayerState(state: GameState) {

@@ -15,6 +15,14 @@ export interface Player {
   socketId?: string;
 }
 
+export interface PendingPlayer {
+  playerId: string;
+  socketId: string;
+  name: string;
+  emoji: string;
+  requestedAt: number;
+}
+
 export interface AnswerSubmission {
   playerId: string;
   questionId: string;
@@ -36,6 +44,11 @@ export interface GameState {
   playerJoinPassword?: string;
   hostSocketId: string;
   players: Map<string, Player>;
+  pendingPlayers: Map<string, PendingPlayer>;
+  waitingRoomEnabled?: boolean;
+  allowLateJoin?: boolean;
+  autoAdmitBeforeGame?: boolean;
+  manualAdmitAfterGame?: boolean;
   currentRoundIndex: number;
   currentQuestionIndex: number;
   submissions: AnswerSubmission[];
@@ -182,6 +195,11 @@ export function createInitialState(
     quizFilename,
     hostSocketId,
     players: new Map(),
+    pendingPlayers: new Map(),
+    waitingRoomEnabled: false,
+    allowLateJoin: false,
+    autoAdmitBeforeGame: true,
+    manualAdmitAfterGame: true,
     currentRoundIndex: 0,
     currentQuestionIndex: 0,
     submissions: [],

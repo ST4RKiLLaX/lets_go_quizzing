@@ -141,6 +141,30 @@
     });
   }
 
+  function approvePending(playerId: string) {
+    socket?.emit('host:approve', { playerId }, (ack: { ok?: boolean; code?: string; message?: string }) => {
+      if (ack?.ok === false) {
+        kickError = ack.message ?? ack.code ?? 'Approve failed';
+      }
+    });
+  }
+
+  function denyPending(playerId: string) {
+    socket?.emit('host:deny', { playerId }, (ack: { ok?: boolean; code?: string; message?: string }) => {
+      if (ack?.ok === false) {
+        kickError = ack.message ?? ack.code ?? 'Deny failed';
+      }
+    });
+  }
+
+  function approveAllPending() {
+    socket?.emit('host:approve_all', {}, (ack: { ok?: boolean; code?: string; message?: string }) => {
+      if (ack?.ok === false) {
+        kickError = ack.message ?? ack.code ?? 'Approve all failed';
+      }
+    });
+  }
+
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
     if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
@@ -559,6 +583,47 @@
     {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
       <div class="w-full lg:w-64 flex-shrink-0">
         <div class="bg-pub-darker rounded-lg p-4 lg:sticky lg:top-6">
+          {#if (state.pendingPlayers ?? []).length > 0}
+            <div class="mb-4 pb-4 border-b border-pub-muted">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="text-sm font-semibold text-pub-muted">Waiting for approval</h3>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 text-xs bg-green-600/80 hover:bg-green-600 rounded"
+                  on:click={approveAllPending}
+                  title="Admit all"
+                >
+                  Admit all
+                </button>
+              </div>
+              <ul class="space-y-2 text-sm">
+                {#each state.pendingPlayers ?? [] as p}
+                  <li class="flex items-center gap-2 group">
+                    <span>{p.emoji}</span>
+                    <span class="truncate flex-1">{p.name}</span>
+                    <div class="flex gap-1">
+                      <button
+                        type="button"
+                        class="px-2 py-0.5 text-xs bg-green-600/80 hover:bg-green-600 rounded"
+                        on:click={() => approvePending(p.playerId)}
+                        title="Approve"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
+                        on:click={() => denyPending(p.playerId)}
+                        title="Deny"
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
           <div class="flex items-center justify-between gap-2 mb-3">
             <h3 class="text-sm font-semibold text-pub-muted">Players</h3>
             <span class="text-sm text-pub-muted">{(state.players ?? []).length} active</span>
