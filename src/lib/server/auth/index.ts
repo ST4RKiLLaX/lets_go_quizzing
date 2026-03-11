@@ -103,7 +103,7 @@ export function verifyAdmin(username: string, password: string): boolean {
   const cfg = loadConfig();
   if (!cfg) return false;
   if (typeof username !== 'string' || !username.trim()) return false;
-  if (cfg.adminUsername !== username.trim()) return false;
+  if (cfg.adminUsername.toLowerCase() !== username.trim().toLowerCase()) return false;
   return verifyPasswordScrypt(password, cfg.adminPasswordHash);
 }
 
