@@ -1,10 +1,14 @@
 # No .env required. Run: docker compose up
 # Then complete setup at http://localhost:3000/setup
 # To use .env overrides, add: env_file: [.env]
+#
+# If you get "permission denied" writing config, run with your user:
+#   UID=$(id -u) GID=$(id -g) docker compose up
 services:
   app:
     build: .
     ports:
       - "3000:3000"
+    user: "${UID:-0}:${GID:-0}"
     volumes:
       - ./data:/app/data
