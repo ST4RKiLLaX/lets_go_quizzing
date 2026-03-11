@@ -7,8 +7,22 @@ import {
   verifyPassword,
   getEffectiveOrigin,
   getEffectiveRoomIdLen,
+  type ProfanityFilterMode,
 } from '$lib/server/config.js';
 import { createSession, getCurrentAuthEpoch } from '$lib/server/auth/index.js';
+import { resetCustomBlockCache } from '$lib/server/custom-block.js';
+
+const CUSTOM_BLOCK_MAX_TERMS = 100;
+const CUSTOM_BLOCK_MAX_TERM_LENGTH = 50;
+
+function normalizeForDedupe(text: string): string {
+  return text
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
+    .trim();
+}
 
 export async function GET({ request }) {
   const cookie = request.headers.get('cookie');
@@ -27,6 +41,9 @@ export async function GET({ request }) {
     username: cfg.adminUsername,
     origin: cfg.origin ?? '',
     roomIdLen: cfg.roomIdLen ?? 6,
+    profanityFilterMode: cfg.profanityFilterMode ?? 'off',
+    customKeywordFilterEnabled: cfg.customKeywordFilterEnabled ?? false,
+    customBlockedTerms: cfg.customBlockedTerms ?? [],
     effectiveOrigin: getEffectiveOrigin() ?? '',
     effectiveRoomIdLen: getEffectiveRoomIdLen(),
     envOverrides,
@@ -51,6 +68,18 @@ export async function PUT({ request }) {
       typeof body?.newPasswordConfirm === 'string' ? body.newPasswordConfirm : undefined;
     const origin = body?.origin !== undefined ? (typeof body.origin === 'string' ? body.origin.trim() : '') : undefined;
     const roomIdLen = body?.roomIdLen !== undefined ? Number(body.roomIdLen) : undefined;
+    const profanityFilterMode =
+      body?.profanityFilterMode !== undefined
+        ? (typeof body.profanityFilterMode === 'string' ? body.profanityFilterMode : undefined)
+        : undefined;
+    const customKeywordFilterEnabled =
+      body?.customKeywordFilterEnabled !== undefined
+        ? (typeof body.customKeywordFilterEnabled === 'boolean' ? body.customKeywordFilterEnabled : undefined)
+        : undefined;
+    const customBlockedTermsRaw =
+      body?.customBlockedTerms !== undefined
+        ? (Array.isArray(body.customBlockedTerms) ? body.customBlockedTerms : undefined)
+        : undefined;
 
     const changingCredentials = newUsername !== undefined || newPassword !== undefined;
     if (changingCredentials && !verifyPassword(currentPassword, cfg.adminPasswordHash)) {
@@ -73,12 +102,40 @@ export async function PUT({ request }) {
     if (roomIdLen !== undefined && (roomIdLen < 4 || roomIdLen > 12 || !Number.isInteger(roomIdLen))) {
       return json({ error: 'Room ID length must be 4–12' }, { status: 400 });
     }
+    const validModes: ProfanityFilterMode[] = ['off', 'names', 'public_text', 'strict'];
+    if (
+      profanityFilterMode !== undefined &&
+      !validModes.includes(profanityFilterMode as ProfanityFilterMode)
+    ) {
+      return json({ error: 'Invalid profanity filter mode' }, { status: 400 });
+    }
+
+    let customBlockedTerms: string[] | undefined;
+    if (customBlockedTermsRaw !== undefined) {
+      const trimmed = customBlockedTermsRaw
+        .map((t) => (typeof t === 'string' ? t.trim() : ''))
+        .filter((t) => t.length > 0);
+      const normalizedSeen = new Set<string>();
+      const deduped: string[] = [];
+      for (const t of trimmed) {
+        const capped = t.length > CUSTOM_BLOCK_MAX_TERM_LENGTH ? t.slice(0, CUSTOM_BLOCK_MAX_TERM_LENGTH) : t;
+        const n = normalizeForDedupe(capped);
+        if (n && !normalizedSeen.has(n)) {
+          normalizedSeen.add(n);
+          deduped.push(capped);
+        }
+      }
+      customBlockedTerms = deduped.slice(0, CUSTOM_BLOCK_MAX_TERMS);
+    }
 
     const partial: Parameters<typeof saveConfig>[0] = {};
     if (newUsername !== undefined) partial.adminUsername = newUsername;
     if (newPassword !== undefined) partial.adminPasswordHash = hashPassword(newPassword);
     if (origin !== undefined) partial.origin = origin || undefined;
     if (roomIdLen !== undefined) partial.roomIdLen = roomIdLen;
+    if (profanityFilterMode !== undefined) partial.profanityFilterMode = profanityFilterMode as ProfanityFilterMode;
+    if (customKeywordFilterEnabled !== undefined) partial.customKeywordFilterEnabled = customKeywordFilterEnabled;
+    if (customBlockedTerms !== undefined) partial.customBlockedTerms = customBlockedTerms;
 
     if (changingCredentials) {
       partial.authEpoch = (cfg.authEpoch ?? 0) + 1;
@@ -86,6 +143,9 @@ export async function PUT({ request }) {
 
     if (Object.keys(partial).length > 0) {
       saveConfig(partial);
+      if (partial.customKeywordFilterEnabled !== undefined || partial.customBlockedTerms !== undefined) {
+        resetCustomBlockCache();
+      }
     }
 
     if (changingCredentials) {

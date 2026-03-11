@@ -1,0 +1,12 @@
+[
+  { "id": "alias-fukker", "match": "fukker|fuker|phucker|phukker" },
+  { "id": "alias-buttmunch", "match": "buttmunch|butt-munch" },
+  { "id": "alias-catfag", "match": "catfag|cat-fag" },
+  { "id": "t1-fuck-suffixes", "match": "fucky|fuckey|fuckie" },
+  { "id": "t1-fag-suffixes", "match": "faggy|faggey|faggie" },
+  { "id": "t1-shit-suffixes", "match": "shitty" },
+  { "id": "t1-bitch-suffixes", "match": "bitchy" },
+  { "id": "t1-cunt-suffixes", "match": "cunty" },
+  { "id": "t1-slut-suffixes", "match": "slutty" },
+  { "id": "t1-twat-suffixes", "match": "twaty" }
+]

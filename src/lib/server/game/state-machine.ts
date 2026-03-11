@@ -25,6 +25,7 @@ export interface AnswerSubmission {
   answerX?: number;
   answerY?: number;
   submittedAt: number;
+  visibility?: 'visible' | 'blocked';
 }
 
 export interface GameState {

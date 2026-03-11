@@ -15,7 +15,9 @@ import {
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
 import { isAuthenticated, requireHostAuth, verifyWithEnvOrConfig, verifyPasswordConstantTime } from './auth/index.js';
-import { hasValidOperationalConfig, getEffectiveOrigin } from './config.js';
+import { hasValidOperationalConfig, getEffectiveOrigin, getProfanityFilterMode, getCustomKeywordFilterEnabled } from './config.js';
+import { containsProfanityAggressive } from './profanity.js';
+import { containsCustomBlockedTerm } from './custom-block.js';
 import { getClientAddressFromSocket } from './address.js';
 import {
   checkPlayerJoinRateLimit,
@@ -173,6 +175,15 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       const cappedName = (name || 'Anonymous').slice(0, 50);
+      const profanityMode = getProfanityFilterMode();
+      if (profanityMode !== 'off' && containsProfanityAggressive(cappedName)) {
+        ack?.({ error: 'This name contains inappropriate content' });
+        return;
+      }
+      if (getCustomKeywordFilterEnabled() && containsCustomBlockedTerm(cappedName)) {
+        ack?.({ error: 'This name contains inappropriate content' });
+        return;
+      }
       const requestedEmoji = (emoji || '👤').slice(0, 4);
       const takenByActivePlayer = Array.from(state.players.entries()).some(
         ([id, p]) => id !== playerId && !!p.socketId && p.emoji === requestedEmoji
@@ -490,6 +501,7 @@ export function initSocket(httpServer: import('http').Server): Server {
             answerX?: number;
             answerY?: number;
             submittedAt: number;
+            visibility?: 'visible' | 'blocked';
           }
         | null = null;
 
@@ -586,14 +598,27 @@ export function initSocket(httpServer: import('http').Server): Server {
         }
         const maxLen =
           question.type === 'word_cloud' ? 75 : question.type === 'input' ? 75 : 200;
+        const profanityMode = getProfanityFilterMode();
+        const shouldFilter =
+          (profanityMode === 'public_text' || profanityMode === 'strict') &&
+          (question.type === 'open_ended' || question.type === 'word_cloud');
+        const shouldFilterInput = profanityMode === 'strict' && question.type === 'input';
+        const hasProfanity = (shouldFilter || shouldFilterInput) && containsProfanityAggressive(normalized);
+        const hasCustomBlock = (shouldFilter || shouldFilterInput) && getCustomKeywordFilterEnabled() && containsCustomBlockedTerm(normalized);
+        const isBlocked = hasProfanity || hasCustomBlock;
         submission = {
           playerId,
           questionId,
           answerText: normalized.slice(0, maxLen),
           submittedAt: Date.now(),
+          visibility: isBlocked ? 'blocked' : 'visible',
         };
       }
 
+      if (!submission) {
+        ack?.({ error: 'Invalid answer' });
+        return;
+      }
       const submissions = [...state.submissions, submission];
       const next = { ...state, submissions };
       setRoom(roomId, next);
@@ -623,7 +648,20 @@ export function initSocket(httpServer: import('http').Server): Server {
   return io;
 }
 
-function serializeState(state: GameState) {
+function serializeSubmissions(submissions: GameState['submissions'], forHost: boolean) {
+  if (forHost) {
+    return submissions.map((s) => {
+      if (s.visibility === 'blocked') {
+        const { answerText: _, ...rest } = s;
+        return { ...rest, visibility: 'blocked' as const };
+      }
+      return s;
+    });
+  }
+  return submissions.filter((s) => s.visibility !== 'blocked');
+}
+
+function serializeState(state: GameState, submissions: typeof state.submissions) {
   const {
     type,
     roomId,
@@ -632,7 +670,6 @@ function serializeState(state: GameState) {
     players,
     currentRoundIndex,
     currentQuestionIndex,
-    submissions,
     wrongAnswers,
     timerEndsAt,
     startedAt,
@@ -661,11 +698,11 @@ function serializeState(state: GameState) {
 }
 
 function serializeHostState(state: GameState) {
-  return serializeState(state);
+  return serializeState(state, serializeSubmissions(state.submissions, true));
 }
 
 function serializePlayerState(state: GameState) {
-  const base = serializeState(state);
+  const base = serializeState(state, serializeSubmissions(state.submissions, false));
   const { type, currentRoundIndex, currentQuestionIndex } = state;
   const isRevealPhase = type === 'RevealAnswer' || type === 'Scoreboard' || type === 'End';
   const quiz = {

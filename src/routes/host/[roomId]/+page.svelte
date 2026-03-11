@@ -361,10 +361,12 @@
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {:else if q.type === 'open_ended' && state?.type === 'RevealAnswer'}
+            {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked')}
+            {@const blockedCount = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility === 'blocked').length}
             <div class="space-y-2 mt-4">
               <h3 class="text-sm font-semibold text-pub-muted">Responses:</h3>
               <ul class="space-y-1">
-                {#each (state.submissions ?? []).filter(s => s.questionId === q.id) as sub}
+                {#each visibleSubs as sub}
                   {@const player = state.players.find(p => p.id === sub.playerId)}
                   <li class="px-4 py-2 bg-pub-dark rounded text-sm">
                     <span class="text-pub-muted mr-2">{player?.emoji} {player?.name}:</span>
@@ -372,11 +374,16 @@
                   </li>
                 {/each}
               </ul>
+              {#if blockedCount > 0}
+                <p class="text-sm text-pub-muted italic">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
+              {/if}
             </div>
           {:else if q.type === 'word_cloud' && state?.type === 'RevealAnswer'}
+            {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked')}
+            {@const blockedCount = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility === 'blocked').length}
             <div class="mt-4 flex flex-wrap gap-3 justify-center items-center p-6 bg-pub-dark rounded min-h-[150px]">
               {#each Array.from(
-                (state.submissions ?? []).filter(s => s.questionId === q.id).reduce((acc, s) => {
+                visibleSubs.reduce((acc, s) => {
                   const text = (s.answerText || '').trim().toUpperCase();
                   if (text) acc.set(text, (acc.get(text) || 0) + 1);
                   return acc;
@@ -387,6 +394,9 @@
                 </span>
               {/each}
             </div>
+            {#if blockedCount > 0}
+              <p class="text-sm text-pub-muted italic mt-2">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
+            {/if}
           {/if}
           {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">

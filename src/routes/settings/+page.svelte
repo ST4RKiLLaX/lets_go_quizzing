@@ -4,9 +4,14 @@
   import { get } from 'svelte/store';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
 
+  type Tab = 'account' | 'content_filters' | 'deployment';
+  let activeTab: Tab = 'account';
   let username = '';
   let origin = '';
   let roomIdLen = 6;
+  let profanityFilterMode: 'off' | 'names' | 'public_text' | 'strict' = 'off';
+  let customKeywordFilterEnabled = false;
+  let customBlockedTermsText = '';
   let currentPassword = '';
   let newPassword = '';
   let newPasswordConfirm = '';
@@ -29,6 +34,11 @@
       username = data.username ?? '';
       origin = data.origin ?? '';
       roomIdLen = data.roomIdLen ?? 6;
+      profanityFilterMode = data.profanityFilterMode ?? 'off';
+      customKeywordFilterEnabled = data.customKeywordFilterEnabled ?? false;
+      customBlockedTermsText = Array.isArray(data.customBlockedTerms)
+        ? data.customBlockedTerms.join('\n')
+        : '';
       envOverrides = data.envOverrides ?? { origin: false, roomIdLen: false };
     } catch {
       error = 'Failed to load settings';
@@ -52,6 +62,12 @@
         username: username.trim(),
         origin: origin.trim() || '',
         roomIdLen: Number(roomIdLen) || 6,
+        profanityFilterMode,
+        customKeywordFilterEnabled,
+        customBlockedTerms: customBlockedTermsText
+          .split('\n')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0),
       };
       if (changingPassword) {
         body.newPassword = newPassword;
@@ -103,6 +119,30 @@
   {#if loading}
     <p class="text-pub-muted">Loading...</p>
   {:else}
+    <div class="flex gap-2 mb-6 border-b border-pub-muted pb-2">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg {activeTab === 'account' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
+        onclick={() => (activeTab = 'account')}
+      >
+        Account
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg {activeTab === 'content_filters' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
+        onclick={() => (activeTab = 'content_filters')}
+      >
+        Content filters
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg {activeTab === 'deployment' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
+        onclick={() => (activeTab = 'deployment')}
+      >
+        Deployment
+      </button>
+    </div>
+
     <form
       class="space-y-6"
       onsubmit={(e) => {
@@ -110,6 +150,7 @@
         save();
       }}
     >
+      {#if activeTab === 'account'}
       <div>
         <label for="settings-username" class="block text-sm text-pub-muted mb-1">Admin username</label>
         <input
@@ -164,7 +205,56 @@
           </div>
         </div>
       </div>
+      {/if}
 
+      {#if activeTab === 'content_filters'}
+      <div>
+        <h2 class="text-lg font-semibold text-pub-gold mb-3">Content filters</h2>
+        <div class="space-y-4">
+          <div>
+            <label for="settings-profanity-filter" class="block text-sm text-pub-muted mb-1"
+              >Profanity filter</label
+            >
+            <select
+              id="settings-profanity-filter"
+              bind:value={profanityFilterMode}
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            >
+              <option value="off">Off</option>
+              <option value="names">Names only</option>
+              <option value="public_text">Names + public text</option>
+              <option value="strict">Strict</option>
+            </select>
+            <p class="mt-1 text-xs text-pub-muted">Names only = block offensive names. Public text = also hide inappropriate open-ended and word cloud answers from display. Strict = also filter fill-in-the-blank answers.</p>
+          </div>
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                bind:checked={customKeywordFilterEnabled}
+                class="rounded"
+              />
+              <span class="text-sm text-pub-muted">Enable custom keyword filter</span>
+            </label>
+            <p class="mt-1 text-xs text-pub-muted">Custom terms always apply to names.</p>
+            <p class="mt-0.5 text-xs text-pub-muted">For answers, they apply only on answer types currently covered by the profanity filter mode.</p>
+            <label for="settings-custom-blocked-terms" class="block text-sm text-pub-muted mt-2 mb-1"
+              >Blocked terms (one per line)</label
+            >
+            <textarea
+              id="settings-custom-blocked-terms"
+              bind:value={customBlockedTermsText}
+              placeholder="67&#10;skibidi"
+              rows={6}
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2 font-mono text-sm"
+            ></textarea>
+            <p class="mt-1 text-xs text-pub-muted">Token-only matching (no phrases, no fuzzy matching, no regex in v1). Max 100 terms, 50 chars each.</p>
+          </div>
+        </div>
+      </div>
+      {/if}
+
+      {#if activeTab === 'deployment'}
       <div>
         <h2 class="text-lg font-semibold text-pub-gold mb-3">Deployment</h2>
         <div class="space-y-3">
@@ -205,6 +295,7 @@
           </div>
         </div>
       </div>
+      {/if}
 
       {#if error}
         <p class="text-sm text-red-400">{error}</p>

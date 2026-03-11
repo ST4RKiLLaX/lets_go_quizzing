@@ -10,6 +10,8 @@ const SCRYPT_P = 1;
 const SCRYPT_KEYLEN = 64;
 const SALT_LEN = 32;
 
+export type ProfanityFilterMode = 'off' | 'names' | 'public_text' | 'strict';
+
 export interface AppConfig {
   version: number;
   adminUsername: string;
@@ -17,6 +19,10 @@ export interface AppConfig {
   origin?: string;
   roomIdLen?: number;
   authEpoch?: number;
+  profanityFilterMode?: ProfanityFilterMode;
+  profanityAllowlist?: string[];
+  customKeywordFilterEnabled?: boolean;
+  customBlockedTerms?: string[];
 }
 
 const REQUIRED_FIELDS = ['version', 'adminUsername', 'adminPasswordHash'] as const;
@@ -117,6 +123,10 @@ export function saveConfig(partial: Partial<AppConfig>): void {
     origin: partial.origin !== undefined ? partial.origin : current?.origin,
     roomIdLen: partial.roomIdLen !== undefined ? partial.roomIdLen : current?.roomIdLen,
     authEpoch: partial.authEpoch !== undefined ? partial.authEpoch : (current?.authEpoch ?? 0),
+    profanityFilterMode: partial.profanityFilterMode !== undefined ? partial.profanityFilterMode : current?.profanityFilterMode,
+    profanityAllowlist: partial.profanityAllowlist !== undefined ? partial.profanityAllowlist : current?.profanityAllowlist,
+    customKeywordFilterEnabled: partial.customKeywordFilterEnabled !== undefined ? partial.customKeywordFilterEnabled : current?.customKeywordFilterEnabled,
+    customBlockedTerms: partial.customBlockedTerms !== undefined ? partial.customBlockedTerms : current?.customBlockedTerms,
   };
   if (!next.adminUsername || !next.adminPasswordHash) {
     throw new Error('adminUsername and adminPasswordHash are required');
@@ -177,6 +187,24 @@ export function createConfigAtomic(config: Omit<AppConfig, 'version' | 'authEpoc
     if (e && typeof e === 'object' && 'code' in e && (e as { code: string }).code === 'EEXIST') return false;
     throw e;
   }
+}
+
+export function getProfanityFilterMode(): ProfanityFilterMode {
+  const cfg = loadConfig();
+  const mode = cfg?.profanityFilterMode;
+  if (mode === 'off' || mode === 'names' || mode === 'public_text' || mode === 'strict') return mode;
+  return 'off';
+}
+
+export function getCustomKeywordFilterEnabled(): boolean {
+  const cfg = loadConfig();
+  return cfg?.customKeywordFilterEnabled === true;
+}
+
+export function getCustomBlockedTerms(): string[] {
+  const cfg = loadConfig();
+  const terms = cfg?.customBlockedTerms;
+  return Array.isArray(terms) ? terms : [];
 }
 
 export function getEffectiveRoomIdLen(): number {

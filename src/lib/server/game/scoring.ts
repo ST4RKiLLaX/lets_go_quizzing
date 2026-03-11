@@ -140,10 +140,14 @@ function isCorrect(
   if (question.type === 'slider') {
     return isSliderCorrect(question, submission);
   }
-  return (
-    isInputCorrectExact(question, submission) ||
-    isInputCorrectFuzzy(question, submission, fuzzyThreshold)
-  );
+  if (question.type === 'input') {
+    if (submission.visibility === 'blocked') return false;
+    return (
+      isInputCorrectExact(question, submission) ||
+      isInputCorrectFuzzy(question, submission, fuzzyThreshold)
+    );
+  }
+  return false;
 }
 
 function getWrongAnswerValue(
@@ -221,11 +225,11 @@ export function scoreSubmissions(
       const player = players.get(sub.playerId);
       if (!player) continue;
       if (!isCorrect(question, sub, fuzzyThreshold)) {
+        if (sub.visibility === 'blocked') continue;
         wrongAnswers.push({
           playerId: sub.playerId,
           questionId: question.id,
-          answer:
-            getWrongAnswerValue(sub),
+          answer: getWrongAnswerValue(sub),
         });
       }
     }
@@ -243,11 +247,11 @@ export function scoreSubmissions(
           score: player.score + pts,
         });
       } else {
+        if (sub.visibility === 'blocked') continue;
         wrongAnswers.push({
           playerId: sub.playerId,
           questionId: question.id,
-          answer:
-            getWrongAnswerValue(sub),
+          answer: getWrongAnswerValue(sub),
         });
       }
     }
