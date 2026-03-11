@@ -39,6 +39,9 @@
   $: if (showQuizMenu) {
     highlightedQuizIndex = Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
   }
+  $: if (typeof window !== 'undefined' && needsSetup && !hostPasswordRequired && $page.url.pathname === '/') {
+    goto('/setup');
+  }
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
     if (hostPasswordRequired) {
@@ -298,9 +301,17 @@
           Using password from .env. <a href="/setup" class="text-pub-accent underline">Migrate to config</a> for persistent setup.
         </p>
       {:else if !hostPasswordRequired}
-        <p class="text-amber-500 text-sm text-center max-w-md">
-          Hosting and quiz creation are disabled. Complete setup to enable.
-        </p>
+        <div class="text-center max-w-md space-y-3">
+          <p class="text-amber-500 text-sm">
+            Hosting and quiz creation are disabled. Complete setup to get started.
+          </p>
+          <a
+            href="/setup"
+            class="inline-block px-6 py-3 bg-pub-gold text-pub-darker font-semibold rounded-lg hover:opacity-90"
+          >
+            Complete setup
+          </a>
+        </div>
       {/if}
       <div class="flex gap-4">
         <button
