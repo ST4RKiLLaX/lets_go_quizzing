@@ -3,6 +3,7 @@
 
   export let data;
 
+  let username = '';
   let password = '';
   let error = '';
   let loggingIn = false;
@@ -14,7 +15,7 @@
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username: username.trim(), password }),
         credentials: 'include',
       });
       const result = await res.json();
@@ -36,6 +37,17 @@
       <p class="text-pub-muted mb-4">Enter the host password to create or edit quizzes.</p>
       <div class="space-y-4">
         <div>
+          <label for="creator-username" class="block text-sm text-pub-muted mb-1">Username</label>
+          <input
+            id="creator-username"
+            type="text"
+            bind:value={username}
+            placeholder="Admin username"
+            class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            on:keydown={(e) => e.key === 'Enter' && login()}
+          />
+        </div>
+        <div>
           <label for="creator-password" class="block text-sm text-pub-muted mb-1">Password</label>
           <input
             id="creator-password"
@@ -52,7 +64,7 @@
         <button
           class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
           on:click={login}
-          disabled={loggingIn || !password.trim()}
+          disabled={loggingIn || !username.trim() || !password.trim()}
         >
           {loggingIn ? 'Logging in...' : 'Log in'}
         </button>
@@ -64,7 +76,9 @@
   <div class="min-h-screen p-6 flex items-center justify-center">
     <div class="w-full max-w-md bg-pub-darker rounded-lg p-6 text-center">
       <h2 class="text-xl font-bold mb-4">Quiz creation disabled</h2>
-      <p class="text-pub-muted mb-4">Set HOST_PASSWORD to enable hosting and quiz creation.</p>
+      <p class="text-pub-muted mb-4">Complete setup to enable hosting and quiz creation.</p>
+      <a href="/setup" class="text-pub-accent hover:underline">Go to setup</a>
+      <span class="text-pub-muted"> · </span>
       <a href="/" class="text-pub-accent hover:underline">← Back to home</a>
     </div>
   </div>

@@ -15,6 +15,7 @@
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
   let roomId = '';
+  let hostUsername = '';
   let hostPassword = '';
   let playerJoinPassword = '';
   let passwordError = '';
@@ -32,10 +33,14 @@
 
   $: quizzes = ($page.data.quizzes ?? []) as QuizListItem[];
   $: hostPasswordRequired = $page.data.hostPasswordRequired ?? false;
+  $: needsSetup = $page.data.needsSetup ?? false;
   $: if (quizzes.length > 0 && !quizFilename) quizFilename = quizzes[0].filename;
   $: selectedQuiz = quizzes.find((q) => q.filename === quizFilename) ?? null;
   $: if (showQuizMenu) {
     highlightedQuizIndex = Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
+  }
+  $: if (typeof window !== 'undefined' && needsSetup && !hostPasswordRequired && $page.url.pathname === '/') {
+    goto('/setup');
   }
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
@@ -181,15 +186,15 @@
         const { authenticated } = await checkRes.json();
         hostAuthenticated = authenticated ?? false;
         if (!authenticated) {
-          if (!hostPassword.trim() && !hostAuthenticated) {
-            passwordError = 'Password required';
+          if ((!hostUsername.trim() || !hostPassword.trim()) && !hostAuthenticated) {
+            passwordError = 'Username and password required';
             creating = false;
             return;
           }
           const loginRes = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: hostPassword }),
+            body: JSON.stringify({ username: hostUsername.trim(), password: hostPassword }),
             credentials: 'include',
           });
           if (!loginRes.ok) {
@@ -207,8 +212,11 @@
       return;
     }
 
-    const payload: { quizFilename: string; password?: string; playerJoinPassword?: string } = { quizFilename };
-    payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
+    const payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string } = { quizFilename };
+    if (hostPasswordRequired) {
+      payload.username = hostUsername.trim() || undefined;
+      payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
+    }
     const trimmedPlayerJoinPassword = playerJoinPassword.trim();
     if (trimmedPlayerJoinPassword) {
       payload.playerJoinPassword = trimmedPlayerJoinPassword;
@@ -224,6 +232,14 @@
     const onAck = (ack: { roomId?: string; error?: string }) => {
       if (!finalize()) return;
       if (ack?.roomId) {
+        if (typeof window !== 'undefined' && hostPasswordRequired && hostPassword) {
+          try {
+            sessionStorage.setItem('lgq_host_username', hostUsername.trim());
+            sessionStorage.setItem('lgq_host_password', hostPassword);
+          } catch {
+            /* ignore */
+          }
+        }
         socketStore.get()?.disconnect();
         goto(`/host/${ack.roomId}`);
       } else {
@@ -273,11 +289,20 @@
 <div class="min-h-screen flex flex-col items-center justify-center p-6">
   <h1 class="text-4xl font-bold text-pub-gold mb-2">Let's Go Quizzing</h1>
   <p class="text-pub-muted mb-8">The Markdown of Quiz Apps</p>
+  {#if $page.url.searchParams.get('migrated') === '1'}
+    <p class="mb-4 px-4 py-2 rounded-lg bg-green-900/50 border border-green-600 text-green-200 text-sm">
+      Setup complete. Your credentials have been saved to the config file.
+    </p>
+  {/if}
   {#if mode === 'choose'}
     <div class="flex flex-col gap-4 items-center">
-      {#if !hostPasswordRequired}
+      {#if needsSetup && hostPasswordRequired}
         <p class="text-amber-500 text-sm text-center max-w-md">
-          Hosting and quiz creation are disabled. Set HOST_PASSWORD to enable.
+          Using password from .env. <a href="/setup" class="text-pub-accent underline">Migrate to config</a> for persistent setup.
+        </p>
+      {:else if !hostPasswordRequired}
+        <p class="text-amber-500 text-sm text-center max-w-md">
+          Hosting and quiz creation are disabled. Complete setup to enable.
         </p>
       {/if}
       <div class="flex gap-4">
@@ -358,6 +383,16 @@
         {/if}
       </div>
       {#if hostPasswordRequired && !hostAuthenticated}
+        <div>
+          <label for="host-username" class="block text-sm text-pub-muted mb-1">Username</label>
+          <input
+            id="host-username"
+            type="text"
+            bind:value={hostUsername}
+            placeholder="Admin username"
+            class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+          />
+        </div>
         <div>
           <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
           <input

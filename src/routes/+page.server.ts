@@ -1,5 +1,6 @@
 import { listQuizzes } from '$lib/server/storage/parser.js';
 import { loadQuizRaw } from '$lib/server/storage/quiz-storage.js';
+import { hasValidOperationalConfig } from '$lib/server/config.js';
 
 export async function load() {
   const quizzes = listQuizzes().map((filename) => {
@@ -14,8 +15,12 @@ export async function load() {
     }
   });
 
+  const hasConfig = hasValidOperationalConfig();
+  const hostPasswordRequired = hasConfig || !!process.env.HOST_PASSWORD;
+
   return {
     quizzes,
-    hostPasswordRequired: !!process.env.HOST_PASSWORD,
+    hostPasswordRequired,
+    needsSetup: !hasConfig,
   };
 }

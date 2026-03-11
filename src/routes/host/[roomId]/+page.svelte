@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
+  import HostNav from '$lib/components/HostNav.svelte';
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
@@ -16,6 +17,7 @@
 
   let state: SerializedState | null = null;
   let joinError = '';
+  let hostRejoinUsername = '';
   let hostRejoinPassword = '';
   let showEndQuizModal = false;
   let countdown: ReturnType<typeof useCountdown> | null = null;
@@ -40,15 +42,25 @@
   $: if (wakeManager) {
     void wakeManager.setAutoActive(!!isActiveQuizPhase);
   }
+  let hostRejoinPrefilled = false;
+  $: if (joinError !== 'Invalid password') hostRejoinPrefilled = false;
+  $: if (joinError === 'Invalid password' && !hostRejoinPrefilled && typeof window !== 'undefined') {
+    hostRejoinPrefilled = true;
+    try {
+      hostRejoinUsername = sessionStorage.getItem('lgq_host_username') ?? '';
+    } catch {
+      /* ignore */
+    }
+  }
   onDestroy(() => {
     countdown?.destroy?.();
     void wakeManager?.destroy();
   });
   let socket: import('socket.io-client').Socket | null = null;
 
-  function doHostJoin(password?: string) {
+  function doHostJoin(username?: string, password?: string) {
     joinError = '';
-    socket?.emit('host:join', { roomId, password }, (ack: { state?: SerializedState; error?: string }) => {
+    socket?.emit('host:join', { roomId, username, password }, (ack: { state?: SerializedState; error?: string }) => {
       if (ack?.state) {
         state = ack.state;
         hostRejoinPassword = '';
@@ -65,14 +77,16 @@
 
     // Always reconnect on host page so the handshake includes latest auth cookies.
     socket = socketStore.connect();
+    let username: string | undefined;
     let pwd: string | undefined;
     try {
+      username = sessionStorage.getItem('lgq_host_username') ?? undefined;
       pwd = sessionStorage.getItem('lgq_host_password') ?? undefined;
       // Don't remove - keep for creating new rooms after game ends
     } catch {
       /* ignore */
     }
-    doHostJoin(pwd);
+    doHostJoin(username, pwd);
     const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
     };
@@ -161,7 +175,8 @@
 </script>
 
 <div class="min-h-screen p-4 sm:p-6">
-  <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
+  <HostNav />
+  <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6 mt-4">
     <div class="flex-1 min-w-0">
     <div class="mb-4 sm:mb-6">
       <p class="text-pub-gold text-lg sm:text-xl font-semibold mb-2 break-words">
@@ -490,11 +505,17 @@
       </div>
     {:else if joinError === 'Invalid password'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        <p class="text-pub-muted mb-4">Re-enter password to join host view</p>
+        <p class="text-pub-muted mb-4">Re-enter username and password to join host view</p>
         <form
-          class="flex flex-col sm:flex-row gap-2"
-          on:submit|preventDefault={() => doHostJoin(hostRejoinPassword)}
+          class="flex flex-col gap-2"
+          on:submit|preventDefault={() => doHostJoin(hostRejoinUsername, hostRejoinPassword)}
         >
+          <input
+            type="text"
+            bind:value={hostRejoinUsername}
+            placeholder="Username"
+            class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+          />
           <input
             type="password"
             bind:value={hostRejoinPassword}

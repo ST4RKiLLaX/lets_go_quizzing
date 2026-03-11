@@ -1,9 +1,10 @@
+# No .env required. Run: docker compose up
+# Then complete setup at http://localhost:3000/setup
+# To use .env overrides, add: env_file: [.env]
 services:
   app:
     build: .
     ports:
       - "3000:3000"
-    env_file:
-      - .env
     volumes:
       - ./data:/app/data

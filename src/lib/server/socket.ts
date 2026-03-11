@@ -14,7 +14,8 @@ import {
 } from './game/state-machine.js';
 import { scoreSubmissions } from './game/scoring.js';
 import { loadQuiz } from './storage/parser.js';
-import { isAuthenticated, requireHostPassword, verifyPasswordConstantTime } from './auth/index.js';
+import { isAuthenticated, requireHostAuth, verifyWithEnvOrConfig, verifyPasswordConstantTime } from './auth/index.js';
+import { hasValidOperationalConfig, getEffectiveOrigin } from './config.js';
 import { getClientAddressFromSocket } from './address.js';
 import {
   checkPlayerJoinRateLimit,
@@ -43,27 +44,38 @@ function logHostAuthFailure(
   });
 }
 
+function getCorsOrigin(): boolean | string | string[] | ((origin: string, callback: (err: Error | null, allow?: boolean) => void) => void) {
+  return (reqOrigin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!hasValidOperationalConfig()) {
+      callback(null, true);
+      return;
+    }
+    const allowed = getEffectiveOrigin();
+    if (!allowed) {
+      callback(null, true);
+      return;
+    }
+    const allowedList = allowed.split(',').map((o) => o.trim()).filter(Boolean);
+    const match = allowedList.length === 0 || allowedList.some((a) => reqOrigin === a);
+    callback(null, match);
+  };
+}
+
 export function initSocket(httpServer: import('http').Server): Server {
   const io = new Server(httpServer, {
     cors: {
-      origin:
-        process.env.NODE_ENV === 'production'
-          ? (process.env.ORIGIN ?? 'https://localhost:3000')
-              .split(',')
-              .map((o) => o.trim())
-              .filter(Boolean)
-          : true,
+      origin: getCorsOrigin(),
     },
   });
 
   io.on('connection', (socket) => {
-    socket.on('host:create', (payload: { quizFilename: string; password?: string; playerJoinPassword?: string }, ack) => {
-      const { quizFilename, password, playerJoinPassword } = payload ?? {};
+    socket.on('host:create', (payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string }, ack) => {
+      const { quizFilename, username, password, playerJoinPassword } = payload ?? {};
       if (!quizFilename) {
         ack?.({ error: 'quizFilename required' });
         return;
       }
-      if (!requireHostPassword()) {
+      if (!requireHostAuth()) {
         ack?.({ error: 'Hosting disabled' });
         return;
       }
@@ -72,9 +84,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
-      const hostPwd = process.env.HOST_PASSWORD;
       const hasValidPassword =
-        password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
+        password && verifyWithEnvOrConfig((username ?? '').trim(), password);
       if (!hasValidCookie && !hasValidPassword) {
         logHostAuthFailure('host:create', socket, !!hasValidCookie, !!hasValidPassword);
         ack?.({ error: 'Invalid password' });
@@ -184,8 +195,8 @@ export function initSocket(httpServer: import('http').Server): Server {
       void broadcastStateToRoom(io, roomId, next, ['room:update']);
     });
 
-    socket.on('host:join', (payload: { roomId: string; password?: string }, ack) => {
-      const { roomId, password } = payload ?? {};
+    socket.on('host:join', (payload: { roomId: string; username?: string; password?: string }, ack) => {
+      const { roomId, username, password } = payload ?? {};
       if (!roomId) {
         ack?.({ error: 'roomId required' });
         return;
@@ -194,7 +205,7 @@ export function initSocket(httpServer: import('http').Server): Server {
         ack?.({ error: 'Room not found' });
         return;
       }
-      if (!requireHostPassword()) {
+      if (!requireHostAuth()) {
         ack?.({ error: 'Hosting disabled' });
         return;
       }
@@ -203,8 +214,8 @@ export function initSocket(httpServer: import('http').Server): Server {
         return;
       }
       const hasValidCookie = isAuthenticated(socket.handshake.headers.cookie);
-      const hostPwd = process.env.HOST_PASSWORD;
-      const hasValidPassword = password && hostPwd && verifyPasswordConstantTime(password, hostPwd);
+      const hasValidPassword =
+        password && verifyWithEnvOrConfig((username ?? '').trim(), password);
       if (!hasValidCookie && !hasValidPassword) {
         logHostAuthFailure('host:join', socket, !!hasValidCookie, !!hasValidPassword);
         ack?.({ error: 'Invalid password' });

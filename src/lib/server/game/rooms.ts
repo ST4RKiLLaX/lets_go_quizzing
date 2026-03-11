@@ -1,9 +1,12 @@
 import { customAlphabet } from 'nanoid';
 import type { GameState } from './state-machine.js';
 import { loadQuiz } from '../storage/parser.js';
+import { getEffectiveRoomIdLen } from '../config.js';
 
-const ROOM_ID_LEN = Math.max(4, Math.min(12, parseInt(process.env.ROOM_ID_LEN ?? '6', 10) || 6));
-const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', ROOM_ID_LEN);
+function getNanoid() {
+  const len = getEffectiveRoomIdLen();
+  return customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', len);
+}
 
 const rooms = new Map<string, GameState>();
 
@@ -12,7 +15,7 @@ export function createRoom(
   hostSocketId: string,
   playerJoinPassword?: string
 ): string {
-  const roomId = nanoid();
+  const roomId = getNanoid()();
   const quiz = loadQuiz(quizFilename);
   const trimmedPlayerJoinPassword = playerJoinPassword?.trim();
   const state: GameState = {
@@ -41,7 +44,7 @@ export function setRoom(roomId: string, state: GameState): void {
 }
 
 export function generateRoomId(): string {
-  return nanoid();
+  return getNanoid()();
 }
 
 export function roomExists(roomId: string): boolean {

@@ -44,6 +44,10 @@ export function checkLoginRateLimit(identifier: string): boolean {
   return checkRateLimit('login', identifier, WINDOW_MS, MAX_ATTEMPTS);
 }
 
+export function checkSetupRateLimit(identifier: string): boolean {
+  return checkRateLimit('setup', identifier, WINDOW_MS, MAX_ATTEMPTS);
+}
+
 export function checkPlayerJoinRateLimit(identifier: string): boolean {
   return checkRateLimit('player:join', identifier, SOCKET_WINDOW_MS, PLAYER_JOIN_MAX);
 }
