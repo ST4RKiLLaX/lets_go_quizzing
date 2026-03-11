@@ -39,9 +39,6 @@
   $: if (showQuizMenu) {
     highlightedQuizIndex = Math.max(0, quizzes.findIndex((q) => q.filename === quizFilename));
   }
-  $: if (typeof window !== 'undefined' && needsSetup && !hostPasswordRequired && $page.url.pathname === '/') {
-    goto('/setup');
-  }
   $: if (typeof window !== 'undefined' && $page.url.searchParams.get('host') === '1' && mode === 'choose') {
     mode = 'host';
     if (hostPasswordRequired) {
