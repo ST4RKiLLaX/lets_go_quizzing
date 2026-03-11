@@ -7,6 +7,8 @@ A blazingly fast, real-time multiplayer trivia app stripped to the studs. Built 
 * ⚡ **True Real-Time Sync:** Powered entirely by WebSockets. No clunky API polling.
 * 🗂️ **Zero-Bloat Architecture:** Entirely file-based. Quizzes are read from simple YAML files, and game history is logged to JSON.
 * 🎮 **Dedicated Game Views:** Mobile-first player inputs, a powerful Host control center with manual scoring overrides, and a distraction-free Projector view for the big screen.
+* 👮 **Host Moderation:** Kick disruptive players from the room; optional ban blocks rejoin from the same browser/device for the rest of the session.
+* 🚫 **Content Filters:** Built-in profanity filter and custom keyword block list (Settings) for classroom-friendly gameplay.
 * 🛡️ **Built-In Security:** Stateful role authentication and websocket rate-limiting prevent event flooding and spoofing.
 * 📝 **Frictionless Quiz Creation:** Simple plain-text authoring with a built-in lightweight YAML editor.
 * 🔐 **One-Time Setup:** No database or `.env` required. Run `docker compose up`, complete setup in the UI, and manage credentials via the Settings page.
@@ -28,7 +30,7 @@ Open `http://localhost:5173` to view the app.
 
 ## 👥 Host and Player UI
 
-**Host:** When logged in, a nav bar appears with links to home, Settings (gear icon), and Log out. Settings and logout are disabled while a quiz is live—you must end the quiz first. Logout shows a confirmation modal.
+**Host:** When logged in, a nav bar appears with links to home, Settings (gear icon), and Log out. Settings and logout are disabled while a quiz is live—you must end the quiz first. Logout shows a confirmation modal. From the player list in the sidebar, the host can **kick** a player (remove and disconnect) or **kick & ban** (block rejoin from the same browser/device for the session).
 
 **Player:** A compact nav bar appears after joining a room, with Settings (change name/emoji in lobby only) and Exit quiz (door icon). Exit shows a warning: in lobby you can rejoin; once the quiz has started, leaving removes you from the session and leaderboard.
 
@@ -70,7 +72,7 @@ You'll be redirected to setup automatically when you open the app.
 ## ⚙️ Configuration
 
 ### Setup and Config File
-On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). You can change username, password, ORIGIN, and room code length later via the **Settings** page (gear icon in the host nav).
+On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). Via the **Settings** page (gear icon in the host nav), you can change username, password, ORIGIN, room code length, and content filters (profanity filter toggle and custom keyword block list).
 
 ### Environment Variables (Optional Overrides)
 These override config file values when set. Useful for Kubernetes, CI, or deployment-specific tuning.
@@ -301,6 +303,8 @@ This section explains the security model for contributors. Understanding these p
 |-------|------------|----------|
 | **Host auth** | Username + password; scrypt hashing in config; session cookie; constant-time env fallback (SHA-256) | `auth/index.ts`, `config.ts`, `api/auth/login` |
 | **Room password** | Optional per-room password for player joins; same constant-time verification | `socket.ts` `player:join` |
+| **Kick & ban** | Lightweight session moderation: host kicks; ban blocks rejoin by `playerId` (same browser/device). Bypassable via clear storage or incognito—not strong identity enforcement. | `socket.ts` `host:kick`, `player:join` |
+| **Content filters** | Profanity filter + custom block list applied to names, emoji, open-ended, word cloud, input | `profanity.ts`, config, Settings API, socket handlers |
 | **Player identity** | Server-authoritative; client-supplied `playerId` ignored for register/answer | `socket.ts` |
 | **Duplicate joins** | Reject if `playerId` already connected | `socket.ts` `player:join` |
 | **Answer key exposure** | Role-aware serialization; players/projector get scrubbed quiz until reveal | `socket.ts` `serializePlayerState` |
