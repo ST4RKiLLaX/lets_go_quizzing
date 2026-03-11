@@ -131,6 +131,16 @@
     socket?.emit('host:override', { playerId, questionId, delta }, () => {});
   }
 
+  let kickError = '';
+  function kick(playerId: string, ban = false) {
+    kickError = '';
+    socket?.emit('host:kick', { playerId, ban }, (ack: { ok?: boolean; code?: string; message?: string }) => {
+      if (ack?.ok === false) {
+        kickError = ack.message ?? ack.code ?? 'Kick failed';
+      }
+    });
+  }
+
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
     if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
@@ -553,13 +563,34 @@
             <h3 class="text-sm font-semibold text-pub-muted">Players</h3>
             <span class="text-sm text-pub-muted">{(state.players ?? []).length} active</span>
           </div>
+          {#if kickError}
+            <p class="text-sm text-red-400 mb-2">{kickError}</p>
+          {/if}
           <ol class="space-y-2 text-sm">
             {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-              <li class="flex items-center gap-2">
+              <li class="flex items-center gap-2 group">
                 <span class="text-pub-gold font-bold w-6">#{i + 1}</span>
                 <span>{player.emoji}</span>
-                <span class="truncate">{player.name}</span>
-                <span class="ml-auto font-bold">{player.score}</span>
+                <span class="truncate flex-1">{player.name}</span>
+                <span class="font-bold">{player.score}</span>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
+                    on:click={() => kick(player.id)}
+                    title="Kick from room"
+                  >
+                    Kick
+                  </button>
+                  <button
+                    type="button"
+                    class="px-2 py-0.5 text-xs text-pub-muted border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
+                    on:click={() => kick(player.id, true)}
+                    title="Kick and ban from room"
+                  >
+                    Kick & ban
+                  </button>
+                </div>
               </li>
             {/each}
           </ol>

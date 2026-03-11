@@ -70,6 +70,7 @@
   let showExitModal = false;
   let showSettingsModal = false;
   let leavingQuiz = false;
+  let wasKickedFromRoom: 'kicked' | 'banned' | null = null;
 
   const EMOJI_OPTIONS = [
     '😀', '😎', '🤓', '😇', '🥳', '🤩', '😊', '🙂', '😏',
@@ -88,15 +89,35 @@
       wakeSnapshot = next;
     });
 
+    const wasKickedVal =
+      typeof sessionStorage !== 'undefined'
+        ? sessionStorage.getItem('wasKicked_' + roomId)
+        : null;
+    if (wasKickedVal) {
+      wasKickedFromRoom = wasKickedVal === 'banned' ? 'banned' : 'kicked';
+    }
+
     const playerId = getOrCreatePlayerId();
     socket = createSocket();
-    joinRoom(playerId, joinPassword);
+    socket.on('player:kicked', (payload: { banned?: boolean }) => {
+      const banned = !!payload?.banned;
+      try {
+        sessionStorage.setItem('wasKicked_' + roomId, banned ? 'banned' : 'kicked');
+      } catch {
+        /* ignore */
+      }
+      window.location.href = '/';
+    });
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
     socket.on('room:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
+
+    if (!wasKickedFromRoom) {
+      joinRoom(playerId, joinPassword);
+    }
   });
 
   function register() {
@@ -128,8 +149,13 @@
     socket.emit(
       'player:join',
       { roomId, playerId, password: password.trim() || undefined },
-      (ack: { state?: SerializedState; error?: string }) => {
+      (ack: { ok?: boolean; state?: SerializedState; error?: string; code?: string; message?: string }) => {
         joiningRoom = false;
+        if (ack?.ok === false && ack?.code === 'BANNED') {
+          wasKickedFromRoom = 'banned';
+          joinError = ack.message ?? 'You have been banned from this room';
+          return;
+        }
         if (ack?.error) {
           if (ack.error === 'Room password required') {
             needsRoomPassword = true;
@@ -697,7 +723,29 @@
     {#if !state}
       <div class="bg-pub-darker rounded-lg p-6">
         <h2 class="text-xl font-bold mb-4">Join room {roomId}</h2>
-        {#if needsRoomPassword}
+        {#if wasKickedFromRoom}
+          <p class="text-sm text-red-400 mb-2">
+            {wasKickedFromRoom === 'banned'
+              ? 'You have been banned from this room.'
+              : 'You were removed from the room.'}
+          </p>
+          <button
+            type="button"
+            class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            disabled={joiningRoom}
+            on:click={() => {
+              try {
+                sessionStorage.removeItem('wasKicked_' + roomId);
+              } catch {
+                /* ignore */
+              }
+              wasKickedFromRoom = null;
+              joinRoom(getOrCreatePlayerId(), joinPassword);
+            }}
+          >
+            {joiningRoom ? 'Joining...' : 'Try again'}
+          </button>
+        {:else if needsRoomPassword}
           <form
             class="space-y-3"
             on:submit|preventDefault={() => joinRoom(getOrCreatePlayerId(), joinPassword)}

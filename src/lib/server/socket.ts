@@ -122,6 +122,10 @@ export function initSocket(httpServer: import('http').Server): Server {
       }
       const state = getRoom(roomId)!;
       const resolvedPlayerId = playerId ?? crypto.randomUUID();
+      if (state.bannedPlayerIds.has(resolvedPlayerId)) {
+        ack?.({ ok: false, code: 'BANNED', message: 'You have been banned from this room' });
+        return;
+      }
       const existingPlayer = state.players.get(resolvedPlayerId);
       if (existingPlayer?.socketId) {
         ack?.({ error: 'That player is already in the room' });
@@ -444,6 +448,48 @@ export function initSocket(httpServer: import('http').Server): Server {
       setRoom(roomId, next);
       ack?.({ ok: true });
       void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    });
+
+    socket.on('host:kick', (payload: { playerId: string; ban?: boolean }, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ ok: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ ok: false, code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+        return;
+      }
+      const { playerId, ban } = payload ?? {};
+      if (!playerId) {
+        ack?.({ ok: false, code: 'PLAYER_ID_REQUIRED', message: 'playerId required' });
+        return;
+      }
+      const targetPlayer = state.players.get(playerId);
+      if (!targetPlayer) {
+        ack?.({ ok: false, code: 'PLAYER_NOT_FOUND', message: 'Player not found' });
+        return;
+      }
+      if (ban) {
+        state.bannedPlayerIds.add(playerId);
+      }
+      const players = new Map(state.players);
+      players.delete(playerId);
+      const submissions = state.submissions.filter((s) => s.playerId !== playerId);
+      const wrongAnswers = state.wrongAnswers.filter((w) => w.playerId !== playerId);
+      const next = { ...state, players, submissions, wrongAnswers };
+      setRoom(roomId, next);
+      const targetSocketId = targetPlayer.socketId;
+      if (targetSocketId) {
+        const targetSocket = io.sockets.sockets.get(targetSocketId);
+        if (targetSocket) {
+          targetSocket.emit('player:kicked', { banned: !!ban });
+          targetSocket.disconnect(true);
+        }
+      }
+      void broadcastStateToRoom(io, roomId, next, ['room:update', 'state:update']);
+      ack?.({ ok: true });
     });
 
     socket.on(

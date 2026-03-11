@@ -40,6 +40,7 @@ export interface GameState {
   currentQuestionIndex: number;
   submissions: AnswerSubmission[];
   wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number | number[] }>;
+  bannedPlayerIds: Set<string>;
   timerEndsAt?: number;
   startedAt?: number;
 }
@@ -185,5 +186,6 @@ export function createInitialState(
     currentQuestionIndex: 0,
     submissions: [],
     wrongAnswers: [],
+    bannedPlayerIds: new Set(),
   };
 }

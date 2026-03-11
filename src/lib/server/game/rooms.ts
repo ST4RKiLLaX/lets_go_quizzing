@@ -30,6 +30,7 @@ export function createRoom(
     currentQuestionIndex: 0,
     submissions: [],
     wrongAnswers: [],
+    bannedPlayerIds: new Set(),
   };
   rooms.set(roomId, state);
   return roomId;
