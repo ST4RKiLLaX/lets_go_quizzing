@@ -90,6 +90,7 @@ These override config file values when set. Useful for Kubernetes, CI, or deploy
 When running behind a reverse proxy that handles TLS/SSL, ensure you forward the correct headers so secure cookies and websockets function properly:
 * Forward the real IP: `proxy_set_header X-Forwarded-For $remote_addr;`
 * Terminate TLS correctly: `proxy_set_header X-Forwarded-Proto $scheme;`
+* Add security headers for all responses (including static assets): `add_header X-Content-Type-Options nosniff always;` (the `always` parameter ensures the header is set even for error responses).
 
 ---
 
