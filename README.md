@@ -272,3 +272,57 @@ rounds:
 * **Transparency:** Ships with an automatically generated SPDX 2.3 `sbom.json` for easy software supply chain auditing. Regenerate with `npm run sbom`.
 
 > **Architecture Note:** Game state (rooms, active players) is held entirely in-memory for maximum speed. Restarting the server will wipe active games. Horizontal scaling (multiple instances) is not currently supported.
+
+---
+
+## Security & System Architecture
+
+This section explains the security model for contributors. Understanding these protections helps avoid introducing vulnerabilities when adding features or changing socket/API behavior.
+
+### Security Model Overview
+
+| Layer | Protection | Location |
+|-------|------------|----------|
+| **Host auth** | Cookie or password; constant-time comparison (SHA-256 + `timingSafeEqual`) | `auth/index.ts`, `api/auth/login` |
+| **Room password** | Optional per-room password for player joins; same constant-time verification | `socket.ts` `player:join` |
+| **Player identity** | Server-authoritative; client-supplied `playerId` ignored for register/answer | `socket.ts` |
+| **Duplicate joins** | Reject if `playerId` already connected | `socket.ts` `player:join` |
+| **Answer key exposure** | Role-aware serialization; players/projector get scrubbed quiz until reveal | `socket.ts` `serializePlayerState` |
+| **Input bounds** | Name 50 chars; emoji 4 chars; answerText 75–200 chars (by type); truncation | `socket.ts` |
+| **Rate limiting** | Player join, host create/join, login, host get_state | `rate-limit.ts` |
+| **Path validation** | Quiz filenames, images, archives; no `..` or traversal | `parser.ts`, API routes |
+| **Privacy by design** | In-memory state; nothing persists unless explicitly logged to history | Game state lifecycle |
+
+### Key Architectural Decisions
+
+**Server-authoritative player identity**  
+The server assigns and binds `playerId` to the socket on join. `player:register` and all answer handlers use `socket.data.playerId` exclusively. Client-supplied `playerId` in payloads is ignored. This prevents impersonation and duplicate-ID abuse.
+
+**Role-aware serialization**  
+`broadcastStateToRoom` sends different state to host vs players/projector. Host receives full quiz (including answer keys). Players and projector receive a scrubbed quiz: `answer` is omitted for questions not yet revealed. On reveal, the current question’s answer is included for correct-answer highlighting.
+
+**Input truncation**  
+Over-long input (name, emoji, answerText) is truncated rather than rejected. This reduces DoS from huge payloads while keeping UX smooth. Character counters in the UI help users stay within limits.
+
+**Projector and room password**  
+The projector joins via `player:join`. If the room has a player password, the projector shows a password form instead of redirecting. The host (who set the password) can enter it to display the projector view.
+
+### Security Disclosure
+
+If you discover a security vulnerability, please report it responsibly:
+
+1. **Do not** open a public issue.
+2. Email the maintainers or open a private security advisory (if the project supports it).
+3. Include steps to reproduce, impact assessment, and any suggested fix.
+4. Allow reasonable time for a fix before public disclosure.
+
+We appreciate responsible disclosure and will acknowledge contributors who help improve security.
+
+### For Contributors
+
+When modifying socket handlers, auth, or serialization:
+
+- **Never trust client-supplied identity.** Use `socket.data.playerId`, `socket.data.role`, and `socket.data.roomId` from the server session.
+- **Preserve role-aware serialization.** Any new broadcast of game state must use `serializePlayerState` for players/projector and `serializeHostState` for host.
+- **Bound all untrusted input.** Apply length limits and validation before storing or broadcasting.
+- **Use `verifyPasswordConstantTime`** for any password comparison; do not use `===` on raw strings.
