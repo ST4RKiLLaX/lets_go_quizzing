@@ -195,6 +195,62 @@ export function initSocket(httpServer: import('http').Server): Server {
       void broadcastStateToRoom(io, roomId, next, ['room:update']);
     });
 
+    socket.on('player:leave', (_, ack) => {
+      const roomId = socket.data.roomId;
+      const playerId = socket.data.playerId;
+      if (!roomId || !playerId || socket.data.role !== 'player') {
+        ack?.({ error: 'Not in a room' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ ok: true });
+        return;
+      }
+      const players = new Map(state.players);
+      players.delete(playerId);
+      const next = { ...state, players };
+      setRoom(roomId, next);
+      socket.leave(roomId);
+      socket.data.roomId = undefined;
+      socket.data.playerId = undefined;
+      socket.data.role = undefined;
+      ack?.({ ok: true });
+      void broadcastStateToRoom(io, roomId, next, ['room:update']);
+    });
+
+    socket.on('projector:join', (payload: { roomId: string; password?: string }, ack) => {
+      const { roomId, password } = payload ?? {};
+      if (!roomId) {
+        ack?.({ error: 'roomId required' });
+        return;
+      }
+      if (!checkPlayerJoinRateLimit(getClientAddressFromSocket(socket))) {
+        ack?.({ error: 'Too many attempts' });
+        return;
+      }
+      if (!roomExists(roomId)) {
+        ack?.({ error: 'Room not found' });
+        return;
+      }
+      const state = getRoom(roomId)!;
+      const roomJoinPassword = state.playerJoinPassword;
+      if (roomJoinPassword) {
+        if (!password?.trim()) {
+          ack?.({ error: 'Room password required' });
+          return;
+        }
+        if (!verifyPasswordConstantTime(password, roomJoinPassword)) {
+          ack?.({ error: 'Invalid room password' });
+          return;
+        }
+      }
+      socket.join(roomId);
+      socket.data.role = 'projector';
+      socket.data.roomId = roomId;
+      ack?.({ state: serializePlayerState(state) });
+    });
+
     socket.on('host:join', (payload: { roomId: string; username?: string; password?: string }, ack) => {
       const { roomId, username, password } = payload ?? {};
       if (!roomId) {

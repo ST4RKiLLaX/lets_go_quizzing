@@ -1,10 +1,66 @@
+<script lang="ts">
+  import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
+
+  let showLogoutModal = false;
+  let showQuizLiveWarning = false;
+  let loggingOut = false;
+  $: quizLive = $hostQuizLiveStore.live;
+  $: hostRoomId = $hostQuizLiveStore.roomId;
+
+  async function confirmLogout() {
+    if (loggingOut || quizLive) return;
+    loggingOut = true;
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = '/';
+    } finally {
+      loggingOut = false;
+    }
+  }
+
+  function onLogoutClick() {
+    if (quizLive) {
+      showQuizLiveWarning = true;
+    } else {
+      showLogoutModal = true;
+    }
+  }
+</script>
+
 <nav class="flex items-center justify-between px-4 py-3 bg-pub-darker border-b border-pub-muted">
   <a href="/" class="text-lg font-bold text-pub-gold hover:opacity-90">Let's Go Quizzing</a>
-  <a
-    href="/settings"
-    class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold"
-    aria-label="Settings"
-  >
+  <div class="flex items-center gap-2">
+    {#if quizLive}
+      <button
+        type="button"
+        class="p-2 rounded-lg text-pub-muted opacity-40 cursor-not-allowed"
+        aria-label="Settings (disabled during quiz)"
+        disabled
+        title="Settings unavailable while quiz is live"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+          />
+        </svg>
+      </button>
+    {:else}
+    <a
+      href="/settings"
+      class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold"
+      aria-label="Settings"
+    >
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="24"
@@ -21,5 +77,72 @@
         d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
       />
     </svg>
-  </a>
+    </a>
+    {/if}
+    <button
+      type="button"
+      class="px-3 py-1.5 text-sm text-pub-muted hover:bg-pub-dark hover:text-pub-gold rounded-lg disabled:opacity-50"
+      on:click={onLogoutClick}
+      disabled={loggingOut}
+    >
+      {loggingOut ? 'Logging out...' : 'Log out'}
+    </button>
+  </div>
 </nav>
+
+{#if showLogoutModal}
+  <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
+    <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5">
+      <h2 id="logout-modal-title" class="text-lg font-semibold text-pub-gold mb-3">Log out?</h2>
+      <p class="text-sm text-pub-muted mb-5">
+        You will be logged out and will need to enter your username and password again to host games, create quizzes, or access settings.
+      </p>
+      <div class="flex justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+          on:click={() => (showLogoutModal = false)}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-red-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          on:click={confirmLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? 'Logging out...' : 'Log out'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if showQuizLiveWarning}
+  <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="quiz-live-modal-title">
+    <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5">
+      <h2 id="quiz-live-modal-title" class="text-lg font-semibold text-pub-gold mb-3">Cannot log out</h2>
+      <p class="text-sm text-pub-muted mb-5">
+        You must end the quiz before logging out. Go to your host page and click "End Quiz" to finish the session, then you can log out.
+      </p>
+      <div class="flex justify-end gap-2">
+        {#if hostRoomId}
+          <a
+            href="/host/{hostRoomId}"
+            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 text-center"
+            on:click={() => { showQuizLiveWarning = false; }}
+          >
+            Go to quiz
+          </a>
+        {/if}
+        <button
+          type="button"
+          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
+          on:click={() => (showQuizLiveWarning = false)}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

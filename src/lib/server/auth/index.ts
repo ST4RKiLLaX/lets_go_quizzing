@@ -72,6 +72,11 @@ export function createSession(options?: { secure?: boolean; authEpoch?: number }
   return { token, cookie };
 }
 
+export function createLogoutCookie(secure?: boolean): string {
+  const securePart = secure ? '; Secure' : '';
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${securePart}`;
+}
+
 export function isAuthenticated(cookieHeader: string | undefined): boolean {
   const cookies = parseCookie(cookieHeader);
   const token = cookies[SESSION_COOKIE];

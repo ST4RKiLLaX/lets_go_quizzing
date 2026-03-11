@@ -9,6 +9,7 @@ A blazingly fast, real-time multiplayer trivia app stripped to the studs. Built 
 * 🎮 **Dedicated Game Views:** Mobile-first player inputs, a powerful Host control center with manual scoring overrides, and a distraction-free Projector view for the big screen.
 * 🛡️ **Built-In Security:** Stateful role authentication and websocket rate-limiting prevent event flooding and spoofing.
 * 📝 **Frictionless Quiz Creation:** Simple plain-text authoring with a built-in lightweight YAML editor.
+* 🔐 **One-Time Setup:** No database or `.env` required. Run `docker compose up`, complete setup in the UI, and manage credentials via the Settings page.
 
 ---
 
@@ -25,48 +26,63 @@ Open `http://localhost:5173` to view the app.
 
 ---
 
+## 👥 Host and Player UI
+
+**Host:** When logged in, a nav bar appears with links to home, Settings (gear icon), and Log out. Settings and logout are disabled while a quiz is live—you must end the quiz first. Logout shows a confirmation modal.
+
+**Player:** A compact nav bar appears after joining a room, with Settings (change name/emoji in lobby only) and Exit quiz (door icon). Exit shows a warning: in lobby you can rejoin; once the quiz has started, leaving removes you from the session and leaderboard.
+
+**Projector:** The projector view has no nav bar and does not appear as a player in the leaderboard.
+
+---
+
 ## 🐳 Deployment (Docker)
 The recommended way to run this application in production is via Docker. 
 
 ### Option 1: Docker Compose (Recommended)
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Edit `.env` and set your `HOST_PASSWORD`.
-3. Deploy the stack:
-   ```bash
-   docker compose up -d --build
-   ```
+No `.env` file is required for basic use. Clone the repo and run:
+
+```bash
+docker compose up -d --build
+```
+
+Then open `http://localhost:3000` (or your server's address). You'll be redirected to the setup page to create an admin username and password, which are stored in `data/config.json` on the mounted volume.
+
+**Optional:** To use environment overrides (e.g. `ORIGIN`, `ROOM_ID_LEN`), create a `.env` file and uncomment the `env_file` section in `docker-compose.yml`. See `.env.example` for available variables.
 
 ### Option 2: Docker Run
-To run a standalone container with persistent data and a host password:
+To run a standalone container with persistent data:
 ```bash
 docker build -t lets-go-quizzing .
 
 docker run -d \
   -p 3000:3000 \
-  -e HOST_PASSWORD=your_secure_password \
   -v /path/to/host/data:/app/data \
   lets-go-quizzing
 ```
 
-> **Note on Permissions:** The container runs as a non-root user. If you encounter permission errors writing to your mapped `data/` volume, run `chown -R 1001:1001 /path/to/host/data` on your host machine.
+You'll be redirected to setup automatically when you open the app.
+
+> **Note on Permissions:** The container runs as root by default so it can write to the mounted `data/` volume. If you prefer to run as your host user, use `UID=$(id -u) GID=$(id -g) docker compose up`.
 
 ---
 
-## ⚙️ Configuration & Environment Variables
+## ⚙️ Configuration
 
-Whether you are using a `.env` file, Docker environment variables, or standard shell exports, you can configure the app using the following variables:
+### Setup and Config File
+On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). You can change username, password, ORIGIN, and room code length later via the **Settings** page (gear icon in the host nav).
 
-| Variable | Description | Required? |
+### Environment Variables (Optional Overrides)
+These override config file values when set. Useful for Kubernetes, CI, or deployment-specific tuning.
+
+| Variable | Description | Overrides |
 | :--- | :--- | :--- |
-| `HOST_PASSWORD` | Secures the Host and Quiz Creator controls. If left blank, hosting and creating quizzes is disabled. | **Yes** (for hosting) |
-| `ORIGIN` | A comma-separated list of allowed origins (e.g., `https://quiz.example.com`). **Must be set in production** to prevent Socket.io CORS rejections. | **Yes** (in Prod) |
-| `ROOM_ID_LEN` | Length of the generated room code. Default is `6`. | No |
-| `ADDRESS_HEADER`| Set to `x-forwarded-for` if running behind a proxy so rate limits apply to real client IPs, not the proxy IP. | No |
+| `ORIGIN` | Comma-separated allowed origins for Socket.io CORS (e.g., `https://quiz.example.com`). **Set in production** to restrict WebSocket origins. | `config.origin` |
+| `ROOM_ID_LEN` | Length of generated room codes. Default is `6`. | `config.roomIdLen` |
+| `HOST_PASSWORD` | Legacy: enables hosting when no config exists. Used for migration from env-only setups. | — |
+| `ADDRESS_HEADER` | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs. | — |
 
-> **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your `.env`.
+> **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your config or `.env`.
 
 ### Reverse Proxy Setup (Nginx, Cloudflare, Traefik, etc.)
 When running behind a reverse proxy that handles TLS/SSL, ensure you forward the correct headers so secure cookies and websockets function properly:
@@ -283,7 +299,7 @@ This section explains the security model for contributors. Understanding these p
 
 | Layer | Protection | Location |
 |-------|------------|----------|
-| **Host auth** | Cookie or password; constant-time comparison (SHA-256 + `timingSafeEqual`) | `auth/index.ts`, `api/auth/login` |
+| **Host auth** | Username + password; scrypt hashing in config; session cookie; constant-time env fallback (SHA-256) | `auth/index.ts`, `config.ts`, `api/auth/login` |
 | **Room password** | Optional per-room password for player joins; same constant-time verification | `socket.ts` `player:join` |
 | **Player identity** | Server-authoritative; client-supplied `playerId` ignored for register/answer | `socket.ts` |
 | **Duplicate joins** | Reject if `playerId` already connected | `socket.ts` `player:join` |
@@ -305,7 +321,7 @@ The server assigns and binds `playerId` to the socket on join. `player:register`
 Over-long input (name, emoji, answerText) is truncated rather than rejected. This reduces DoS from huge payloads while keeping UX smooth. Character counters in the UI help users stay within limits.
 
 **Projector and room password**  
-The projector joins via `player:join`. If the room has a player password, the projector shows a password form instead of redirecting. The host (who set the password) can enter it to display the projector view.
+The projector joins via `projector:join` (view-only; it does not appear as a player in the leaderboard). If the room has a player password, the projector shows a password form. The host can enter it to display the projector view.
 
 ### Security Disclosure
 

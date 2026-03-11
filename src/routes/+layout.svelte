@@ -1,8 +1,16 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import '../app.css';
+  import HostNav from '$lib/components/HostNav.svelte';
+
+  export let data;
+  $: isProjector = $page.url.pathname.startsWith('/projector/');
 </script>
 
 <div class="h-screen flex flex-col overflow-hidden">
+  {#if data.hostAuthenticated && !isProjector}
+    <HostNav />
+  {/if}
   <main class="flex-1 min-h-0 overflow-y-auto">
     <slot />
   </main>

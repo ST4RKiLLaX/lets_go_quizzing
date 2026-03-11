@@ -142,7 +142,7 @@
     if (!socket) return;
     joiningRoom = true;
     socket.emit(
-      'player:join',
+      'projector:join',
       { roomId, password: password.trim() || undefined },
       (ack: { state?: SerializedState; error?: string }) => {
         joiningRoom = false;

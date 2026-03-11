@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
-  import HostNav from '$lib/components/HostNav.svelte';
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
+  import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import type { Question } from '$lib/types/quiz.js';
@@ -42,6 +42,8 @@
   $: if (wakeManager) {
     void wakeManager.setAutoActive(!!isActiveQuizPhase);
   }
+  $: quizLive = state?.type !== 'Lobby' && state?.type !== 'End';
+  $: hostQuizLiveStore.set(!!state && quizLive ? { live: true, roomId } : { live: false });
   let hostRejoinPrefilled = false;
   $: if (joinError !== 'Invalid password') hostRejoinPrefilled = false;
   $: if (joinError === 'Invalid password' && !hostRejoinPrefilled && typeof window !== 'undefined') {
@@ -53,6 +55,7 @@
     }
   }
   onDestroy(() => {
+    hostQuizLiveStore.set({ live: false });
     countdown?.destroy?.();
     void wakeManager?.destroy();
   });
@@ -175,8 +178,7 @@
 </script>
 
 <div class="min-h-screen p-4 sm:p-6">
-  <HostNav />
-  <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6 mt-4">
+  <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
     <div class="flex-1 min-w-0">
     <div class="mb-4 sm:mb-6">
       <p class="text-pub-gold text-lg sm:text-xl font-semibold mb-2 break-words">

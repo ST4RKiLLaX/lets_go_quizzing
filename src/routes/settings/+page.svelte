@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import HostNav from '$lib/components/HostNav.svelte';
   import { invalidateAll } from '$app/navigation';
+  import { get } from 'svelte/store';
+  import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
 
   let username = '';
   let origin = '';
@@ -87,11 +88,15 @@
   }
 
   onMount(() => {
+    const { live, roomId } = get(hostQuizLiveStore);
+    if (live && roomId) {
+      window.location.href = `/host/${roomId}`;
+      return;
+    }
     loadSettings();
   });
 </script>
 
-<HostNav />
 <div class="max-w-2xl mx-auto p-6">
   <h1 class="text-2xl font-bold text-pub-gold mb-6">Settings</h1>
 
