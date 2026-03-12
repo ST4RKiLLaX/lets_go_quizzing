@@ -745,7 +745,7 @@
   <div class="flex-1 p-6">
   {#key confettiRunId}
     {#if showConfetti}
-      <PlayerConfetti durationMs={confettiDurationMs} on:done={onConfettiDone} />
+      <PlayerConfetti durationMs={confettiDurationMs} ondone={onConfettiDone} />
     {/if}
   {/key}
   <div class="max-w-2xl mx-auto">
@@ -761,7 +761,7 @@
           <button
             type="button"
             class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
-            on:click={enableWakeFromTap}
+            onclick={enableWakeFromTap}
           >
             Enable screen wake
           </button>
@@ -781,7 +781,7 @@
             type="button"
             class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
             disabled={joiningRoom}
-            on:click={() => {
+            onclick={() => {
               try {
                 sessionStorage.removeItem('wasKicked_' + roomId);
               } catch {
@@ -796,7 +796,7 @@
         {:else if needsRequestForm}
           <form
             class="space-y-3"
-            on:submit|preventDefault={() => joinRoom(getOrCreatePlayerId(), joinPassword, name, emoji)}
+            onsubmit={(e) => { e.preventDefault(); joinRoom(getOrCreatePlayerId(), joinPassword, name, emoji); }}
           >
             <p class="text-sm text-pub-muted mb-2">Enter your name and emoji to request access</p>
             <div>
@@ -819,7 +819,7 @@
                     type="button"
                     class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
                     disabled={isUnavailable}
-                    on:click={() => { if (!isUnavailable) emoji = e; }}
+                    onclick={() => { if (!isUnavailable) emoji = e; }}
                   >
                     {e}
                     {#if isUnavailable}
@@ -847,7 +847,8 @@
           <p class="text-sm text-red-400 mb-2">{joinError || 'Host denied your request. Change your name or emoji to try again.'}</p>
           <form
             class="space-y-3"
-            on:submit|preventDefault={() => {
+            onsubmit={(e) => {
+              e.preventDefault();
               deniedByHost = false;
               joinError = '';
               joinRoom(getOrCreatePlayerId(), joinPassword, name, emoji);
@@ -873,7 +874,7 @@
                     type="button"
                     class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
                     disabled={isUnavailable}
-                    on:click={() => { if (!isUnavailable) emoji = e; }}
+                    onclick={() => { if (!isUnavailable) emoji = e; }}
                   >
                     {e}
                     {#if isUnavailable}
@@ -899,7 +900,7 @@
         {:else if needsRoomPassword}
           <form
             class="space-y-3"
-            on:submit|preventDefault={() => joinRoom(getOrCreatePlayerId(), joinPassword)}
+            onsubmit={(e) => { e.preventDefault(); joinRoom(getOrCreatePlayerId(), joinPassword); }}
           >
             <label for="join-password" class="block text-sm text-pub-muted">
               This room requires a password
@@ -937,7 +938,7 @@
     {:else if state?.type === 'Lobby' && !registered}
       <div class="bg-pub-darker rounded-lg p-6">
         <h2 class="text-xl font-bold mb-4">Join the quiz</h2>
-        <form class="space-y-4" on:submit|preventDefault={register}>
+        <form class="space-y-4" onsubmit={(e) => { e.preventDefault(); register(); }}>
           <div>
             <label for="player-name" class="block text-sm text-pub-muted mb-1">Your name</label>
             <input
@@ -969,7 +970,7 @@
                   type="button"
                   class="relative h-12 w-full text-2xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
                   disabled={isUnavailable}
-                  on:click={() => {
+                  onclick={() => {
                     if (!isUnavailable) emoji = e;
                   }}
                 >
@@ -1022,7 +1023,7 @@
                 class="relative inline-block max-w-full cursor-crosshair my-4"
                 role="button"
                 tabindex="0"
-                on:click={(e) => {
+                onclick={(e) => {
                   const img = e.currentTarget.querySelector('img');
                   if (!img || isHotspotSubmitted(q.id) || questionTimeExpired) return;
                   const rect = img.getBoundingClientRect();
@@ -1030,7 +1031,7 @@
                   const y = (e.clientY - rect.top) / rect.height;
                   submitHotspot(q.id, x, y);
                 }}
-                on:touchend={(e) => {
+                ontouchend={(e) => {
                   const img = e.currentTarget.querySelector('img');
                   if (!img || isHotspotSubmitted(q.id) || questionTimeExpired) return;
                   const touch = e.changedTouches?.[0];
@@ -1040,9 +1041,22 @@
                   const y = (touch.clientY - rect.top) / rect.height;
                   submitHotspot(q.id, x, y);
                 }}
-                on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+                onkeydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
               >
-                <img src={src} alt="" class="max-w-full rounded-lg block" />
+                <img
+                  src={src}
+                  alt=""
+                  class="max-w-full rounded-lg block"
+                  onerror={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = 'none';
+                    const fallback = img.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
+                />
+                <p class="text-pub-muted text-sm py-4" style="display: none;">
+                  Image could not be loaded. Please try again or contact the host.
+                </p>
                 {#if tap}
                   <div
                     class="absolute w-3 h-3 rounded-full bg-pub-gold border-2 border-white pointer-events-none"
@@ -1051,6 +1065,8 @@
                 {/if}
               </div>
               <p class="text-sm text-pub-muted mb-2">Tap the correct area on the image</p>
+            {:else}
+              <p class="text-pub-muted text-sm py-4">Image unavailable for this question.</p>
             {/if}
           {:else if q.image}
             {@const src = getQuestionImageSrc(q.image, state.quizFilename)}
@@ -1066,7 +1082,7 @@
                 <button
                   class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
                   disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || questionTimeExpired}
-                  on:click={() => submitChoice(q.id, i)}
+                  onclick={() => submitChoice(q.id, i)}
                 >
                   <span class="w-4 text-pub-gold" aria-hidden="true">
                     {#if isChosen}
@@ -1087,7 +1103,7 @@
                 <button
                   class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
                   disabled={isMultiSelectSubmitted(q.id) || questionTimeExpired}
-                  on:click={() => toggleMultiSelectDraft(i)}
+                  onclick={() => toggleMultiSelectDraft(i)}
                 >
                   <span class="w-4 text-pub-gold" aria-hidden="true">
                     {#if isChosen}
@@ -1104,7 +1120,7 @@
                 type="button"
                 class="mt-2 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                 disabled={isMultiSelectSubmitted(q.id) || multiSelectDraft.length === 0 || questionTimeExpired}
-                on:click={() => submitMultiSelect(q.id, multiSelectDraft)}
+                onclick={() => submitMultiSelect(q.id, multiSelectDraft)}
               >
                 Submit
               </button>
@@ -1124,7 +1140,7 @@
                         type="button"
                         class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
                         disabled={currentPos === 0}
-                        on:click={() => {
+                        onclick={() => {
                           if (currentPos > 0) {
                             const newDraft = [...reorderDraft];
                             [newDraft[currentPos - 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos - 1]];
@@ -1138,7 +1154,7 @@
                         type="button"
                         class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
                         disabled={currentPos === reorderDraft.length - 1}
-                        on:click={() => {
+                        onclick={() => {
                           if (currentPos < reorderDraft.length - 1) {
                             const newDraft = [...reorderDraft];
                             [newDraft[currentPos + 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos + 1]];
@@ -1156,7 +1172,7 @@
                 type="button"
                 class="mt-4 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                 disabled={isReorderSubmitted(q.id) || questionTimeExpired}
-                on:click={() => submitReorder(q.id, reorderDraft)}
+                onclick={() => submitReorder(q.id, reorderDraft)}
               >
                 Submit Ordering
               </button>
@@ -1183,7 +1199,7 @@
                 type="button"
                 class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                 disabled={isSliderSubmitted(q.id) || sliderAnswer == null || questionTimeExpired}
-                on:click={() => submitSlider(q.id, Number(sliderAnswer))}
+                onclick={() => submitSlider(q.id, Number(sliderAnswer))}
               >
                 Submit
               </button>
@@ -1193,7 +1209,8 @@
             {@const atLimit = inputAnswer.length >= maxChars}
             <form
               class="flex flex-col gap-2"
-              on:submit|preventDefault={() => {
+              onsubmit={(e) => {
+                e.preventDefault();
                 if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
                   submitInput(q.id, inputAnswer.trim());
                 }
@@ -1207,7 +1224,7 @@
                   maxlength={maxChars}
                   class="flex-1 bg-pub-dark border rounded-lg px-4 py-2 {atLimit ? 'border-amber-500' : 'border-pub-muted'} {isInputSubmitted(q.id) ? 'opacity-60' : ''}"
                   disabled={isInputSubmitted(q.id) || questionTimeExpired}
-                  on:keydown={(e) => {
+                  onkeydown={(e) => {
                     if (e.key === 'Enter') {
                       if (inputAnswer.trim() && !isInputSubmitted(q.id) && !questionTimeExpired) {
                         submitInput(q.id, inputAnswer.trim());
@@ -1479,14 +1496,14 @@
         <button
           type="button"
           class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-          on:click={() => (showExitModal = false)}
+          onclick={() => (showExitModal = false)}
         >
           Cancel
         </button>
         <button
           type="button"
           class="px-4 py-2 bg-red-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-          on:click={exitQuiz}
+          onclick={exitQuiz}
           disabled={leavingQuiz}
         >
           {leavingQuiz ? 'Leaving...' : 'Exit quiz'}
@@ -1500,7 +1517,7 @@
   <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
     <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5 max-h-[90vh] overflow-y-auto">
       <h2 id="settings-modal-title" class="text-lg font-semibold text-pub-gold mb-4">Change name and emoji</h2>
-      <form class="space-y-4" on:submit|preventDefault={() => { register(); showSettingsModal = false; }}>
+      <form class="space-y-4" onsubmit={(e) => { e.preventDefault(); register(); showSettingsModal = false; }}>
         <div>
           <label for="settings-name" class="block text-sm text-pub-muted mb-1">Your name</label>
           <input
@@ -1522,7 +1539,7 @@
                 type="button"
                 class="relative h-12 w-full text-2xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
                 disabled={isUnavailable}
-                on:click={() => { if (!isUnavailable) emoji = e; }}
+                onclick={() => { if (!isUnavailable) emoji = e; }}
               >
                 {e}
                 {#if isUnavailable}
@@ -1539,7 +1556,7 @@
           <button
             type="button"
             class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => { showSettingsModal = false; registerError = ''; }}
+            onclick={() => { showSettingsModal = false; registerError = ''; }}
           >
             Cancel
           </button>
@@ -1564,14 +1581,14 @@
         <button
           type="button"
           class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-          on:click={closeWakeEnableModal}
+          onclick={closeWakeEnableModal}
         >
           Not now
         </button>
         <button
           type="button"
           class="px-4 py-2 bg-green-600 rounded-lg font-medium hover:opacity-90"
-          on:click={enableWakeFromTap}
+          onclick={enableWakeFromTap}
         >
           Enable
         </button>

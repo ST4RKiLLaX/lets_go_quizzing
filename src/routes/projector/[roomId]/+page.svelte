@@ -137,12 +137,15 @@
       ? getCorrectAnswersInRankOrder()
       : [];
 
+  const PROJECTOR_PASSWORD_KEY = 'lgq_projector_password_';
+
   function joinRoom(password: string) {
     if (!socket) return;
     joiningRoom = true;
+    const pwd = password.trim() || undefined;
     socket.emit(
       'projector:join',
-      { roomId, password: password.trim() || undefined },
+      { roomId, password: pwd },
       (ack: { state?: SerializedState; error?: string }) => {
         joiningRoom = false;
         if (ack?.error) {
@@ -154,6 +157,11 @@
           if (ack.error === 'Invalid room password') {
             needsRoomPassword = true;
             joinError = ack.error;
+            try {
+              sessionStorage.removeItem(PROJECTOR_PASSWORD_KEY + roomId);
+            } catch {
+              /* ignore */
+            }
             return;
           }
           window.location.href = '/';
@@ -162,6 +170,13 @@
         needsRoomPassword = false;
         joinError = '';
         if (ack?.state) state = ack.state;
+        if (pwd) {
+          try {
+            sessionStorage.setItem(PROJECTOR_PASSWORD_KEY + roomId, pwd);
+          } catch {
+            /* ignore */
+          }
+        }
       }
     );
   }
@@ -170,7 +185,16 @@
     wakeManager = createWakeManager();
 
     socket = createSocket();
-    joinRoom('');
+    let initialPassword = '';
+    try {
+      initialPassword = sessionStorage.getItem(PROJECTOR_PASSWORD_KEY + roomId) ?? '';
+    } catch {
+      /* ignore */
+    }
+    if (initialPassword) {
+      joinPassword = initialPassword;
+    }
+    joinRoom(initialPassword);
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
@@ -188,7 +212,7 @@
         {#if needsRoomPassword}
           <form
             class="space-y-3"
-            on:submit|preventDefault={() => joinRoom(joinPassword)}
+            onsubmit={(e) => { e.preventDefault(); joinRoom(joinPassword); }}
           >
             <label for="projector-join-password" class="block text-sm text-pub-muted">
               This room requires a password
