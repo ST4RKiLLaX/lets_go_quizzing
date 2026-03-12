@@ -29,6 +29,7 @@ export interface AnswerSubmission {
   answerY?: number;
   submittedAt: number;
   visibility?: 'visible' | 'blocked';
+  projectorHiddenByHost?: boolean;
 }
 
 export interface GameState {
@@ -49,6 +50,7 @@ export interface GameState {
   submissions: AnswerSubmission[];
   wrongAnswers: Array<{ playerId: string; questionId: string; answer: string | number | number[] }>;
   bannedPlayerIds: Set<string>;
+  hiddenWordsByQuestion: Map<string, Set<string>>;
   timerEndsAt?: number;
   startedAt?: number;
 }
@@ -184,5 +186,6 @@ export function createInitialState(roomId: string, quiz: Quiz, quizFilename: str
     submissions: [],
     wrongAnswers: [],
     bannedPlayerIds: new Set(),
+    hiddenWordsByQuestion: new Map(),
   };
 }

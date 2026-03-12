@@ -10,6 +10,7 @@
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
+  import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
   import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
@@ -404,22 +405,29 @@
             </ul>
           {:else if q.type === 'slider'}
             <div class="space-y-3">
-              <p class="px-4 py-2 bg-pub-dark rounded-lg text-pub-muted">
-                Range: {q.min} to {q.max} in steps of {q.step}
-              </p>
-              <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-green-500 text-pub-gold">
-                Correct: {q.answer}
-              </p>
+              <div class="px-4 py-4 bg-pub-dark rounded-lg">
+                <input
+                  type="range"
+                  min={q.min}
+                  max={q.max}
+                  step={q.step}
+                  value={q.answer}
+                  disabled
+                  class="w-full accent-pub-gold"
+                />
+                <p class="mt-2 text-center text-pub-gold font-semibold">{q.answer}</p>
+              </div>
             </div>
           {:else if q.type === 'input'}
             <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {:else if q.type === 'open_ended'}
+            {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked' && !s.projectorHiddenByHost)}
             <div class="space-y-3 mt-4">
               <h3 class="text-lg font-semibold text-pub-muted">Responses:</h3>
               <ul class="space-y-2">
-                {#each (state.submissions ?? []).filter(s => s.questionId === q.id) as sub}
+                {#each visibleSubs as sub}
                   {@const player = state.players?.find(p => p.id === sub.playerId)}
                   <li class="px-4 py-3 bg-pub-dark rounded-lg text-lg">
                     <span class="text-pub-muted mr-3">{player?.emoji} {player?.name}:</span>
@@ -429,14 +437,17 @@
               </ul>
             </div>
           {:else if q.type === 'word_cloud'}
+            {@const hiddenWords = new Set((state.hiddenWordsByQuestion ?? {})[q.id] ?? [])}
+            {@const wordCounts = (state.submissions ?? [])
+              .filter(s => s.questionId === q.id && s.visibility !== 'blocked')
+              .reduce((acc, s) => {
+                for (const token of getWordCloudTokens(s.answerText ?? '')) {
+                  if (!hiddenWords.has(token)) acc.set(token, (acc.get(token) || 0) + 1);
+                }
+                return acc;
+              }, new Map<string, number>())}
             <div class="mt-4 flex flex-wrap gap-4 justify-center items-center p-8 bg-pub-dark rounded-lg min-h-[200px]">
-              {#each Array.from(
-                (state.submissions ?? []).filter(s => s.questionId === q.id).reduce((acc, s) => {
-                  const text = (s.answerText || '').trim().toUpperCase();
-                  if (text) acc.set(text, (acc.get(text) || 0) + 1);
-                  return acc;
-                }, new Map<string, number>())
-              ).sort((a, b) => b[1] - a[1]) as [word, count]}
+              {#each Array.from(wordCounts).sort((a, b) => b[1] - a[1]) as [word, count]}
                 <span style="font-size: {Math.max(1.5, Math.min(5, 1 + count * 0.5))}rem; opacity: {Math.min(1, 0.4 + count * 0.2)}" class="text-pub-gold font-bold leading-none inline-block">
                   {word}
                 </span>

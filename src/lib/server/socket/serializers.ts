@@ -1,13 +1,17 @@
 import type { GameState } from '../game/state-machine.js';
 
-export function serializeSubmissions(submissions: GameState['submissions'], forHost: boolean) {
-  if (forHost) {
+export function serializeSubmissions(
+  submissions: GameState['submissions'],
+  options: { forHost: boolean; forProjector?: boolean }
+) {
+  const { forHost, forProjector } = options;
+  if (forHost || forProjector) {
     return submissions.map((s) => {
       if (s.visibility === 'blocked') {
         const { answerText: _, ...rest } = s;
-        return { ...rest, visibility: 'blocked' as const };
+        return { ...rest, visibility: 'blocked' as const, projectorHiddenByHost: s.projectorHiddenByHost ?? false };
       }
-      return s;
+      return { ...s, projectorHiddenByHost: s.projectorHiddenByHost ?? false };
     });
   }
   return submissions.filter((s) => s.visibility !== 'blocked');
@@ -50,7 +54,7 @@ export function serializeState(state: GameState, submissions: typeof state.submi
 }
 
 export function serializeHostState(state: GameState) {
-  const base = serializeState(state, serializeSubmissions(state.submissions, true));
+  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: true }));
   const pendingPlayers = state.pendingPlayers
     ? Array.from(state.pendingPlayers.values()).map((p) => ({
         playerId: p.playerId,
@@ -60,6 +64,11 @@ export function serializeHostState(state: GameState) {
         requestedAt: p.requestedAt,
       }))
     : [];
+  const hiddenWordsByQuestion: Record<string, string[]> = {};
+  const hwMap = state.hiddenWordsByQuestion ?? new Map();
+  for (const [qId, set] of hwMap) {
+    hiddenWordsByQuestion[qId] = Array.from(set);
+  }
   return {
     ...base,
     pendingPlayers,
@@ -67,11 +76,12 @@ export function serializeHostState(state: GameState) {
     allowLateJoin: state.allowLateJoin,
     autoAdmitBeforeGame: state.autoAdmitBeforeGame,
     manualAdmitAfterGame: state.manualAdmitAfterGame,
+    hiddenWordsByQuestion: Object.keys(hiddenWordsByQuestion).length > 0 ? hiddenWordsByQuestion : undefined,
   };
 }
 
 export function serializePlayerState(state: GameState) {
-  const base = serializeState(state, serializeSubmissions(state.submissions, false));
+  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: false }));
   const { type, currentRoundIndex, currentQuestionIndex } = state;
   const isRevealPhase = type === 'RevealAnswer' || type === 'Scoreboard' || type === 'End';
   const quiz = {
@@ -89,4 +99,18 @@ export function serializePlayerState(state: GameState) {
     })),
   };
   return { ...base, quiz };
+}
+
+export function serializeProjectorState(state: GameState) {
+  const submissions = serializeSubmissions(state.submissions, { forHost: true, forProjector: true });
+  const base = serializeState(state, submissions);
+  const hiddenWordsByQuestion: Record<string, string[]> = {};
+  const map = state.hiddenWordsByQuestion ?? new Map();
+  for (const [qId, set] of map) {
+    hiddenWordsByQuestion[qId] = Array.from(set);
+  }
+  return {
+    ...base,
+    hiddenWordsByQuestion: Object.keys(hiddenWordsByQuestion).length > 0 ? hiddenWordsByQuestion : undefined,
+  };
 }

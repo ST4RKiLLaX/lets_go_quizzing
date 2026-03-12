@@ -184,6 +184,11 @@
       <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
         Correct: {q.answer.filter(Boolean).join(' / ')}
       </p>
+      {#if revealData.submittedAnswerText}
+        <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted mt-4">
+          Your response: {revealData.submittedAnswerText}
+        </p>
+      {/if}
     {:else if q.type === 'open_ended' || q.type === 'word_cloud'}
       {#if revealData.submittedAnswerText}
         <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted mb-4">

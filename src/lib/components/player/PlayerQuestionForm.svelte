@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Readable } from 'svelte/store';
+  import { flip } from 'svelte/animate';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -47,6 +48,9 @@
   export let submitHotspot: (questionId: string, x: number, y: number) => void;
   export let submitInput: (questionId: string, answerText: string) => void;
   export let toggleMultiSelectDraft: (optionIndex: number) => void;
+  export let hotspotDraftByQuestionId: Record<string, { x: number; y: number }> = {};
+  export let updateHotspotDraft: (questionId: string, x: number, y: number) => void = () => {};
+  export let emoji = '😀';
 </script>
 
 <div class="bg-pub-darker rounded-lg p-6">
@@ -62,7 +66,7 @@
     {#if q.type === 'hotspot'}
       {@const hq = q as HotspotQuestion}
       {@const src = getQuestionImageSrc(hq.image, quizFilename)}
-      {@const tap = getSubmittedHotspot(q.id)}
+      {@const markerPos = hotspotDraftByQuestionId[q.id] ?? getSubmittedHotspot(q.id)}
       {#if src}
         <div
           class="relative inline-block max-w-full cursor-crosshair my-4"
@@ -74,7 +78,7 @@
             const rect = img.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
             const y = (e.clientY - rect.top) / rect.height;
-            submitHotspot(q.id, x, y);
+            updateHotspotDraft(q.id, x, y);
           }}
           ontouchend={(e) => {
             const img = e.currentTarget.querySelector('img');
@@ -84,7 +88,7 @@
             const rect = img.getBoundingClientRect();
             const x = (touch.clientX - rect.left) / rect.width;
             const y = (touch.clientY - rect.top) / rect.height;
-            submitHotspot(q.id, x, y);
+            updateHotspotDraft(q.id, x, y);
           }}
           onkeydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
         >
@@ -104,14 +108,29 @@
           <p class="text-pub-muted text-sm py-4" style="display: none;">
             Image could not be loaded. Please try again or contact the host.
           </p>
-          {#if tap}
-            <div
-              class="absolute w-3 h-3 rounded-full bg-pub-gold border-2 border-white pointer-events-none"
-              style="left: {(tap.x * 100)}%; top: {(tap.y * 100)}%; transform: translate(-50%, -50%);"
-            ></div>
+          {#if markerPos}
+            <span
+              class="absolute pointer-events-none text-2xl drop-shadow-lg"
+              style="left: {(markerPos.x * 100)}%; top: {(markerPos.y * 100)}%; transform: translate(-50%, -50%);"
+            >
+              {emoji}
+            </span>
           {/if}
         </div>
-        <p class="text-sm text-pub-muted mb-2">Tap the correct area on the image</p>
+        <p class="text-sm text-pub-muted mb-2">Tap to place your marker, then click Submit</p>
+        {#if !isHotspotSubmitted(q.id)}
+          <button
+            type="button"
+            class="mt-2 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            disabled={!hotspotDraftByQuestionId[q.id] || questionTimeExpired}
+            onclick={() => {
+              const d = hotspotDraftByQuestionId[q.id];
+              if (d) submitHotspot(q.id, d.x, d.y);
+            }}
+          >
+            Submit
+          </button>
+        {/if}
       {:else}
         <p class="text-pub-muted text-sm py-4">Image unavailable for this question.</p>
       {/if}
@@ -175,10 +194,10 @@
     {:else if q.type === 'reorder'}
       <div class="space-y-2">
         <p class="text-sm text-pub-muted mb-4">Use arrows to reorder items</p>
-        {#each reorderDraft as optIndex, currentPos}
-          <div class="flex items-center gap-2 bg-pub-dark rounded-lg p-2 {questionTimeExpired || isReorderSubmitted(q.id) ? 'opacity-60' : ''}">
+        {#each reorderDraft as optIndex (optIndex)}
+          <div class="flex items-center gap-2 bg-pub-dark rounded-lg p-2 {questionTimeExpired || isReorderSubmitted(q.id) ? 'opacity-60' : ''}" animate:flip={{ duration: 200 }}>
             <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center leading-none">
-              {currentPos + 1}
+              {reorderDraft.indexOf(optIndex) + 1}
             </span>
             <span class="flex-1 break-words px-2">{q.options[optIndex]}</span>
             {#if !isReorderSubmitted(q.id) && !questionTimeExpired}
@@ -186,11 +205,12 @@
                 <button
                   type="button"
                   class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
-                  disabled={currentPos === 0}
+                  disabled={reorderDraft.indexOf(optIndex) === 0}
                   onclick={() => {
-                    if (currentPos > 0) {
+                    const pos = reorderDraft.indexOf(optIndex);
+                    if (pos > 0) {
                       const newDraft = [...reorderDraft];
-                      [newDraft[currentPos - 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos - 1]];
+                      [newDraft[pos - 1], newDraft[pos]] = [newDraft[pos], newDraft[pos - 1]];
                       reorderDraft = newDraft;
                     }
                   }}
@@ -200,11 +220,12 @@
                 <button
                   type="button"
                   class="w-8 h-8 flex items-center justify-center bg-pub-darker rounded hover:bg-pub-accent/20 disabled:opacity-30 disabled:hover:bg-pub-darker"
-                  disabled={currentPos === reorderDraft.length - 1}
+                  disabled={reorderDraft.indexOf(optIndex) === reorderDraft.length - 1}
                   onclick={() => {
-                    if (currentPos < reorderDraft.length - 1) {
+                    const pos = reorderDraft.indexOf(optIndex);
+                    if (pos < reorderDraft.length - 1) {
                       const newDraft = [...reorderDraft];
-                      [newDraft[currentPos + 1], newDraft[currentPos]] = [newDraft[currentPos], newDraft[currentPos + 1]];
+                      [newDraft[pos + 1], newDraft[pos]] = [newDraft[pos], newDraft[pos + 1]];
                       reorderDraft = newDraft;
                     }
                   }}
@@ -300,7 +321,7 @@
         {currentQuestionNumber}/{currentRoundQuestionTotal}
       </p>
     {/if}
-    {#if hasAnsweredCurrentQuestion && q.type !== 'input' && q.type !== 'open_ended' && q.type !== 'word_cloud'}
+    {#if hasAnsweredCurrentQuestion}
       <p class="mt-4 text-pub-gold">Answer submitted!</p>
       {#if q.type === 'hotspot' && getSubmittedHotspot(q.id)}
         <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">

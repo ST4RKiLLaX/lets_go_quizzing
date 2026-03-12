@@ -15,9 +15,10 @@ import {
   checkHostJoinRateLimit,
   checkHostGetStateRateLimit,
 } from '../rate-limit.js';
-import { serializeHostState, serializePlayerState } from './serializers.js';
+import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
 import { broadcastStateToRoom } from './broadcast.js';
 import { saveHistory } from './history.js';
+import { normalizeWordCloudToken } from '../../utils/word-cloud.js';
 
 function logHostAuthFailure(
   event: 'host:create' | 'host:join',
@@ -46,6 +47,7 @@ export interface SocketHandlerContext {
   scoreSubmissions: typeof scoreSubmissions;
   serializeHostState: typeof serializeHostState;
   serializePlayerState: typeof serializePlayerState;
+  serializeProjectorState: typeof serializeProjectorState;
   broadcastStateToRoom: typeof broadcastStateToRoom;
   saveHistory: typeof saveHistory;
   logHostAuthFailure: typeof logHostAuthFailure;
@@ -304,6 +306,83 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     ack?.({ ok: true });
     void broadcastStateToRoom(io, roomId, next, ['state:update']);
   });
+
+  socket.on(
+    'host:set_submission_visibility',
+    (payload: { playerId: string; questionId: string; visible: boolean }, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ error: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ error: 'Room not found' });
+        return;
+      }
+      const { playerId, questionId, visible } = payload ?? {};
+      if (!playerId || !questionId || typeof visible !== 'boolean') {
+        ack?.({ error: 'playerId, questionId, and visible required' });
+        return;
+      }
+      const idx = state.submissions.findIndex(
+        (s) => s.playerId === playerId && s.questionId === questionId
+      );
+      if (idx < 0) {
+        ack?.({ error: 'Submission not found' });
+        return;
+      }
+      const submissions = [...state.submissions];
+      submissions[idx] = { ...submissions[idx], projectorHiddenByHost: !visible };
+      const next = { ...state, submissions };
+      setRoom(roomId, next);
+      ack?.({ ok: true });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    }
+  );
+
+  socket.on(
+    'host:set_word_visibility',
+    (payload: { questionId: string; word: string; visible: boolean }, ack) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || socket.data.role !== 'host') {
+        ack?.({ error: 'Unauthorized' });
+        return;
+      }
+      const state = getRoom(roomId);
+      if (!state) {
+        ack?.({ error: 'Room not found' });
+        return;
+      }
+      const { questionId, word, visible } = payload ?? {};
+      if (!questionId || !word || typeof visible !== 'boolean') {
+        ack?.({ error: 'questionId, word, and visible required' });
+        return;
+      }
+      const normalized = normalizeWordCloudToken(word);
+      if (!normalized) {
+        ack?.({ ok: true });
+        return;
+      }
+      const map = new Map(state.hiddenWordsByQuestion ?? new Map());
+      const set = map.get(questionId) ?? new Set<string>();
+      const nextSet = new Set(set);
+      if (visible) {
+        nextSet.delete(normalized);
+      } else {
+        nextSet.add(normalized);
+      }
+      if (nextSet.size === 0) {
+        map.delete(questionId);
+      } else {
+        map.set(questionId, nextSet);
+      }
+      const next = { ...state, hiddenWordsByQuestion: map };
+      setRoom(roomId, next);
+      ack?.({ ok: true });
+      void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    }
+  );
 }
 
 function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
@@ -919,7 +998,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
 }
 
 function registerProjectorHandlers(ctx: SocketHandlerContext): void {
-  const { socket, getRoom, roomExists, serializePlayerState } = ctx;
+  const { socket, getRoom, roomExists, serializeProjectorState } = ctx;
 
   socket.on('projector:join', (payload: { roomId: string; password?: string }, ack) => {
     const { roomId, password } = payload ?? {};
@@ -950,7 +1029,7 @@ function registerProjectorHandlers(ctx: SocketHandlerContext): void {
     socket.join(roomId);
     socket.data.role = 'projector';
     socket.data.roomId = roomId;
-    ack?.({ state: serializePlayerState(state) });
+    ack?.({ state: serializeProjectorState(state) });
   });
 }
 
@@ -1005,6 +1084,7 @@ export function createSocketHandlerContext(io: Server, socket: Socket): SocketHa
     scoreSubmissions,
     serializeHostState,
     serializePlayerState,
+    serializeProjectorState,
     broadcastStateToRoom,
     saveHistory,
     logHostAuthFailure,

@@ -1,9 +1,13 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
 
   let showLogoutModal = false;
   let showQuizLiveWarning = false;
   let loggingOut = false;
+  $: hostRoomMatch = $page.url.pathname.match(/^\/host\/([^/]+)$/);
+  $: projectorRoomId = hostRoomMatch?.[1] ?? '';
+  $: showProjectorButton = !!projectorRoomId;
   $: quizLive = $hostQuizLiveStore.live;
   $: hostRoomId = $hostQuizLiveStore.roomId;
 
@@ -79,13 +83,55 @@
     </svg>
     </a>
     {/if}
+    {#if showProjectorButton}
+      <button
+        type="button"
+        class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold"
+        aria-label="Open projector"
+        title="Open projector"
+        on:click={() => window.open(`/projector/${projectorRoomId}`, 'projector-' + projectorRoomId, 'width=1280,height=720,noopener')}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      </button>
+    {/if}
     <button
       type="button"
-      class="px-3 py-1.5 text-sm text-pub-muted hover:bg-pub-dark hover:text-pub-gold rounded-lg disabled:opacity-50"
+      class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold disabled:opacity-50"
+      aria-label="Log out"
       on:click={onLogoutClick}
       disabled={loggingOut}
     >
-      {loggingOut ? 'Logging out...' : 'Log out'}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M13 4h3a2 2 0 0 1 2 2v14" />
+        <path d="M2 20h3" />
+        <path d="M13 20h9" />
+        <path d="M10 12v.01" />
+        <path d="M13 4.562v11.476a2 2 0 0 1-3.512 1.41L8 13" />
+      </svg>
     </button>
   </div>
 </nav>

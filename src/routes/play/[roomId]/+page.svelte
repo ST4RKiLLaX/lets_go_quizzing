@@ -263,7 +263,8 @@
   let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedReorder: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedSlider: { questionId: string; answerNumber: number } | null = null;
-  let selectedHotspot: { questionId: string; x: number; y: number } | null = null;
+  let hotspotDraftByQuestionId: Record<string, { x: number; y: number }> = {};
+  let autoSubmitAttemptsByQuestionId: Record<string, true> = {};
   let selectedInput: string | null = null;
   let multiSelectDraft: number[] = [];
   let reorderDraft: number[] = [];
@@ -283,7 +284,8 @@
       selectedMultiSelect = null;
       selectedReorder = null;
       selectedSlider = null;
-      selectedHotspot = null;
+      hotspotDraftByQuestionId = {};
+      autoSubmitAttemptsByQuestionId = {};
       selectedInput = null;
       multiSelectDraft = [];
       reorderDraft = [];
@@ -304,13 +306,36 @@
     countdown &&
     ($countdown ?? 0) === 0
   );
+  $: if (
+    questionTimeExpired &&
+    currentQuestion?.type === 'hotspot' &&
+    !hasSubmitted(currentQuestionId)
+  ) {
+    const draft = hotspotDraftByQuestionId[currentQuestionId];
+    if (draft && !autoSubmitAttemptsByQuestionId[currentQuestionId]) {
+      // eslint-disable-next-line no-useless-assignment -- guard update for Svelte reactivity
+      autoSubmitAttemptsByQuestionId = { ...autoSubmitAttemptsByQuestionId, [currentQuestionId]: true };
+      submitHotspot(currentQuestionId, draft.x, draft.y);
+    }
+  }
+  $: if (
+    questionTimeExpired &&
+    currentQuestion?.type === 'slider' &&
+    !hasSubmitted(currentQuestionId) &&
+    sliderAnswer != null &&
+    !autoSubmitAttemptsByQuestionId[currentQuestionId]
+  ) {
+    // eslint-disable-next-line no-useless-assignment -- guard update for Svelte reactivity
+    autoSubmitAttemptsByQuestionId = { ...autoSubmitAttemptsByQuestionId, [currentQuestionId]: true };
+    submitSlider(currentQuestionId, Number(sliderAnswer));
+  }
   $: hasAnsweredCurrentQuestion =
     hasSubmitted(currentQuestionId) ||
     selectedAnswer?.questionId === currentQuestionId ||
     selectedMultiSelect?.questionId === currentQuestionId ||
     selectedReorder?.questionId === currentQuestionId ||
     selectedSlider?.questionId === currentQuestionId ||
-    selectedHotspot?.questionId === currentQuestionId ||
+    (currentQuestion?.type === 'hotspot' && hasSubmitted(currentQuestionId)) ||
     selectedInput === currentQuestionId;
   $: showTimesUpMessage = !!(questionTimeExpired && !hasAnsweredCurrentQuestion);
 
@@ -459,17 +484,12 @@
   }
 
   function submitHotspot(questionId: string, x: number, y: number) {
-    if (
-      hasSubmitted(questionId) ||
-      selectedHotspot?.questionId === questionId ||
-      questionTimeExpired
-    ) {
-      return;
-    }
+    if (hasSubmitted(questionId)) return;
     const clampedX = Math.max(0, Math.min(1, x));
     const clampedY = Math.max(0, Math.min(1, y));
     submitError = '';
-    selectedHotspot = { questionId, x: clampedX, y: clampedY };
+    hotspotDraftByQuestionId = { ...hotspotDraftByQuestionId };
+    delete hotspotDraftByQuestionId[questionId];
     const playerId = getOrCreatePlayerId();
     state = state
       ? {
@@ -486,7 +506,7 @@
       (ack: { error?: string }) => {
         if (ack?.error) {
           submitError = ack.error;
-          selectedHotspot = null;
+          hotspotDraftByQuestionId = { ...hotspotDraftByQuestionId, [questionId]: { x: clampedX, y: clampedY } };
           state =
             state?.submissions != null
               ? {
@@ -499,6 +519,13 @@
         }
       }
     );
+  }
+
+  function updateHotspotDraft(questionId: string, x: number, y: number) {
+    if (hasSubmitted(questionId) || questionTimeExpired) return;
+    const clampedX = Math.max(0, Math.min(1, x));
+    const clampedY = Math.max(0, Math.min(1, y));
+    hotspotDraftByQuestionId = { ...hotspotDraftByQuestionId, [questionId]: { x: clampedX, y: clampedY } };
   }
 
   function hasSubmitted(questionId: string): boolean {
@@ -542,7 +569,6 @@
       (s) => s.playerId === playerId && s.questionId === questionId
     );
     if (sub?.answerX != null && sub?.answerY != null) return { x: sub.answerX, y: sub.answerY };
-    if (selectedHotspot?.questionId === questionId) return { x: selectedHotspot.x, y: selectedHotspot.y };
     return undefined;
   }
 
@@ -584,7 +610,7 @@
   }
 
   function isHotspotSubmitted(questionId: string): boolean {
-    return hasSubmitted(questionId) || selectedHotspot?.questionId === questionId;
+    return hasSubmitted(questionId);
   }
 
   function toggleMultiSelectDraft(optionIndex: number) {
@@ -646,8 +672,9 @@
     if (q.type === 'hotspot') {
       if (sub?.answerX != null && sub?.answerY != null) {
         base.submittedHotspot = { x: sub.answerX, y: sub.answerY };
-      } else if (selectedHotspot?.questionId === qId) {
-        base.submittedHotspot = { x: selectedHotspot.x, y: selectedHotspot.y };
+      } else if (hotspotDraftByQuestionId[qId]) {
+        const d = hotspotDraftByQuestionId[qId];
+        base.submittedHotspot = { x: d.x, y: d.y };
       }
     } else if (q.type === 'choice' || q.type === 'true_false' || q.type === 'poll') {
       const idx = sub?.answerIndex ?? (selectedAnswer?.questionId === qId ? selectedAnswer.answerIndex : undefined);
@@ -895,6 +922,9 @@
         bind:reorderDraft
         bind:sliderAnswer
         bind:inputAnswer
+        hotspotDraftByQuestionId={hotspotDraftByQuestionId}
+        updateHotspotDraft={updateHotspotDraft}
+        emoji={playerDisplayEmoji}
         {submitChoice}
         {submitMultiSelect}
         {submitReorder}

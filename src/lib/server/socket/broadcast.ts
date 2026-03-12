@@ -1,6 +1,6 @@
 import type { Server } from 'socket.io';
 import type { GameState } from '../game/state-machine.js';
-import { serializeHostState, serializePlayerState } from './serializers.js';
+import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
 
 export async function broadcastStateToRoom(
   io: Server,
@@ -11,8 +11,10 @@ export async function broadcastStateToRoom(
   const sockets = await io.in(roomId).fetchSockets();
   const hostState = serializeHostState(state);
   const playerState = serializePlayerState(state);
+  const projectorState = serializeProjectorState(state);
   for (const s of sockets) {
-    const st = s.data.role === 'host' ? hostState : playerState;
+    const st =
+      s.data.role === 'host' ? hostState : s.data.role === 'projector' ? projectorState : playerState;
     for (const ev of events) {
       s.emit(ev, { state: st });
     }

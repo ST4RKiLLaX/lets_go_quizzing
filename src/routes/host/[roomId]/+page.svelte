@@ -15,6 +15,7 @@
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
+  import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
   import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
@@ -47,6 +48,18 @@
   }
   $: quizLive = state?.type !== 'Lobby' && state?.type !== 'End';
   $: hostQuizLiveStore.set(!!state && quizLive ? { live: true, roomId } : { live: false });
+  $: isLastQuestionInRound =
+    currentRoundQuestionTotal > 0 && currentQuestionNumber >= currentRoundQuestionTotal;
+  $: hostActionLabel =
+    state?.type === 'Question'
+      ? 'Reveal'
+      : state?.type === 'RevealAnswer'
+        ? isLastQuestionInRound
+          ? 'Leaderboard'
+          : 'Next'
+        : 'Next';
+  $: hostActionClass =
+    state?.type === 'Question' ? 'bg-amber-600' : state?.type === 'RevealAnswer' ? 'bg-green-600' : 'bg-green-600';
   let hostRejoinPrefilled = false;
   $: if (joinError !== 'Invalid password') {
     hostRejoinPrefilled = false;
@@ -116,12 +129,14 @@
     doHostJoin(username, pwd);
     const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
+      clearVisibilityPending();
       if (payload?.state) markHostSessionEstablished();
     };
     const onRoomUpdate = (payload: { state: SerializedState }) => {
       const incoming = payload?.state;
       if (!incoming) return;
       state = incoming;
+      clearVisibilityPending();
       markHostSessionEstablished();
     };
     socket.on('state:update', onStateUpdate);
@@ -151,6 +166,41 @@
 
   function override(playerId: string, questionId: string, delta: number) {
     socket?.emit('host:override', { playerId, questionId, delta }, () => {});
+  }
+
+  let visibilityPending: string | null = null;
+  let visibilityPendingTimeout: ReturnType<typeof setTimeout> | null = null;
+  const VISIBILITY_TIMEOUT_MS = 5000;
+
+  function setSubmissionVisibility(playerId: string, questionId: string, visible: boolean) {
+    const key = `sub:${playerId}:${questionId}`;
+    if (visibilityPending === key) return;
+    visibilityPending = key;
+    visibilityPendingTimeout = setTimeout(() => {
+      visibilityPending = null;
+      visibilityPendingTimeout = null;
+    }, VISIBILITY_TIMEOUT_MS);
+    socket?.emit('host:set_submission_visibility', { playerId, questionId, visible }, () => {});
+  }
+
+  function setWordVisibility(questionId: string, word: string, visible: boolean) {
+    const normWord = word.trim().toUpperCase();
+    const key = `word:${questionId}:${normWord}`;
+    if (visibilityPending === key) return;
+    visibilityPending = key;
+    visibilityPendingTimeout = setTimeout(() => {
+      visibilityPending = null;
+      visibilityPendingTimeout = null;
+    }, VISIBILITY_TIMEOUT_MS);
+    socket?.emit('host:set_word_visibility', { questionId, word: normWord, visible }, () => {});
+  }
+
+  function clearVisibilityPending() {
+    visibilityPending = null;
+    if (visibilityPendingTimeout) {
+      clearTimeout(visibilityPendingTimeout);
+      visibilityPendingTimeout = null;
+    }
   }
 
   let kickError = '';
@@ -220,18 +270,11 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
         <div class="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-          >
-            Projector
-          </button>
           {#if state && state.type !== 'End'}
             <button
               type="button"
               class="px-4 py-2 bg-[#CF3030] rounded-lg font-medium hover:opacity-90"
-              on:click={openEndQuizModal}
+              onclick={openEndQuizModal}
             >
               End Quiz
             </button>
@@ -252,7 +295,7 @@
         <div class="flex flex-wrap gap-3 sm:gap-4">
           <button
             class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-            on:click={() => socket?.emit('host:start', {}, () => {})}
+            onclick={() => socket?.emit('host:start', {}, () => {})}
           >
             Start Game
           </button>
@@ -371,7 +414,9 @@
                       {formatOptionLabel(i, optionLabelStyle)}
                     </span>
                     <span class="flex-1 break-words">{opt}</span>
-                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                    {#if state?.type === 'RevealAnswer'}
+                      <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                    {/if}
                   </div>
                 </li>
               {/each}
@@ -401,9 +446,18 @@
               <ul class="space-y-1">
                 {#each visibleSubs as sub}
                   {@const player = state.players.find(p => p.id === sub.playerId)}
-                  <li class="px-4 py-2 bg-pub-dark rounded text-sm">
-                    <span class="text-pub-muted mr-2">{player?.emoji} {player?.name}:</span>
-                    {sub.answerText}
+                  {@const isHidden = sub.projectorHiddenByHost === true}
+                  {@const pendingKey = `sub:${sub.playerId}:${sub.questionId}`}
+                  <li class="px-4 py-2 bg-pub-dark rounded text-sm flex items-center justify-between gap-2">
+                    <span><span class="text-pub-muted mr-2">{player?.emoji} {player?.name}:</span>{sub.answerText}</span>
+                    <button
+                      type="button"
+                      class="px-2 py-1 text-xs rounded bg-pub-darker border border-pub-muted hover:bg-pub-muted/20 disabled:opacity-50"
+                      disabled={visibilityPending === pendingKey}
+                      onclick={() => setSubmissionVisibility(sub.playerId, sub.questionId, isHidden)}
+                    >
+                      {isHidden ? 'Show' : 'Hide'}
+                    </button>
                   </li>
                 {/each}
               </ul>
@@ -414,22 +468,40 @@
           {:else if q.type === 'word_cloud' && state?.type === 'RevealAnswer'}
             {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked')}
             {@const blockedCount = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility === 'blocked').length}
-            <div class="mt-4 flex flex-wrap gap-3 justify-center items-center p-6 bg-pub-dark rounded min-h-[150px]">
-              {#each Array.from(
-                visibleSubs.reduce((acc, s) => {
-                  const text = (s.answerText || '').trim().toUpperCase();
-                  if (text) acc.set(text, (acc.get(text) || 0) + 1);
-                  return acc;
-                }, new Map<string, number>())
-              ).sort((a, b) => b[1] - a[1]) as [word, count]}
-                <span style="font-size: {Math.max(1, Math.min(3.5, 0.9 + count * 0.3))}rem; opacity: {Math.min(1, 0.5 + count * 0.2)}" class="text-pub-gold font-bold leading-none inline-block">
-                  {word}
-                </span>
-              {/each}
+            {@const wordCounts = visibleSubs.reduce((acc, s) => {
+              for (const token of getWordCloudTokens(s.answerText ?? '')) {
+                acc.set(token, (acc.get(token) || 0) + 1);
+              }
+              return acc;
+            }, new Map<string, number>())}
+            {@const hiddenSet = new Set((state.hiddenWordsByQuestion ?? {})[q.id] ?? [])}
+            <div class="mt-4 space-y-4">
+              <div class="flex flex-wrap gap-3 justify-center items-center p-6 bg-pub-dark rounded min-h-[150px]">
+                {#each Array.from(wordCounts).sort((a, b) => b[1] - a[1]) as [word, count]}
+                  {@const isHidden = hiddenSet.has(word)}
+                  {@const pendingKey = `word:${q.id}:${word}`}
+                  <div class="flex items-center gap-1">
+                    <span
+                      style="font-size: {Math.max(1, Math.min(3.5, 0.9 + count * 0.3))}rem; opacity: {Math.min(1, 0.5 + count * 0.2)}"
+                      class="text-pub-gold font-bold leading-none inline-block"
+                    >
+                      {word} ({count})
+                    </span>
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 text-xs rounded bg-pub-darker border border-pub-muted hover:bg-pub-muted/20 disabled:opacity-50"
+                      disabled={visibilityPending === pendingKey}
+                      onclick={() => setWordVisibility(q.id, word, isHidden)}
+                    >
+                      {isHidden ? 'Show' : 'Hide'}
+                    </button>
+                  </div>
+                {/each}
+              </div>
+              {#if blockedCount > 0}
+                <p class="text-sm text-pub-muted italic">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
+              {/if}
             </div>
-            {#if blockedCount > 0}
-              <p class="text-sm text-pub-muted italic mt-2">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
-            {/if}
           {/if}
           {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
@@ -453,10 +525,10 @@
 
         <div class="flex gap-4 mt-6 flex-wrap items-center">
           <button
-            class="px-4 py-2 bg-green-600 rounded-lg font-medium hover:opacity-90 ml-auto"
-            on:click={next}
+            class="px-4 py-2 {hostActionClass} rounded-lg font-medium hover:opacity-90 ml-auto"
+            onclick={next}
           >
-            Next
+            {hostActionLabel}
           </button>
         </div>
 
@@ -470,7 +542,7 @@
                   <button
                     type="button"
                     class="w-6 h-6 flex items-center justify-center rounded bg-green-600/80 hover:bg-green-600 text-white text-xs font-bold"
-                    on:click={() => override(wa.playerId, wa.questionId, 1)}
+                    onclick={() => override(wa.playerId, wa.questionId, 1)}
                     title="Award point"
                   >
                     +
@@ -478,7 +550,7 @@
                   <button
                     type="button"
                     class="w-6 h-6 flex items-center justify-center rounded bg-red-900/80 hover:bg-red-900 text-white text-xs font-bold"
-                    on:click={() => override(wa.playerId, wa.questionId, -1)}
+                    onclick={() => override(wa.playerId, wa.questionId, -1)}
                     title="Remove point"
                   >
                     −
@@ -497,7 +569,6 @@
         roomId={roomId ?? ''}
         onNext={next}
         nextLabel={state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
-        showProjectorButton={true}
       />
     {:else if state?.type === 'End'}
       <HostLeaderboardView
@@ -505,14 +576,13 @@
         isEnd={true}
         players={(state.players ?? []).sort((a, b) => b.score - a.score)}
         roomId={roomId ?? ''}
-        showProjectorButton={true}
       />
     {:else if joinError === 'Invalid password'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <p class="text-pub-muted mb-4">Re-enter username and password to join host view</p>
         <form
           class="flex flex-col gap-2"
-          on:submit|preventDefault={() => doHostJoin(hostRejoinUsername, hostRejoinPassword)}
+          onsubmit={(e) => { e.preventDefault(); doHostJoin(hostRejoinUsername, hostRejoinPassword); }}
         >
           <input
             type="text"

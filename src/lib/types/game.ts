@@ -27,6 +27,7 @@ export interface SerializedSubmission {
   answerY?: number;
   submittedAt?: number;
   visibility?: 'visible' | 'blocked';
+  projectorHiddenByHost?: boolean;
 }
 
 export interface SerializedWrongAnswer {
@@ -49,4 +50,5 @@ export interface SerializedState {
   wrongAnswers: SerializedWrongAnswer[];
   timerEndsAt?: number;
   startedAt?: number;
+  hiddenWordsByQuestion?: Record<string, string[]>;
 }

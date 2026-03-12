@@ -7,7 +7,6 @@
   export let roomId: string;
   export let onNext: (() => void) | undefined = undefined;
   export let nextLabel: string | undefined = undefined;
-  export let showProjectorButton = true;
 </script>
 
 <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
@@ -30,28 +29,10 @@
       >
         New Game
       </a>
-      {#if showProjectorButton}
-        <button
-          type="button"
-          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-          onclick={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-        >
-          Projector
-        </button>
-      {/if}
       <a href="/" class="text-pub-accent hover:underline self-center">Back to home</a>
     </div>
   {:else}
     <div class="flex gap-4 mt-6 items-center">
-      {#if showProjectorButton}
-        <button
-          type="button"
-          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-          onclick={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-        >
-          Projector
-        </button>
-      {/if}
       {#if onNext && nextLabel}
         <button
           class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
