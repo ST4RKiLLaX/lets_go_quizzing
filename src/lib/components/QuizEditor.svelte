@@ -1,22 +1,25 @@
 <script lang="ts">
-  import type {
-    Quiz,
-    Question,
-  ChoiceQuestion,
-  TrueFalseQuestion,
-  PollQuestion,
-  MultiSelectQuestion,
-  SliderQuestion,
-  InputQuestion,
-  ReorderQuestion,
-  HotspotQuestion,
-} from '$lib/types/quiz.js';
-import {
-  createEmptyChoiceQuestion,
-  generateQuestionId,
-} from '$lib/types/quiz.js';
+  import type { Quiz } from '$lib/types/quiz.js';
+  import QuestionForm from '$lib/components/quiz-editor/QuestionForm.svelte';
+  import {
+    addRound as actAddRound,
+    removeRound as actRemoveRound,
+    addQuestion as actAddQuestion,
+    removeQuestion as actRemoveQuestion,
+    setQuestionType as actSetQuestionType,
+    addOption as actAddOption,
+    removeOption as actRemoveOption,
+    toggleMultiSelectAnswer as actToggleMultiSelectAnswer,
+    updateSliderQuestion as actUpdateSliderQuestion,
+    addInputAnswer as actAddInputAnswer,
+    removeInputAnswer as actRemoveInputAnswer,
+    updateQuestionField as actUpdateQuestionField,
+    updateQuestion as actUpdateQuestion,
+    updateHotspotAnswer as actUpdateHotspotAnswer,
+    setHotspotImageAspectRatio as actSetHotspotImageAspectRatio,
+    clearImage as actClearImage,
+  } from '$lib/components/quiz-editor/QuizEditorActions.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
-  import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
   import type { ComponentType } from 'svelte';
   import { onMount } from 'svelte';
@@ -62,46 +65,19 @@ import {
   }
 
   function addRound() {
-    quiz = {
-      ...quiz,
-      rounds: [
-        ...quiz.rounds,
-        {
-          name: `Round ${quiz.rounds.length + 1}`,
-          questions: [createEmptyChoiceQuestion(generateQuestionId(quiz.rounds.length, 0))],
-        },
-      ],
-    };
+    quiz = actAddRound(quiz);
   }
 
   function removeRound(ri: number) {
-    if (quiz.rounds.length <= 1) return;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.filter((_, i) => i !== ri),
-    };
+    quiz = actRemoveRound(quiz, ri);
   }
 
   function addQuestion(ri: number) {
-    const round = quiz.rounds[ri];
-    const newQ = createEmptyChoiceQuestion(generateQuestionId(ri, round.questions.length));
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri ? { ...r, questions: [...r.questions, newQ] } : r
-      ),
-    };
+    quiz = actAddQuestion(quiz, ri);
   }
 
   function removeQuestion(ri: number, qi: number) {
-    const round = quiz.rounds[ri];
-    if (round.questions.length <= 1) return;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri ? { ...r, questions: r.questions.filter((_, j) => j !== qi) } : r
-      ),
-    };
+    quiz = actRemoveQuestion(quiz, ri, qi);
   }
 
   function setQuestionType(
@@ -109,173 +85,7 @@ import {
     qi: number,
     type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'hotspot'
   ) {
-    const q = quiz.rounds[ri].questions[qi];
-    if (q.type === type) return;
-    const base = { id: q.id, text: q.text, explanation: q.explanation, image: q.image, points: (q as { points?: number }).points };
-    const newQ: Question =
-      type === 'choice'
-        ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
-        : type === 'true_false'
-          ? { ...base, type: 'true_false', answer: true }
-          : type === 'poll'
-            ? { ...base, type: 'poll', options: ['', ''] }
-            : type === 'multi_select'
-              ? { ...base, type: 'multi_select', options: ['', ''], answer: [0] }
-              : type === 'slider'
-                ? { ...base, type: 'slider', min: 0, max: 10, step: 1, answer: 5 }
-                : type === 'input'
-                  ? { ...base, type: 'input', answer: [''] }
-                  : type === 'open_ended'
-                    ? { ...base, type: 'open_ended' }
-                    : type === 'word_cloud'
-                      ? { ...base, type: 'word_cloud' }
-                      : type === 'reorder'
-                        ? { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] }
-                        : { ...base, type: 'hotspot', image: (base.image as string) ?? '', answer: { x: 0.5, y: 0.5, radius: 0.1 } };
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? newQ : qu)) } : r
-      ),
-    };
-  }
-
-  function addOption(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion | ReorderQuestion;
-    if (q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select' && q.type !== 'reorder') return;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) => {
-                if (j !== qi) return qu;
-                if (q.type === 'reorder') {
-                  return { ...q, options: [...q.options, ''], answer: [...q.answer, q.options.length] } as ReorderQuestion;
-                }
-                return { ...q, options: [...q.options, ''] } as Question;
-              }),
-            }
-          : r
-      ),
-    };
-  }
-
-  function removeOption(ri: number, qi: number, oi: number) {
-    const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion | PollQuestion | MultiSelectQuestion | ReorderQuestion;
-    if ((q.type !== 'choice' && q.type !== 'poll' && q.type !== 'multi_select' && q.type !== 'reorder') || q.options.length <= 2) return;
-    const newOptions = q.options.filter((_: string, i: number) => i !== oi);
-    const newAnswer = q.type === 'choice' ? Math.min(q.answer, newOptions.length - 1) : undefined;
-    const newMultiSelectAnswer =
-      q.type === 'multi_select'
-        ? q.answer
-            .filter((index: number) => index !== oi)
-            .map((index: number) => (index > oi ? index - 1 : index))
-        : undefined;
-    const newReorderAnswer = 
-      q.type === 'reorder'
-        ? q.answer
-            .filter((index: number) => index !== oi)
-            .map((index: number) => (index > oi ? index - 1 : index))
-        : undefined;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) =>
-                j === qi
-                  ? q.type === 'choice'
-                    ? { ...q, options: newOptions, answer: newAnswer! }
-                    : q.type === 'multi_select'
-                      ? { ...q, options: newOptions, answer: newMultiSelectAnswer?.length ? newMultiSelectAnswer : [0] }
-                      : q.type === 'reorder'
-                      ? { ...q, options: newOptions, answer: newReorderAnswer?.length ? newReorderAnswer : [0, 1] }
-                        : { ...q, options: newOptions }
-                  : qu
-              ),
-            }
-          : r
-      ),
-    };
-  }
-
-  function toggleMultiSelectAnswer(ri: number, qi: number, oi: number, checked: boolean) {
-    const q = quiz.rounds[ri].questions[qi] as MultiSelectQuestion;
-    if (q.type !== 'multi_select') return;
-    const answer = checked
-      ? [...new Set([...q.answer, oi])].sort((a, b) => a - b)
-      : q.answer.filter((index) => index !== oi);
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) =>
-                j === qi ? { ...q, answer: answer.length ? answer : [oi] } : qu
-              ),
-            }
-          : r
-      ),
-    };
-  }
-
-  function updateSliderQuestion(
-    ri: number,
-    qi: number,
-    field: 'min' | 'max' | 'step' | 'answer',
-    value: number
-  ) {
-    const q = quiz.rounds[ri].questions[qi] as SliderQuestion;
-    if (q.type !== 'slider') return;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) =>
-                j === qi ? { ...q, [field]: value } : qu
-              ),
-            }
-          : r
-      ),
-    };
-  }
-
-  function addInputAnswer(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi] as InputQuestion;
-    if (q.type !== 'input') return;
-    const current = Array.isArray(q.answer) ? q.answer : [''];
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: [...current, ''] } : qu)) }
-          : r
-      ),
-    };
-  }
-
-  function removeInputAnswer(ri: number, qi: number, ai: number) {
-    const q = quiz.rounds[ri].questions[qi] as InputQuestion;
-    if (q.type !== 'input' || q.answer.length <= 1) return;
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) =>
-                j === qi ? { ...q, answer: q.answer.filter((_: string, k: number) => k !== ai) } : qu
-              ),
-            }
-          : r
-      ),
-    };
+    quiz = actSetQuestionType(quiz, ri, qi, type);
   }
 
   async function handleSave() {
@@ -307,14 +117,7 @@ import {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-      quiz = {
-        ...quiz,
-        rounds: quiz.rounds.map((r, i) =>
-          i === ri
-            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: data.filename } : qu)) }
-            : r
-        ),
-      };
+      quiz = actUpdateQuestionField(quiz, ri, qi, { image: data.filename });
     } catch (e) {
       error = String(e);
     } finally {
@@ -323,21 +126,7 @@ import {
   }
 
   function clearImage(ri: number, qi: number) {
-    quiz = {
-      ...quiz,
-      rounds: quiz.rounds.map((r, i) =>
-        i === ri
-          ? {
-              ...r,
-              questions: r.questions.map((qu, j) => {
-                if (j !== qi) return qu;
-                if (qu.type === 'hotspot') return { ...qu, image: '' };
-                return { ...qu, image: undefined };
-              }),
-            }
-          : r
-      ),
-    };
+    quiz = actClearImage(quiz, ri, qi);
   }
 </script>
 
@@ -491,437 +280,48 @@ import {
       </div>
 
       {#each round.questions as question, qi}
-        <div class="mb-6 p-4 bg-pub-dark rounded-lg">
-          <div class="flex gap-2 mb-2">
-            <select
-              value={question.type}
-              on:change={(e) =>
-                setQuestionType(
-                  ri,
-                  qi,
-                  (e.currentTarget.value as 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'hotspot')
-                )}
-              class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
-            >
-              <option value="choice">Multiple choice</option>
-              <option value="true_false">True / False</option>
-              <option value="poll">Poll</option>
-              <option value="multi_select">Multi-select</option>
-              <option value="reorder">Reorder</option>
-              <option value="hotspot">Hotspot (image click)</option>
-              <option value="slider">Slider</option>
-              <option value="input">Fill in the blank</option>
-              <option value="open_ended">Long text response</option>
-              <option value="word_cloud">Word cloud</option>
-            </select>
-            <button
-              type="button"
-              class="text-red-400 hover:text-red-300 text-sm"
-              on:click={() => removeQuestion(ri, qi)}
-              disabled={round.questions.length <= 1}
-            >
-              Remove
-            </button>
-          </div>
-          <div class="mb-3">
-            <label for="q-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Question</label>
-            <textarea
-              id="q-{ri}-{qi}"
-              bind:value={question.text}
-              placeholder="What is the capital of Australia?"
-              rows="2"
-              class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-            ></textarea>
-          </div>
-          {#if ['choice', 'true_false', 'multi_select', 'slider', 'input', 'reorder', 'hotspot'].includes(question.type)}
-            <div class="mb-3">
-              <label for="points-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Points multiplier</label>
-              <input
-                id="points-{ri}-{qi}"
-                type="number"
-                min="0.1"
-                step="0.5"
-                placeholder="1 (default)"
-                class="w-24 bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-                bind:value={question.points}
-              />
-            </div>
-          {/if}
-          <div class="mb-3">
-            <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
-              {question.type === 'hotspot' ? 'Image (required)' : 'Image (optional)'}
-            </label>
-            <input
-              id="img-{ri}-{qi}"
-              type="text"
-              bind:value={question.image}
-              placeholder={question.type === 'hotspot' ? 'https://... or upload above' : 'https://... or leave empty'}
-              class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
-            />
-            {#if quizFilename}
-              <div class="flex items-center gap-2">
-                <label for="upload-{ri}-{qi}" class="text-sm text-pub-muted">Or upload</label>
-                <input
-                  id="upload-{ri}-{qi}"
-                  type="file"
-                  accept="image/*"
-                  class="text-sm text-pub-muted"
-                  on:change={(e) => {
-                    const file = e.currentTarget.files?.[0];
-                    if (file) handleImageUpload(ri, qi, file);
-                    e.currentTarget.value = '';
-                  }}
-                  disabled={uploadingFor?.ri === ri && uploadingFor?.qi === qi}
-                />
-                {#if uploadingFor?.ri === ri && uploadingFor?.qi === qi}
-                  <span class="text-sm text-pub-muted">Uploading...</span>
-                {/if}
-              </div>
-            {/if}
-            {#if question.image}
-              <button
-                type="button"
-                class="mt-2 text-sm text-red-400 hover:text-red-300"
-                on:click={() => clearImage(ri, qi)}
-              >
-                Clear image
-              </button>
-            {/if}
-          </div>
-          {#if question.type === 'hotspot'}
-            {@const hq = question as HotspotQuestion}
-            {@const imgSrc = getQuestionImageSrc(hq.image, quizFilename)}
-            {#if imgSrc}
-              <div class="space-y-3 mb-3">
-                <span class="block text-sm text-pub-muted">Click image to set target</span>
-                <div
-                  class="relative inline-block max-w-full cursor-crosshair"
-                  role="button"
-                  tabindex="0"
-                  on:click={(e) => {
-                    const target = e.currentTarget;
-                    const img = target.querySelector('img');
-                    if (!img) return;
-                    const rect = img.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / rect.width;
-                    const y = (e.clientY - rect.top) / rect.height;
-                    const clampedX = Math.max(0, Math.min(1, x));
-                    const clampedY = Math.max(0, Math.min(1, y));
-                    const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
-                    quiz = {
-                      ...quiz,
-                      rounds: quiz.rounds.map((r, i) =>
-                        i === ri
-                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, x: clampedX, y: clampedY } } : qu)) }
-                          : r
-                      ),
-                    };
-                  }}
-                  on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
-                >
-                  <img
-                    src={imgSrc}
-                    alt=""
-                    class="max-w-full rounded-lg block"
-                    on:load={(e) => {
-                      const img = e.currentTarget as HTMLImageElement;
-                      const ar = img.naturalHeight / img.naturalWidth;
-                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
-                      if (q.imageAspectRatio === undefined || Math.abs(q.imageAspectRatio - ar) > 0.001) {
-                        quiz = {
-                          ...quiz,
-                          rounds: quiz.rounds.map((r, i) =>
-                            i === ri
-                              ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, imageAspectRatio: ar } : qu)) }
-                              : r
-                          ),
-                        };
-                      }
-                    }}
-                  />
-                  <div
-                    class="absolute border-2 border-pub-gold bg-pub-gold/20 pointer-events-none rounded-full origin-center"
-                    style="left: {((hq.answer.x - hq.answer.radius / (hq.imageAspectRatio ?? 1)) * 100)}%; top: {((hq.answer.y - (hq.answer.radiusY ?? hq.answer.radius)) * 100)}%; width: {(hq.answer.radius * 2 / (hq.imageAspectRatio ?? 1)) * 100}%; height: {((hq.answer.radiusY ?? hq.answer.radius) * 2) * 100}%; transform: rotate({hq.answer.rotation ?? 0}deg);"
-                  ></div>
-                  <div
-                    class="absolute w-2 h-2 rounded-full bg-pub-gold border border-white pointer-events-none"
-                    style="left: {(hq.answer.x * 100)}%; top: {(hq.answer.y * 100)}%; transform: translate(-50%, -50%);"
-                  ></div>
-                </div>
-                <div>
-                  <label for="hotspot-radius-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
-                    Tolerance radius: {Math.round(hq.answer.radius * 100)}%
-                  </label>
-                  <input
-                    id="hotspot-radius-{ri}-{qi}"
-                    type="range"
-                    min="0.02"
-                    max="0.3"
-                    step="0.01"
-                    value={hq.answer.radius}
-                    class="w-full"
-                    on:input={(e) => {
-                      const val = Number((e.currentTarget as HTMLInputElement).value);
-                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
-                      quiz = {
-                        ...quiz,
-                        rounds: quiz.rounds.map((r, i) =>
-                          i === ri
-                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, radius: val } } : qu)) }
-                            : r
-                        ),
-                      };
-                    }}
-                  />
-                </div>
-                <div>
-                  <label for="hotspot-radiusY-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
-                    Radius Y (optional, for ellipse): {Math.round((hq.answer.radiusY ?? hq.answer.radius) * 100)}%
-                  </label>
-                  <input
-                    id="hotspot-radiusY-{ri}-{qi}"
-                    type="range"
-                    min="0.02"
-                    max="0.3"
-                    step="0.01"
-                    value={hq.answer.radiusY ?? hq.answer.radius}
-                    class="w-full"
-                    on:input={(e) => {
-                      const val = Number((e.currentTarget as HTMLInputElement).value);
-                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
-                      quiz = {
-                        ...quiz,
-                        rounds: quiz.rounds.map((r, i) =>
-                          i === ri
-                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, radiusY: val } } : qu)) }
-                            : r
-                        ),
-                      };
-                    }}
-                  />
-                </div>
-                <div>
-                  <label for="hotspot-rotation-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
-                    Hotspot rotation: {Math.round(hq.answer.rotation ?? 0)}°
-                  </label>
-                  <input
-                    id="hotspot-rotation-{ri}-{qi}"
-                    type="range"
-                    min="0"
-                    max="360"
-                    step="5"
-                    value={hq.answer.rotation ?? 0}
-                    class="w-full"
-                    on:input={(e) => {
-                      const val = Number((e.currentTarget as HTMLInputElement).value);
-                      const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
-                      quiz = {
-                        ...quiz,
-                        rounds: quiz.rounds.map((r, i) =>
-                          i === ri
-                            ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: { ...q.answer, rotation: val } } : qu)) }
-                            : r
-                        ),
-                      };
-                    }}
-                  />
-                </div>
-              </div>
-            {:else}
-              <p class="text-sm text-pub-muted">Add an image above to set the target</p>
-            {/if}
-          {:else if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select' || question.type === 'reorder'}
-            <div class="space-y-2" role="group" aria-label="Options">
-              <span class="block text-sm text-pub-muted">
-                {question.type === 'poll'
-                  ? 'Poll options'
-                  : question.type === 'multi_select'
-                    ? 'Options (check all correct)'
-                    : question.type === 'reorder'
-                      ? 'Options (enter in correct order)'
-                      : 'Options (select correct)'}
-              </span>
-              {#each question.options as _opt, oi}
-                <div class="flex gap-2 items-center">
-                  {#if question.type === 'choice'}
-                    <input
-                      type="radio"
-                      name="correct-{ri}-{qi}"
-                      checked={question.answer === oi}
-                      on:change={() => {
-                        const q = quiz.rounds[ri].questions[qi] as ChoiceQuestion;
-                        quiz = {
-                          ...quiz,
-                          rounds: quiz.rounds.map((r, i) =>
-                            i === ri
-                              ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: oi } : qu)) }
-                              : r
-                          ),
-                        };
-                      }}
-                    />
-                  {:else if question.type === 'multi_select'}
-                    <input
-                      type="checkbox"
-                      checked={question.answer.includes(oi)}
-                      on:change={(e) => toggleMultiSelectAnswer(ri, qi, oi, e.currentTarget.checked)}
-                    />
-                  {:else if question.type === 'reorder'}
-                    <span class="text-pub-muted font-mono w-6 text-center">{question.answer.indexOf(oi) + 1}</span>
-                  {/if}
-                  <input
-                    type="text"
-                    bind:value={question.options[oi]}
-                    placeholder="Option {oi + 1}"
-                    class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  />
-                  <button
-                    type="button"
-                    class="text-red-400 text-sm"
-                    on:click={() => removeOption(ri, qi, oi)}
-                    disabled={question.options.length <= 2}
-                  >
-                    ×
-                  </button>
-                </div>
-              {/each}
-              <button
-                type="button"
-                class="text-sm text-pub-accent hover:underline"
-                on:click={() => addOption(ri, qi)}
-              >
-                + Add option
-              </button>
-            </div>
-          {:else if question.type === 'slider'}
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label for="slider-min-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Minimum</label>
-                <input
-                  id="slider-min-{ri}-{qi}"
-                  type="number"
-                  bind:value={question.min}
-                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  on:change={(e) => updateSliderQuestion(ri, qi, 'min', Number((e.currentTarget as HTMLInputElement).value))}
-                />
-              </div>
-              <div>
-                <label for="slider-max-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Maximum</label>
-                <input
-                  id="slider-max-{ri}-{qi}"
-                  type="number"
-                  bind:value={question.max}
-                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  on:change={(e) => updateSliderQuestion(ri, qi, 'max', Number((e.currentTarget as HTMLInputElement).value))}
-                />
-              </div>
-              <div>
-                <label for="slider-step-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Step</label>
-                <input
-                  id="slider-step-{ri}-{qi}"
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  bind:value={question.step}
-                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  on:change={(e) => updateSliderQuestion(ri, qi, 'step', Number((e.currentTarget as HTMLInputElement).value))}
-                />
-              </div>
-              <div>
-                <label for="slider-answer-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Correct value</label>
-                <input
-                  id="slider-answer-{ri}-{qi}"
-                  type="number"
-                  step="any"
-                  bind:value={question.answer}
-                  class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  on:change={(e) => updateSliderQuestion(ri, qi, 'answer', Number((e.currentTarget as HTMLInputElement).value))}
-                />
-              </div>
-            </div>
-          {:else if question.type === 'true_false'}
-            <div class="space-y-2" role="group" aria-label="Correct answer">
-              <span class="block text-sm text-pub-muted">Correct answer</span>
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="tf-{ri}-{qi}"
-                  checked={question.answer === true}
-                  on:change={() => {
-                    const q = quiz.rounds[ri].questions[qi] as TrueFalseQuestion;
-                    quiz = {
-                      ...quiz,
-                      rounds: quiz.rounds.map((r, i) =>
-                        i === ri
-                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: true } : qu)) }
-                          : r
-                      ),
-                    };
-                  }}
-                />
-                <span>True</span>
-              </label>
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="tf-{ri}-{qi}"
-                  checked={question.answer === false}
-                  on:change={() => {
-                    const q = quiz.rounds[ri].questions[qi] as TrueFalseQuestion;
-                    quiz = {
-                      ...quiz,
-                      rounds: quiz.rounds.map((r, i) =>
-                        i === ri
-                          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: false } : qu)) }
-                          : r
-                      ),
-                    };
-                  }}
-                />
-                <span>False</span>
-              </label>
-            </div>
-          {:else if question.type === 'input'}
-            <div class="space-y-2" role="group" aria-label="Accepted answers">
-              <span class="block text-sm text-pub-muted">Accepted answers (for typos, add alternatives)</span>
-              {#each (Array.isArray(question.answer) ? question.answer : ['']) as _ans, ai}
-                <div class="flex gap-2">
-                  <input
-                    type="text"
-                    bind:value={question.answer[ai]}
-                    placeholder="Correct answer"
-                    class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
-                  />
-                  <button
-                    type="button"
-                    class="text-red-400 text-sm"
-                    on:click={() => removeInputAnswer(ri, qi, ai)}
-                    disabled={question.answer.length <= 1}
-                  >
-                    ×
-                  </button>
-                </div>
-              {/each}
-              <button
-                type="button"
-                class="text-sm text-pub-accent hover:underline"
-                on:click={() => addInputAnswer(ri, qi)}
-              >
-                + Add alternative
-              </button>
-            </div>
-          {/if}
-          <div class="mt-3">
-            <label for="exp-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Explanation (optional)</label>
-            <textarea
-              id="exp-{ri}-{qi}"
-              bind:value={question.explanation}
-              placeholder="Explain why this answer is correct"
-              rows="2"
-              class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-            ></textarea>
-          </div>
-        </div>
+        <QuestionForm
+          {question}
+          roundIndex={ri}
+          questionIndex={qi}
+          {quizFilename}
+          {uploadingFor}
+          onPatch={(patch) => {
+            quiz = actUpdateQuestionField(quiz, ri, qi, patch);
+          }}
+          onTransform={(fn) => {
+            quiz = actUpdateQuestion(quiz, ri, qi, fn);
+          }}
+          onAddOption={() => {
+            quiz = actAddOption(quiz, ri, qi);
+          }}
+          onRemoveOption={(oi) => {
+            quiz = actRemoveOption(quiz, ri, qi, oi);
+          }}
+          onToggleMultiSelectAnswer={(oi, checked) => {
+            quiz = actToggleMultiSelectAnswer(quiz, ri, qi, oi, checked);
+          }}
+          onUpdateSliderQuestion={(field, value) => {
+            quiz = actUpdateSliderQuestion(quiz, ri, qi, field, value);
+          }}
+          onAddInputAnswer={() => {
+            quiz = actAddInputAnswer(quiz, ri, qi);
+          }}
+          onRemoveInputAnswer={(ai) => {
+            quiz = actRemoveInputAnswer(quiz, ri, qi, ai);
+          }}
+          onUpdateHotspotAnswer={(patch) => {
+            quiz = actUpdateHotspotAnswer(quiz, ri, qi, patch);
+          }}
+          onSetHotspotImageAspectRatio={(ar) => {
+            quiz = actSetHotspotImageAspectRatio(quiz, ri, qi, ar);
+          }}
+          onImageUpload={(file) => handleImageUpload(ri, qi, file)}
+          onClearImage={() => clearImage(ri, qi)}
+          onSetQuestionType={(type) => setQuestionType(ri, qi, type)}
+          onRemoveQuestion={() => removeQuestion(ri, qi)}
+          removeDisabled={round.questions.length <= 1}
+        />
       {/each}
       <button
         type="button"

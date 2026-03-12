@@ -1,0 +1,405 @@
+<script lang="ts">
+  import type { Question, HotspotQuestion, InputQuestion } from '$lib/types/quiz.js';
+  import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+
+  export let question: Question;
+  export let roundIndex: number;
+  export let questionIndex: number;
+  export let quizFilename: string | undefined = undefined;
+  export let uploadingFor: { ri: number; qi: number } | null = null;
+  export let onPatch: (patch: Partial<Question>) => void;
+  export let onTransform: (fn: (q: Question) => Question) => void;
+  export let onAddOption: () => void;
+  export let onRemoveOption: (oi: number) => void;
+  export let onToggleMultiSelectAnswer: (oi: number, checked: boolean) => void;
+  export let onUpdateSliderQuestion: (field: 'min' | 'max' | 'step' | 'answer', value: number) => void;
+  export let onAddInputAnswer: () => void;
+  export let onRemoveInputAnswer: (ai: number) => void;
+  export let onUpdateHotspotAnswer: (patch: Partial<HotspotQuestion['answer']>) => void;
+  export let onSetHotspotImageAspectRatio: (ar: number) => void;
+  export let onImageUpload: (file: File) => void;
+  export let onClearImage: () => void;
+  export let onSetQuestionType: (type: Question['type']) => void;
+  export let onRemoveQuestion: () => void;
+  export let removeDisabled = false;
+
+  const ri = roundIndex;
+  const qi = questionIndex;
+</script>
+
+<div class="mb-6 p-4 bg-pub-dark rounded-lg">
+  <div class="flex gap-2 mb-2">
+    <select
+      value={question.type}
+      on:change={(e) =>
+        onSetQuestionType(
+          (e.currentTarget.value as Question['type'])
+        )}
+      class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
+    >
+      <option value="choice">Multiple choice</option>
+      <option value="true_false">True / False</option>
+      <option value="poll">Poll</option>
+      <option value="multi_select">Multi-select</option>
+      <option value="reorder">Reorder</option>
+      <option value="hotspot">Hotspot (image click)</option>
+      <option value="slider">Slider</option>
+      <option value="input">Fill in the blank</option>
+      <option value="open_ended">Long text response</option>
+      <option value="word_cloud">Word cloud</option>
+    </select>
+    <button
+      type="button"
+      class="text-red-400 hover:text-red-300 text-sm"
+      on:click={onRemoveQuestion}
+      disabled={removeDisabled}
+    >
+      Remove
+    </button>
+  </div>
+  <div class="mb-3">
+    <label for="q-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Question</label>
+    <textarea
+      id="q-{ri}-{qi}"
+      value={question.text}
+      on:input={(e) => onPatch({ text: (e.currentTarget as HTMLTextAreaElement).value })}
+      placeholder="What is the capital of Australia?"
+      rows="2"
+      class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+    ></textarea>
+  </div>
+  {#if ['choice', 'true_false', 'multi_select', 'slider', 'input', 'reorder', 'hotspot'].includes(question.type)}
+    <div class="mb-3">
+      <label for="points-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Points multiplier</label>
+      <input
+        id="points-{ri}-{qi}"
+        type="number"
+        min="0.1"
+        step="0.5"
+        placeholder="1 (default)"
+        class="w-24 bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+        value={question.points ?? ''}
+        on:input={(e) => {
+          const v = (e.currentTarget as HTMLInputElement).value;
+          onPatch({ points: v === '' ? undefined : Number(v) });
+        }}
+      />
+    </div>
+  {/if}
+  <div class="mb-3">
+    <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+      {question.type === 'hotspot' ? 'Image (required)' : 'Image (optional)'}
+    </label>
+    <input
+      id="img-{ri}-{qi}"
+      type="text"
+      value={question.image ?? ''}
+      on:input={(e) => onPatch({ image: (e.currentTarget as HTMLInputElement).value || undefined })}
+      placeholder={question.type === 'hotspot' ? 'https://... or upload above' : 'https://... or leave empty'}
+      class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
+    />
+    {#if quizFilename}
+      <div class="flex items-center gap-2">
+        <label for="upload-{ri}-{qi}" class="text-sm text-pub-muted">Or upload</label>
+        <input
+          id="upload-{ri}-{qi}"
+          type="file"
+          accept="image/*"
+          class="text-sm text-pub-muted"
+          on:change={(e) => {
+            const file = e.currentTarget.files?.[0];
+            if (file) onImageUpload(file);
+            e.currentTarget.value = '';
+          }}
+          disabled={uploadingFor?.ri === ri && uploadingFor?.qi === qi}
+        />
+        {#if uploadingFor?.ri === ri && uploadingFor?.qi === qi}
+          <span class="text-sm text-pub-muted">Uploading...</span>
+        {/if}
+      </div>
+    {/if}
+    {#if question.image}
+      <button
+        type="button"
+        class="mt-2 text-sm text-red-400 hover:text-red-300"
+        on:click={onClearImage}
+      >
+        Clear image
+      </button>
+    {/if}
+  </div>
+  {#if question.type === 'hotspot'}
+    {@const hq = question as HotspotQuestion}
+    {@const imgSrc = getQuestionImageSrc(hq.image, quizFilename)}
+    {#if imgSrc}
+      <div class="space-y-3 mb-3">
+        <span class="block text-sm text-pub-muted">Click image to set target</span>
+        <div
+          class="relative inline-block max-w-full cursor-crosshair"
+          role="button"
+          tabindex="0"
+          on:click={(e) => {
+            const target = e.currentTarget;
+            const img = target.querySelector('img');
+            if (!img) return;
+            const rect = img.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            const clampedX = Math.max(0, Math.min(1, x));
+            const clampedY = Math.max(0, Math.min(1, y));
+            onUpdateHotspotAnswer({ x: clampedX, y: clampedY });
+          }}
+          on:keydown={(e) => e.key === 'Enter' && e.currentTarget.click()}
+        >
+          <img
+            src={imgSrc}
+            alt=""
+            class="max-w-full rounded-lg block"
+            on:load={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              const ar = img.naturalHeight / img.naturalWidth;
+              onSetHotspotImageAspectRatio(ar);
+            }}
+          />
+          <div
+            class="absolute border-2 border-pub-gold bg-pub-gold/20 pointer-events-none rounded-full origin-center"
+            style="left: {((hq.answer.x - hq.answer.radius / (hq.imageAspectRatio ?? 1)) * 100)}%; top: {((hq.answer.y - (hq.answer.radiusY ?? hq.answer.radius)) * 100)}%; width: {(hq.answer.radius * 2 / (hq.imageAspectRatio ?? 1)) * 100}%; height: {((hq.answer.radiusY ?? hq.answer.radius) * 2) * 100}%; transform: rotate({hq.answer.rotation ?? 0}deg);"
+          ></div>
+          <div
+            class="absolute w-2 h-2 rounded-full bg-pub-gold border border-white pointer-events-none"
+            style="left: {(hq.answer.x * 100)}%; top: {(hq.answer.y * 100)}%; transform: translate(-50%, -50%);"
+          ></div>
+        </div>
+        <div>
+          <label for="hotspot-radius-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+            Tolerance radius: {Math.round(hq.answer.radius * 100)}%
+          </label>
+          <input
+            id="hotspot-radius-{ri}-{qi}"
+            type="range"
+            min="0.02"
+            max="0.3"
+            step="0.01"
+            value={hq.answer.radius}
+            class="w-full"
+            on:input={(e) =>
+              onUpdateHotspotAnswer({ radius: Number((e.currentTarget as HTMLInputElement).value) })}
+          />
+        </div>
+        <div>
+          <label for="hotspot-radiusY-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+            Radius Y (optional, for ellipse): {Math.round((hq.answer.radiusY ?? hq.answer.radius) * 100)}%
+          </label>
+          <input
+            id="hotspot-radiusY-{ri}-{qi}"
+            type="range"
+            min="0.02"
+            max="0.3"
+            step="0.01"
+            value={hq.answer.radiusY ?? hq.answer.radius}
+            class="w-full"
+            on:input={(e) =>
+              onUpdateHotspotAnswer({ radiusY: Number((e.currentTarget as HTMLInputElement).value) })}
+          />
+        </div>
+        <div>
+          <label for="hotspot-rotation-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
+            Hotspot rotation: {Math.round(hq.answer.rotation ?? 0)}°
+          </label>
+          <input
+            id="hotspot-rotation-{ri}-{qi}"
+            type="range"
+            min="0"
+            max="360"
+            step="5"
+            value={hq.answer.rotation ?? 0}
+            class="w-full"
+            on:input={(e) =>
+              onUpdateHotspotAnswer({ rotation: Number((e.currentTarget as HTMLInputElement).value) })}
+          />
+        </div>
+      </div>
+    {:else}
+      <p class="text-sm text-pub-muted">Add an image above to set the target</p>
+    {/if}
+  {:else if question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select' || question.type === 'reorder'}
+    <div class="space-y-2" role="group" aria-label="Options">
+      <span class="block text-sm text-pub-muted">
+        {question.type === 'poll'
+          ? 'Poll options'
+          : question.type === 'multi_select'
+            ? 'Options (check all correct)'
+            : question.type === 'reorder'
+              ? 'Options (enter in correct order)'
+              : 'Options (select correct)'}
+      </span>
+      {#each question.options as _opt, oi}
+        <div class="flex gap-2 items-center">
+          {#if question.type === 'choice'}
+            <input
+              type="radio"
+              name="correct-{ri}-{qi}"
+              checked={question.answer === oi}
+              on:change={() => onPatch({ answer: oi })}
+            />
+          {:else if question.type === 'multi_select'}
+            <input
+              type="checkbox"
+              checked={question.answer.includes(oi)}
+              on:change={(e) => onToggleMultiSelectAnswer(oi, e.currentTarget.checked)}
+            />
+          {:else if question.type === 'reorder'}
+            <span class="text-pub-muted font-mono w-6 text-center">{question.answer.indexOf(oi) + 1}</span>
+          {/if}
+          <input
+            type="text"
+            value={question.options[oi]}
+            on:input={(e) => {
+              const val = (e.currentTarget as HTMLInputElement).value;
+              onTransform((q) => {
+                if (!('options' in q) || !Array.isArray(q.options)) return q;
+                const opts = [...q.options];
+                opts[oi] = val;
+                return { ...q, options: opts } as Question;
+              });
+            }}
+            placeholder="Option {oi + 1}"
+            class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
+          />
+          <button
+            type="button"
+            class="text-red-400 text-sm"
+            on:click={() => onRemoveOption(oi)}
+            disabled={question.options.length <= 2}
+          >
+            ×
+          </button>
+        </div>
+      {/each}
+      <button
+        type="button"
+        class="text-sm text-pub-accent hover:underline"
+        on:click={onAddOption}
+      >
+        + Add option
+      </button>
+    </div>
+  {:else if question.type === 'slider'}
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="slider-min-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Minimum</label>
+        <input
+          id="slider-min-{ri}-{qi}"
+          type="number"
+          value={question.min}
+          on:change={(e) => onUpdateSliderQuestion('min', Number((e.currentTarget as HTMLInputElement).value))}
+          class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+        />
+      </div>
+      <div>
+        <label for="slider-max-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Maximum</label>
+        <input
+          id="slider-max-{ri}-{qi}"
+          type="number"
+          value={question.max}
+          on:change={(e) => onUpdateSliderQuestion('max', Number((e.currentTarget as HTMLInputElement).value))}
+          class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+        />
+      </div>
+      <div>
+        <label for="slider-step-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Step</label>
+        <input
+          id="slider-step-{ri}-{qi}"
+          type="number"
+          min="0.01"
+          step="any"
+          value={question.step}
+          on:change={(e) => onUpdateSliderQuestion('step', Number((e.currentTarget as HTMLInputElement).value))}
+          class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+        />
+      </div>
+      <div>
+        <label for="slider-answer-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Correct value</label>
+        <input
+          id="slider-answer-{ri}-{qi}"
+          type="number"
+          step="any"
+          value={question.answer}
+          on:change={(e) => onUpdateSliderQuestion('answer', Number((e.currentTarget as HTMLInputElement).value))}
+          class="w-full bg-pub-darker border border-pub-muted rounded px-3 py-1"
+        />
+      </div>
+    </div>
+  {:else if question.type === 'true_false'}
+    <div class="space-y-2" role="group" aria-label="Correct answer">
+      <span class="block text-sm text-pub-muted">Correct answer</span>
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="tf-{ri}-{qi}"
+          checked={question.answer === true}
+          on:change={() => onPatch({ answer: true })}
+        />
+        <span>True</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="tf-{ri}-{qi}"
+          checked={question.answer === false}
+          on:change={() => onPatch({ answer: false })}
+        />
+        <span>False</span>
+      </label>
+    </div>
+  {:else if question.type === 'input'}
+    <div class="space-y-2" role="group" aria-label="Accepted answers">
+      <span class="block text-sm text-pub-muted">Accepted answers (for typos, add alternatives)</span>
+      {#each (Array.isArray(question.answer) ? question.answer : ['']) as _ans, ai}
+        <div class="flex gap-2">
+          <input
+            type="text"
+            value={(question as InputQuestion).answer[ai]}
+            on:input={(e) => {
+              const val = (e.currentTarget as HTMLInputElement).value;
+              onTransform((q) => {
+                const qq = q as InputQuestion;
+                const ans = [...qq.answer];
+                ans[ai] = val;
+                return { ...q, answer: ans } as Question;
+              });
+            }}
+            placeholder="Correct answer"
+            class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
+          />
+          <button
+            type="button"
+            class="text-red-400 text-sm"
+            on:click={() => onRemoveInputAnswer(ai)}
+            disabled={(question as InputQuestion).answer.length <= 1}
+          >
+            ×
+          </button>
+        </div>
+      {/each}
+      <button
+        type="button"
+        class="text-sm text-pub-accent hover:underline"
+        on:click={onAddInputAnswer}
+      >
+        + Add alternative
+      </button>
+    </div>
+  {/if}
+  <div class="mt-3">
+    <label for="exp-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Explanation (optional)</label>
+    <textarea
+      id="exp-{ri}-{qi}"
+      value={question.explanation ?? ''}
+      on:input={(e) => onPatch({ explanation: (e.currentTarget as HTMLTextAreaElement).value || undefined })}
+      placeholder="Explain why this answer is correct"
+      rows="2"
+      class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+    ></textarea>
+  </div>
+</div>
