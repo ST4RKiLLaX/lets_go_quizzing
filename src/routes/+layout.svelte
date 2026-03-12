@@ -2,13 +2,15 @@
   import { page } from '$app/stores';
   import '../app.css';
   import HostNav from '$lib/components/HostNav.svelte';
+  import { hostSessionStore } from '$lib/stores/host-session.js';
 
   export let data;
   $: isProjector = $page.url.pathname.startsWith('/projector/');
+  $: isHostRoute = $page.url.pathname.startsWith('/host/');
 </script>
 
 <div class="h-screen flex flex-col overflow-hidden">
-  {#if data.hostAuthenticated && !isProjector}
+  {#if !isProjector && (data?.hostAuthenticated || (isHostRoute && $hostSessionStore.active))}
     <HostNav />
   {/if}
   <main class="flex-1 min-h-0 overflow-y-auto">

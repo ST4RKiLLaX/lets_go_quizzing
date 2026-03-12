@@ -3,6 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
+  import { hostSessionStore } from '$lib/stores/host-session.js';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
   import type { Question } from '$lib/types/quiz.js';
@@ -55,17 +56,35 @@
     }
   }
   onDestroy(() => {
+    clearHostSession();
     hostQuizLiveStore.set({ live: false });
     countdown?.destroy?.();
     void wakeManager?.destroy();
   });
   let socket: import('socket.io-client').Socket | null = null;
 
+  let hostSessionEstablished = false;
+
+  function markHostSessionEstablished() {
+    if (hostSessionEstablished) return;
+    hostSessionEstablished = true;
+    hostSessionStore.set({ active: true, roomId });
+  }
+
+  function clearHostSession() {
+    hostSessionEstablished = false;
+    hostSessionStore.update((current) => {
+      if (current.roomId !== roomId) return current;
+      return { active: false };
+    });
+  }
+
   function doHostJoin(username?: string, password?: string) {
     joinError = '';
     socket?.emit('host:join', { roomId, username, password }, (ack: { state?: SerializedState; error?: string }) => {
       if (ack?.state) {
         state = ack.state;
+        markHostSessionEstablished();
         hostRejoinPassword = '';
       }
       if (ack?.error) {
@@ -92,11 +111,13 @@
     doHostJoin(username, pwd);
     const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
+      if (payload?.state) markHostSessionEstablished();
     };
     const onRoomUpdate = (payload: { state: SerializedState }) => {
       const incoming = payload?.state;
       if (!incoming) return;
       state = incoming;
+      markHostSessionEstablished();
     };
     socket.on('state:update', onStateUpdate);
     socket.on('room:update', onRoomUpdate);

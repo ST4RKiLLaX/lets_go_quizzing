@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
   import { onDestroy, onMount } from 'svelte';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
@@ -207,6 +207,7 @@
             creating = false;
             return;
           }
+          await invalidateAll();
           hostAuthenticated = true;
         }
       }
