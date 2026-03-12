@@ -12,23 +12,17 @@
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
-  import { generate } from 'lean-qr';
+  import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
+  import ProjectorLeaderboardView from '$lib/components/projector/ProjectorLeaderboardView.svelte';
+  import ProjectorLobbyView from '$lib/components/projector/ProjectorLobbyView.svelte';
 
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
-  let qrCanvas: HTMLCanvasElement | null = null;
   let wakeManager: ReturnType<typeof createWakeManager> | null = null;
 
   $: joinUrl =
     typeof window !== 'undefined' ? window.location.origin + '/play/' + roomId : '';
-
-  $: if (state?.type === 'Lobby' && joinUrl && qrCanvas) {
-    generate(joinUrl).toCanvas(qrCanvas, {
-      on: [255, 255, 255, 255],
-      off: [26, 26, 46, 255],
-    });
-  }
   let countdown: ReturnType<typeof useCountdown> | null = null;
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
   $: currentRoundQuestionTotal =
@@ -186,57 +180,20 @@
 <div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
     {#if !state}
-      <div class="bg-pub-darker rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-4">Projector – Room {roomId}</h2>
-        {#if needsRoomPassword}
-          <form
-            class="space-y-3"
-            onsubmit={(e) => { e.preventDefault(); joinRoom(joinPassword); }}
-          >
-            <label for="projector-join-password" class="block text-sm text-pub-muted">
-              This room requires a password
-            </label>
-            <input
-              id="projector-join-password"
-              type="password"
-              bind:value={joinPassword}
-              placeholder="Enter room password"
-              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
-            />
-            {#if joinError === 'Invalid room password'}
-              <p class="text-sm text-red-400">Invalid room password. Please try again.</p>
-            {/if}
-            <button
-              type="submit"
-              class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-              disabled={joiningRoom || !joinPassword.trim()}
-            >
-              {joiningRoom ? 'Joining...' : 'Join'}
-            </button>
-          </form>
-        {:else}
-          <p class="text-pub-muted">Joining room...</p>
-        {/if}
-      </div>
+      <ProjectorJoinView
+        roomId={roomId ?? ''}
+        needsRoomPassword={needsRoomPassword}
+        joinError={joinError}
+        bind:joinPassword
+        joiningRoom={joiningRoom}
+        onJoin={joinRoom}
+      />
     {:else}
       {#if state?.quiz?.meta?.name}
         <h1 class="text-4xl font-bold text-pub-gold mb-6 text-center">{state.quiz.meta.name}</h1>
       {/if}
       {#if state?.type === 'Lobby'}
-      <div class="text-center">
-        <h2 class="text-xl font-bold mb-6">Waiting for host to start</h2>
-        <p class="text-pub-muted mb-6">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
-        {#if joinUrl}
-          <p class="text-lg text-pub-muted mb-4">Scan to join</p>
-          <canvas
-            bind:this={qrCanvas}
-            class="mx-auto rounded-lg min-w-[256px] min-h-[256px] [image-rendering:pixelated]"
-          ></canvas>
-          <p class="mt-4 text-sm text-pub-muted break-all">
-            {joinUrl}
-          </p>
-        {/if}
-      </div>
+      <ProjectorLobbyView roomId={roomId ?? ''} joinUrl={joinUrl} />
     {:else if state?.type === 'Question'}
       <div class="bg-pub-darker rounded-lg p-6" data-question-id={currentQuestion?.id}>
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
@@ -516,24 +473,11 @@
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
-      <div class="bg-pub-darker rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-2">
-          {state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
-        </h2>
-        {#if state.type === 'End'}
-          <p class="text-pub-muted mb-6">The host ended this quiz session.</p>
-        {/if}
-        <ol class="space-y-3">
-          {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-            <li class="flex items-center gap-4">
-              <span class="text-pub-gold font-bold w-8">#{i + 1}</span>
-              <span>{player.emoji}</span>
-              <span>{player.name}</span>
-              <span class="ml-auto font-bold">{player.score}</span>
-            </li>
-          {/each}
-        </ol>
-      </div>
+      <ProjectorLeaderboardView
+        title={state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
+        isEnd={state.type === 'End'}
+        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+      />
     {:else}
       <p class="text-pub-muted text-center">Connecting...</p>
     {/if}

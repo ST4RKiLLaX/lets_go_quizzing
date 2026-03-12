@@ -1,6 +1,9 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
+  import HostEndModal from '$lib/components/host/HostEndModal.svelte';
+  import HostLeaderboardView from '$lib/components/host/HostLeaderboardView.svelte';
+  import HostSidebar from '$lib/components/host/HostSidebar.svelte';
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import { hostSessionStore } from '$lib/stores/host-session.js';
@@ -487,64 +490,23 @@
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard'}
-      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        <h2 class="text-xl font-bold mb-6">Leaderboard</h2>
-        <ol class="space-y-3">
-          {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-            <li class="flex items-center gap-4">
-              <span class="text-pub-gold font-bold w-8">#{i + 1}</span>
-              <span>{player.emoji}</span>
-              <span>{player.name}</span>
-              <span class="ml-auto font-bold">{player.score}</span>
-            </li>
-          {/each}
-        </ol>
-        <div class="flex gap-4 mt-6 items-center">
-          <button
-            type="button"
-            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-          >
-            Projector
-          </button>
-          <button
-            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 ml-auto"
-            on:click={next}
-          >
-            {state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
-          </button>
-        </div>
-      </div>
+      <HostLeaderboardView
+        title="Leaderboard"
+        isEnd={false}
+        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        roomId={roomId ?? ''}
+        onNext={next}
+        nextLabel={state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
+        showProjectorButton={true}
+      />
     {:else if state?.type === 'End'}
-      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        <h2 class="text-2xl font-bold text-pub-gold mb-6">Game Over!</h2>
-        <ol class="space-y-3">
-          {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-            <li class="flex items-center gap-4">
-              <span class="text-pub-gold font-bold w-8">#{i + 1}</span>
-              <span>{player.emoji}</span>
-              <span>{player.name}</span>
-              <span class="ml-auto font-bold">{player.score}</span>
-            </li>
-          {/each}
-        </ol>
-        <div class="mt-6 flex gap-4 flex-wrap">
-          <a
-            href="/?host=1"
-            class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-          >
-            New Game
-          </a>
-          <button
-            type="button"
-            class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-            on:click={() => window.open(`/projector/${roomId}`, '_blank', 'width=1280,height=720')}
-          >
-            Projector
-          </button>
-          <a href="/" class="text-pub-accent hover:underline self-center">Back to home</a>
-        </div>
-      </div>
+      <HostLeaderboardView
+        title="Game Over!"
+        isEnd={true}
+        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        roomId={roomId ?? ''}
+        showProjectorButton={true}
+      />
     {:else if joinError === 'Invalid password'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         <p class="text-pub-muted mb-4">Re-enter username and password to join host view</p>
@@ -577,117 +539,20 @@
     {/if}
     </div>
     {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
-      <div class="w-full lg:w-64 flex-shrink-0">
-        <div class="bg-pub-darker rounded-lg p-4 lg:sticky lg:top-6">
-          {#if (state.pendingPlayers ?? []).length > 0}
-            <div class="mb-4 pb-4 border-b border-pub-muted">
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <h3 class="text-sm font-semibold text-pub-muted">Waiting for approval</h3>
-                <button
-                  type="button"
-                  class="px-2 py-0.5 text-xs bg-green-600/80 hover:bg-green-600 rounded"
-                  on:click={approveAllPending}
-                  title="Admit all"
-                >
-                  Admit all
-                </button>
-              </div>
-              <ul class="space-y-2 text-sm">
-                {#each state.pendingPlayers ?? [] as p}
-                  <li class="flex items-center gap-2 group">
-                    <span>{p.emoji}</span>
-                    <span class="truncate flex-1">{p.name}</span>
-                    <div class="flex gap-1">
-                      <button
-                        type="button"
-                        class="px-2 py-0.5 text-xs bg-green-600/80 hover:bg-green-600 rounded"
-                        on:click={() => approvePending(p.playerId)}
-                        title="Approve"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
-                        on:click={() => denyPending(p.playerId)}
-                        title="Deny"
-                      >
-                        Deny
-                      </button>
-                    </div>
-                  </li>
-                {/each}
-              </ul>
-            </div>
-          {/if}
-          <div class="flex items-center justify-between gap-2 mb-3">
-            <h3 class="text-sm font-semibold text-pub-muted">Players</h3>
-            <span class="text-sm text-pub-muted">{(state.players ?? []).length} active</span>
-          </div>
-          {#if kickError}
-            <p class="text-sm text-red-400 mb-2">{kickError}</p>
-          {/if}
-          <ol class="space-y-2 text-sm">
-            {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-              <li class="flex items-center gap-2 group">
-                <span class="text-pub-gold font-bold w-6">#{i + 1}</span>
-                <span>{player.emoji}</span>
-                <span class="truncate flex-1">{player.name}</span>
-                <span class="font-bold">{player.score}</span>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
-                    on:click={() => kick(player.id)}
-                    title="Kick from room"
-                  >
-                    Kick
-                  </button>
-                  <button
-                    type="button"
-                    class="px-2 py-0.5 text-xs text-pub-muted border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
-                    on:click={() => kick(player.id, true)}
-                    title="Kick and ban from room"
-                  >
-                    Kick & ban
-                  </button>
-                </div>
-              </li>
-            {/each}
-          </ol>
-          {#if (state.players ?? []).length === 0}
-            <p class="text-pub-muted text-sm">No players yet</p>
-          {/if}
-        </div>
-      </div>
+      <HostSidebar
+        state={state}
+        kickError={kickError}
+        onKick={kick}
+        onApprove={approvePending}
+        onDeny={denyPending}
+        onApproveAll={approveAllPending}
+      />
     {/if}
   </div>
 </div>
 
-{#if showEndQuizModal}
-  <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-pub-darker border border-pub-muted rounded-lg p-5">
-      <h2 class="text-lg font-semibold text-pub-gold mb-3">End quiz now?</h2>
-      <p class="text-sm text-pub-muted mb-5">
-        If you end the quiz now, all players and the projector will immediately see that the quiz has ended.
-        This room cannot continue from where it left off.
-      </p>
-      <div class="flex justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90"
-          on:click={closeEndQuizModal}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-[#CF3030] rounded-lg font-medium hover:opacity-90"
-          on:click={confirmEndQuiz}
-        >
-          End Quiz
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
+<HostEndModal
+  open={showEndQuizModal}
+  onClose={closeEndQuizModal}
+  onConfirm={confirmEndQuiz}
+/>
