@@ -18,7 +18,8 @@ const seen = new Map();
 for (const [pkgPathKey, pkgData] of Object.entries(packages)) {
   if (!pkgPathKey || !pkgData.version) continue;
   const pathParts = pkgPathKey.replace(/^node_modules\//, '').split('/');
-  const name = pkgData.name || (pathParts[0]?.startsWith('@') ? pathParts.slice(0, 2).join('/') : pathParts[0]) || pkgPathKey;
+  const name =
+    pkgData.name || (pathParts[0]?.startsWith('@') ? pathParts.slice(0, 2).join('/') : pathParts[0]) || pkgPathKey;
   const key = `${name}@${pkgData.version}`;
   if (!seen.has(key)) {
     seen.set(key, {
@@ -65,7 +66,13 @@ const sbom = {
       description: pkg.description || 'Quiz application',
     },
     ...deps.map((d) => {
-      const alg = d.integrity?.startsWith('sha512-') ? 'SHA512' : d.integrity?.startsWith('sha384-') ? 'SHA384' : d.integrity?.startsWith('sha256-') ? 'SHA256' : null;
+      const alg = d.integrity?.startsWith('sha512-')
+        ? 'SHA512'
+        : d.integrity?.startsWith('sha384-')
+          ? 'SHA384'
+          : d.integrity?.startsWith('sha256-')
+            ? 'SHA256'
+            : null;
       const checksum = d.integrity?.includes('-') ? d.integrity.split('-')[1] : null;
       const purl = `pkg:npm/${encodeURIComponent(d.name)}@${d.version}`;
       return {
@@ -78,9 +85,7 @@ const sbom = {
         licenseDeclared: d.license || 'NOASSERTION',
         copyrightText: 'NOASSERTION',
         ...(alg && checksum && { checksums: [{ algorithm: alg, checksumValue: checksum }] }),
-        externalRefs: [
-          { referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: purl },
-        ],
+        externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: purl }],
         ...((d.optional || d.dev) && {
           comment: [d.optional && 'Optional', d.dev && 'Dev'].filter(Boolean).join(', ') + ' dependency',
         }),

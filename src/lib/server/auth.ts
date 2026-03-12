@@ -1,4 +1,5 @@
 export {
+  createLogoutCookie,
   createSession,
   isAuthenticated,
   requireHostAuth,

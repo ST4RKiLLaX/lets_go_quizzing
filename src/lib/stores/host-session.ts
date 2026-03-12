@@ -6,5 +6,5 @@ export type HostSession = {
 };
 
 export const hostSessionStore = writable<HostSession>({
-  active: false
+  active: false,
 });

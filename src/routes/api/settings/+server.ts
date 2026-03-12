@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { isAuthenticated } from '$lib/server/auth/index.js';
+import { isAuthenticated } from '$lib/server/auth.js';
 import {
   loadConfig,
   saveConfig,
@@ -9,8 +9,9 @@ import {
   getEffectiveRoomIdLen,
   type ProfanityFilterMode,
 } from '$lib/server/config.js';
-import { createSession, getCurrentAuthEpoch } from '$lib/server/auth/index.js';
+import { createSession, getCurrentAuthEpoch } from '$lib/server/auth.js';
 import { resetCustomBlockCache } from '$lib/server/custom-block.js';
+import { jsonWithCookie } from '$lib/server/response.js';
 
 const CUSTOM_BLOCK_MAX_TERMS = 100;
 const CUSTOM_BLOCK_MAX_TERM_LENGTH = 50;
@@ -20,7 +21,7 @@ function normalizeForDedupe(text: string): string {
     .normalize('NFKC')
     .toLowerCase()
     .replace(/\s+/g, ' ')
-    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
+    .replace(/\u200B|\u200C|\u200D|\uFEFF/g, '')
     .trim();
 }
 
@@ -64,21 +65,26 @@ export async function PUT({ request }) {
     const currentPassword = typeof body?.currentPassword === 'string' ? body.currentPassword : '';
     const newUsername = typeof body?.username === 'string' ? body.username.trim() : undefined;
     const newPassword = typeof body?.newPassword === 'string' ? body.newPassword : undefined;
-    const newPasswordConfirm =
-      typeof body?.newPasswordConfirm === 'string' ? body.newPasswordConfirm : undefined;
+    const newPasswordConfirm = typeof body?.newPasswordConfirm === 'string' ? body.newPasswordConfirm : undefined;
     const origin = body?.origin !== undefined ? (typeof body.origin === 'string' ? body.origin.trim() : '') : undefined;
     const roomIdLen = body?.roomIdLen !== undefined ? Number(body.roomIdLen) : undefined;
     const profanityFilterMode =
       body?.profanityFilterMode !== undefined
-        ? (typeof body.profanityFilterMode === 'string' ? body.profanityFilterMode : undefined)
+        ? typeof body.profanityFilterMode === 'string'
+          ? body.profanityFilterMode
+          : undefined
         : undefined;
     const customKeywordFilterEnabled =
       body?.customKeywordFilterEnabled !== undefined
-        ? (typeof body.customKeywordFilterEnabled === 'boolean' ? body.customKeywordFilterEnabled : undefined)
+        ? typeof body.customKeywordFilterEnabled === 'boolean'
+          ? body.customKeywordFilterEnabled
+          : undefined
         : undefined;
     const customBlockedTermsRaw =
       body?.customBlockedTerms !== undefined
-        ? (Array.isArray(body.customBlockedTerms) ? body.customBlockedTerms : undefined)
+        ? Array.isArray(body.customBlockedTerms)
+          ? body.customBlockedTerms
+          : undefined
         : undefined;
 
     const changingCredentials = newUsername !== undefined || newPassword !== undefined;
@@ -103,18 +109,15 @@ export async function PUT({ request }) {
       return json({ error: 'Room ID length must be 4–12' }, { status: 400 });
     }
     const validModes: ProfanityFilterMode[] = ['off', 'names', 'public_text', 'strict'];
-    if (
-      profanityFilterMode !== undefined &&
-      !validModes.includes(profanityFilterMode as ProfanityFilterMode)
-    ) {
+    if (profanityFilterMode !== undefined && !validModes.includes(profanityFilterMode as ProfanityFilterMode)) {
       return json({ error: 'Invalid profanity filter mode' }, { status: 400 });
     }
 
     let customBlockedTerms: string[] | undefined;
     if (customBlockedTermsRaw !== undefined) {
       const trimmed = customBlockedTermsRaw
-        .map((t) => (typeof t === 'string' ? t.trim() : ''))
-        .filter((t) => t.length > 0);
+        .map((t: unknown) => (typeof t === 'string' ? t.trim() : ''))
+        .filter((t: string) => t.length > 0);
       const normalizedSeen = new Set<string>();
       const deduped: string[] = [];
       for (const t of trimmed) {
@@ -156,13 +159,7 @@ export async function PUT({ request }) {
         secure: isSecure,
         authEpoch: getCurrentAuthEpoch(),
       });
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': newCookie,
-        },
-      });
+      return jsonWithCookie({ ok: true }, newCookie);
     }
 
     return json({ ok: true });

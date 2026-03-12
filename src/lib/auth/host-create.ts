@@ -1,7 +1,4 @@
-export function resolveHostCreatePassword(
-  hostPasswordRequired: boolean,
-  hostPassword: string
-): string | undefined {
+export function resolveHostCreatePassword(hostPasswordRequired: boolean, hostPassword: string): string | undefined {
   if (!hostPasswordRequired) return undefined;
   const typedPassword = hostPassword.trim();
   return typedPassword || undefined;

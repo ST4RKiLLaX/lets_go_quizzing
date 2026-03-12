@@ -23,25 +23,31 @@ function isValidImageUrl(val: string): { ok: true } | { ok: false; message: stri
   }
 }
 
-const imageSchema = z.string().optional().superRefine((val, ctx) => {
-  const r = isValidImageUrl(val ?? '');
-  if (!r.ok) {
-    ctx.addIssue({
-      code: 'custom',
-      message: r.message,
-    });
-  }
-});
+const imageSchema = z
+  .string()
+  .optional()
+  .superRefine((val, ctx) => {
+    const r = isValidImageUrl(val ?? '');
+    if (!r.ok) {
+      ctx.addIssue({
+        code: 'custom',
+        message: r.message,
+      });
+    }
+  });
 
-const requiredImageSchema = z.string().min(1).superRefine((val, ctx) => {
-  const r = isValidImageUrl(val);
-  if (!r.ok) {
-    ctx.addIssue({
-      code: 'custom',
-      message: r.message,
-    });
-  }
-});
+const requiredImageSchema = z
+  .string()
+  .min(1)
+  .superRefine((val, ctx) => {
+    const r = isValidImageUrl(val);
+    if (!r.ok) {
+      ctx.addIssue({
+        code: 'custom',
+        message: r.message,
+      });
+    }
+  });
 
 const ChoiceQuestionSchema = z.object({
   id: z.string(),
@@ -105,9 +111,7 @@ const InputQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: imageSchema,
   points: z.number().positive().optional(),
-  answer: z.union([z.string(), z.array(z.string())]).transform((v) =>
-    Array.isArray(v) ? v : [v]
-  ),
+  answer: z.union([z.string(), z.array(z.string())]).transform((v) => (Array.isArray(v) ? v : [v])),
 });
 
 const OpenEndedQuestionSchema = z.object({
@@ -176,32 +180,33 @@ const RoundSchema = z
   })
   .refine(
     (round) =>
-      round.questions.every((q) =>
-        (q.type !== 'choice' || (q.answer >= 0 && q.answer < q.options.length)) &&
-        (q.type !== 'multi_select' ||
-          (new Set(q.answer).size === q.answer.length &&
-            q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
-                  (q.type !== 'reorder' ||
-                    (q.answer.length === q.options.length &&
-                      new Set(q.answer).size === q.answer.length &&
-                      q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
-        (q.type !== 'slider' ||
-          (q.max > q.min &&
-            q.answer >= q.min &&
-            q.answer <= q.max &&
-            Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9)) &&
-        (q.type !== 'hotspot' ||
-          (q.answer.x >= 0 &&
-            q.answer.x <= 1 &&
-            q.answer.y >= 0 &&
-            q.answer.y <= 1 &&
-            q.answer.radius > 0 &&
-            q.answer.radius <= 0.5))
+      round.questions.every(
+        (q) =>
+          (q.type !== 'choice' || (q.answer >= 0 && q.answer < q.options.length)) &&
+          (q.type !== 'multi_select' ||
+            (new Set(q.answer).size === q.answer.length &&
+              q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
+          (q.type !== 'reorder' ||
+            (q.answer.length === q.options.length &&
+              new Set(q.answer).size === q.answer.length &&
+              q.answer.every((answerIndex) => answerIndex >= 0 && answerIndex < q.options.length))) &&
+          (q.type !== 'slider' ||
+            (q.max > q.min &&
+              q.answer >= q.min &&
+              q.answer <= q.max &&
+              Math.abs((q.answer - q.min) / q.step - Math.round((q.answer - q.min) / q.step)) < 1e-9)) &&
+          (q.type !== 'hotspot' ||
+            (q.answer.x >= 0 &&
+              q.answer.x <= 1 &&
+              q.answer.y >= 0 &&
+              q.answer.y <= 1 &&
+              q.answer.radius > 0 &&
+              q.answer.radius <= 0.5))
       ),
     {
-        message:
-          'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, slider answers must fit the min/max/step range, and hotspot answer must have valid x/y/radius',
-      }
+      message:
+        'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, slider answers must fit the min/max/step range, and hotspot answer must have valid x/y/radius',
+    }
   );
 
 const QuizMetaSchema = z.object({

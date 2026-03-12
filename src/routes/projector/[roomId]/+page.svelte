@@ -29,7 +29,6 @@
     });
   }
   let countdown: ReturnType<typeof useCountdown> | null = null;
-  let clockOffsetMs = 0;
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
   $: currentRoundQuestionTotal =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.length ?? 0;
@@ -129,7 +128,7 @@
   }
 
   $: if (import.meta.env.DEV && typeof window !== 'undefined') {
-    (window as any).__lgqDebug = { socket, state };
+    (window as Window & { __lgqDebug?: unknown }).__lgqDebug = { socket, state };
   }
   $: answeredList = state?.type === 'Question' ? getAnsweredInOrder() : [];
   $: rankedCorrectList =

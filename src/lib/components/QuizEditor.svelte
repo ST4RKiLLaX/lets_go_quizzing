@@ -8,22 +8,11 @@
   MultiSelectQuestion,
   SliderQuestion,
   InputQuestion,
-  OpenEndedQuestion,
-  WordCloudQuestion,
   ReorderQuestion,
   HotspotQuestion,
 } from '$lib/types/quiz.js';
 import {
   createEmptyChoiceQuestion,
-  createEmptyTrueFalseQuestion,
-  createEmptyPollQuestion,
-  createEmptyMultiSelectQuestion,
-  createEmptySliderQuestion,
-  createEmptyInputQuestion,
-  createEmptyOpenEndedQuestion,
-  createEmptyWordCloudQuestion,
-  createEmptyReorderQuestion,
-  createEmptyHotspotQuestion,
   generateQuestionId,
 } from '$lib/types/quiz.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
@@ -318,7 +307,6 @@ import {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-      const q = quiz.rounds[ri].questions[qi];
       quiz = {
         ...quiz,
         rounds: quiz.rounds.map((r, i) =>
@@ -335,13 +323,18 @@ import {
   }
 
   function clearImage(ri: number, qi: number) {
-    const q = quiz.rounds[ri].questions[qi];
-    const clearedImage = q.type === 'hotspot' ? '' : undefined;
     quiz = {
       ...quiz,
       rounds: quiz.rounds.map((r, i) =>
         i === ri
-          ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...qu, image: clearedImage } : qu)) }
+          ? {
+              ...r,
+              questions: r.questions.map((qu, j) => {
+                if (j !== qi) return qu;
+                if (qu.type === 'hotspot') return { ...qu, image: '' };
+                return { ...qu, image: undefined };
+              }),
+            }
           : r
       ),
     };
@@ -631,7 +624,7 @@ import {
                     alt=""
                     class="max-w-full rounded-lg block"
                     on:load={(e) => {
-                      const img = e.currentTarget;
+                      const img = e.currentTarget as HTMLImageElement;
                       const ar = img.naturalHeight / img.naturalWidth;
                       const q = quiz.rounds[ri].questions[qi] as HotspotQuestion;
                       if (q.imageAspectRatio === undefined || Math.abs(q.imageAspectRatio - ar) > 0.001) {
@@ -748,7 +741,7 @@ import {
                       ? 'Options (enter in correct order)'
                       : 'Options (select correct)'}
               </span>
-              {#each question.options as opt, oi}
+              {#each question.options as _opt, oi}
                 <div class="flex gap-2 items-center">
                   {#if question.type === 'choice'}
                     <input
@@ -891,7 +884,7 @@ import {
           {:else if question.type === 'input'}
             <div class="space-y-2" role="group" aria-label="Accepted answers">
               <span class="block text-sm text-pub-muted">Accepted answers (for typos, add alternatives)</span>
-              {#each (Array.isArray(question.answer) ? question.answer : ['']) as ans, ai}
+              {#each (Array.isArray(question.answer) ? question.answer : ['']) as _ans, ai}
                 <div class="flex gap-2">
                   <input
                     type="text"

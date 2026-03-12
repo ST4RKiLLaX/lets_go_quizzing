@@ -8,16 +8,11 @@
  */
 import { getCustomKeywordFilterEnabled, getCustomBlockedTerms } from './config.js';
 
-const ZERO_WIDTH = /[\u200B\u200C\u200D\uFEFF]/g;
+const ZERO_WIDTH = /\u200B|\u200C|\u200D|\uFEFF/g;
 const TOKEN_REGEX = /[\p{L}\p{N}]+/gu;
 
 function normalize(text: string): string {
-  return text
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(ZERO_WIDTH, '')
-    .trim();
+  return text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').replace(ZERO_WIDTH, '').trim();
 }
 
 let cachedNormalizedSet: Set<string> | null = null;

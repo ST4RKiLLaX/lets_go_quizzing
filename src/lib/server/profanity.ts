@@ -10,15 +10,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig } from './config.js';
 
-const ZERO_WIDTH = /[\u200B\u200C\u200D\uFEFF]/g;
+const ZERO_WIDTH = /\u200B|\u200C|\u200D|\uFEFF/g;
 
 function normalize(text: string): string {
-  return text
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(ZERO_WIDTH, '')
-    .trim();
+  return text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').replace(ZERO_WIDTH, '').trim();
 }
 
 function escapeRegex(s: string): string {
@@ -250,9 +245,7 @@ function collapseRepeatedLetters(text: string): string {
 }
 
 function applyAggressiveSubstitutions(text: string): string {
-  return text
-    .replace(/ph/gi, 'f')
-    .replace(/ck/gi, 'k');
+  return text.replace(/ph/gi, 'f').replace(/ck/gi, 'k');
 }
 
 /**
@@ -331,4 +324,3 @@ export function resetProfanityCache(): void {
   cached = null;
   aliasMatchersCached = null;
 }
-

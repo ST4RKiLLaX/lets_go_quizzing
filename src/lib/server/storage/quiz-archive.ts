@@ -44,11 +44,7 @@ export function collectReferencedLocalImages(quiz: Quiz): string[] {
   return Array.from(names).sort();
 }
 
-export function buildQuizExportZip(params: {
-  filename: string;
-  quiz: Quiz;
-  quizYaml: string;
-}): Buffer {
+export function buildQuizExportZip(params: { filename: string; quiz: Quiz; quizYaml: string }): Buffer {
   const { filename, quiz, quizYaml } = params;
   const slug = filename.replace(/\.(yaml|yml)$/i, '');
   const imagesDir = join(IMAGES_ROOT, slug);
@@ -113,8 +109,8 @@ export function parseQuizImportZip(zipBuffer: Buffer): {
   try {
     quiz = QuizSchema.parse(parseYaml(quizYaml));
   } catch (e) {
-    if (e instanceof z.ZodError) throw new Error(formatZodError(e));
-    throw e instanceof Error ? e : new Error(String(e));
+    if (e instanceof z.ZodError) throw new Error(formatZodError(e), { cause: e });
+    throw e instanceof Error ? e : new Error(String(e), { cause: e });
   }
 
   const images: Array<{ name: string; content: Buffer }> = [];
@@ -131,7 +127,10 @@ export function parseQuizImportZip(zipBuffer: Buffer): {
   return { quiz, quizYaml, yamlName: basename(yamlEntry.entryName), images };
 }
 
-export function writeImportedQuizImages(filename: string, images: Array<{ name: string; content: Buffer }>): {
+export function writeImportedQuizImages(
+  filename: string,
+  images: Array<{ name: string; content: Buffer }>
+): {
   importedImages: string[];
   skippedImages: string[];
 } {

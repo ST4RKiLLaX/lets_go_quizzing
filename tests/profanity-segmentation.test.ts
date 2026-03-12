@@ -1,9 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import {
-  containsProfanityAggressive,
-  resetProfanityCache,
-} from '../src/lib/server/profanity.js';
+import { containsProfanityAggressive, resetProfanityCache } from '../src/lib/server/profanity.js';
 
 describe('segmented profanity', () => {
   it('catches bitchass (bitch+ass)', () => {

@@ -7,8 +7,7 @@
     title: string;
   };
 
-  let quizzes: QuizListItem[] = [];
-  $: quizzes = $page.data.quizzes ?? [];
+  $: quizzes = ($page.data.quizzes ?? []) as QuizListItem[];
 
   let importInput: HTMLInputElement | null = null;
   let busy = false;

@@ -1,14 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
-import {
-  generateFilenameFromTitle,
-  resolveUniqueQuizFilename,
-  saveQuiz,
-} from '$lib/server/storage/quiz-storage.js';
-import {
-  parseQuizImportZip,
-  writeImportedQuizImages,
-} from '$lib/server/storage/quiz-archive.js';
+import { generateFilenameFromTitle, resolveUniqueQuizFilename, saveQuiz } from '$lib/server/storage/quiz-storage.js';
+import { parseQuizImportZip, writeImportedQuizImages } from '$lib/server/storage/quiz-archive.js';
 
 export async function POST({ request }) {
   if (!requireHostPassword()) {

@@ -1,12 +1,23 @@
-import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, chmodSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  existsSync,
+  mkdirSync,
+  chmodSync,
+  unlinkSync,
+  openSync,
+  writeSync,
+  closeSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 const CONFIG_FILENAME = 'config.json';
 const DATA_DIR = 'data';
-const SCRYPT_N = 16384;
-const SCRYPT_R = 8;
-const SCRYPT_P = 1;
+const _SCRYPT_N = 16384;
+const _SCRYPT_R = 8;
+const _SCRYPT_P = 1;
 const SCRYPT_KEYLEN = 64;
 const SALT_LEN = 32;
 
@@ -123,10 +134,16 @@ export function saveConfig(partial: Partial<AppConfig>): void {
     origin: partial.origin !== undefined ? partial.origin : current?.origin,
     roomIdLen: partial.roomIdLen !== undefined ? partial.roomIdLen : current?.roomIdLen,
     authEpoch: partial.authEpoch !== undefined ? partial.authEpoch : (current?.authEpoch ?? 0),
-    profanityFilterMode: partial.profanityFilterMode !== undefined ? partial.profanityFilterMode : current?.profanityFilterMode,
-    profanityAllowlist: partial.profanityAllowlist !== undefined ? partial.profanityAllowlist : current?.profanityAllowlist,
-    customKeywordFilterEnabled: partial.customKeywordFilterEnabled !== undefined ? partial.customKeywordFilterEnabled : current?.customKeywordFilterEnabled,
-    customBlockedTerms: partial.customBlockedTerms !== undefined ? partial.customBlockedTerms : current?.customBlockedTerms,
+    profanityFilterMode:
+      partial.profanityFilterMode !== undefined ? partial.profanityFilterMode : current?.profanityFilterMode,
+    profanityAllowlist:
+      partial.profanityAllowlist !== undefined ? partial.profanityAllowlist : current?.profanityAllowlist,
+    customKeywordFilterEnabled:
+      partial.customKeywordFilterEnabled !== undefined
+        ? partial.customKeywordFilterEnabled
+        : current?.customKeywordFilterEnabled,
+    customBlockedTerms:
+      partial.customBlockedTerms !== undefined ? partial.customBlockedTerms : current?.customBlockedTerms,
   };
   if (!next.adminUsername || !next.adminPasswordHash) {
     throw new Error('adminUsername and adminPasswordHash are required');
@@ -160,7 +177,9 @@ export function getEffectiveOrigin(): string | undefined {
   return cfg?.origin?.trim() || undefined;
 }
 
-export function createConfigAtomic(config: Omit<AppConfig, 'version' | 'authEpoch'> & Partial<Pick<AppConfig, 'version' | 'authEpoch'>>): boolean {
+export function createConfigAtomic(
+  config: Omit<AppConfig, 'version' | 'authEpoch'> & Partial<Pick<AppConfig, 'version' | 'authEpoch'>>
+): boolean {
   const full: AppConfig = {
     version: config.version ?? 1,
     authEpoch: config.authEpoch ?? 0,
@@ -172,7 +191,7 @@ export function createConfigAtomic(config: Omit<AppConfig, 'version' | 'authEpoc
   try {
     const fd = openSync(path, 'wx');
     try {
-      writeSync(fd, JSON.stringify(full, null, 2), 'utf8');
+      writeSync(fd, JSON.stringify(full, null, 2), 0, 'utf8');
     } finally {
       closeSync(fd);
     }

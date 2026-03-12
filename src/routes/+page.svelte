@@ -27,7 +27,6 @@
   let hostAuthenticated = false;
   let showQuizMenu = false;
   let quizzes: QuizListItem[] = [];
-  let selectedQuiz: QuizListItem | null = null;
   let hostPasswordRequired = false;
   let highlightedQuizIndex = -1;
   let quizMenuRoot: HTMLDivElement | null = null;

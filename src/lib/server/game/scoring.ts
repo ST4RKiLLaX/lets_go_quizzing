@@ -15,38 +15,23 @@ import type {
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 
-function isChoiceCorrect(
-  question: ChoiceQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isChoiceCorrect(question: ChoiceQuestion, submission: AnswerSubmission): boolean {
   if (submission.answerIndex === undefined) return false;
   return submission.answerIndex === question.answer;
 }
 
-function isTrueFalseCorrect(
-  question: TrueFalseQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isTrueFalseCorrect(question: TrueFalseQuestion, submission: AnswerSubmission): boolean {
   if (submission.answerIndex === undefined) return false;
   return submission.answerIndex === (question.answer ? 0 : 1);
 }
 
-function isInputCorrectExact(
-  question: InputQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isInputCorrectExact(question: InputQuestion, submission: AnswerSubmission): boolean {
   if (submission.answerText === undefined) return false;
   const normalized = submission.answerText.trim().toLowerCase();
-  return question.answer.some(
-    (a) => a.trim().toLowerCase() === normalized
-  );
+  return question.answer.some((a) => a.trim().toLowerCase() === normalized);
 }
 
-function isInputCorrectFuzzy(
-  question: InputQuestion,
-  submission: AnswerSubmission,
-  threshold: number
-): boolean {
+function isInputCorrectFuzzy(question: InputQuestion, submission: AnswerSubmission, threshold: number): boolean {
   if (submission.answerText === undefined) return false;
   const normalized = submission.answerText.trim().toLowerCase();
   return question.answer.some((a) => {
@@ -55,36 +40,24 @@ function isInputCorrectFuzzy(
   });
 }
 
-function isMultiSelectCorrect(
-  question: MultiSelectQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isMultiSelectCorrect(question: MultiSelectQuestion, submission: AnswerSubmission): boolean {
   if (!submission.answerIndexes?.length) return false;
   const actual = [...new Set(submission.answerIndexes)].sort((a, b) => a - b);
   const expected = [...new Set(question.answer)].sort((a, b) => a - b);
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
 }
 
-function isSliderCorrect(
-  question: SliderQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isSliderCorrect(question: SliderQuestion, submission: AnswerSubmission): boolean {
   if (submission.answerNumber == null) return false;
   return Math.abs(submission.answerNumber - question.answer) < 1e-9;
 }
 
-function isReorderCorrect(
-  question: ReorderQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isReorderCorrect(question: ReorderQuestion, submission: AnswerSubmission): boolean {
   if (!submission.answerIndexes?.length || submission.answerIndexes.length !== question.answer.length) return false;
   return submission.answerIndexes.every((value, index) => value === question.answer[index]);
 }
 
-function isHotspotCorrect(
-  question: HotspotQuestion,
-  submission: AnswerSubmission
-): boolean {
+function isHotspotCorrect(question: HotspotQuestion, submission: AnswerSubmission): boolean {
   if (submission.answerX == null || submission.answerY == null) return false;
   const ar = question.imageAspectRatio ?? 1;
   const { x: ax, y: ay, radius, radiusY, rotation = 0 } = question.answer;
@@ -142,17 +115,12 @@ function isCorrect(
   }
   if (question.type === 'input') {
     if (submission.visibility === 'blocked') return false;
-    return (
-      isInputCorrectExact(question, submission) ||
-      isInputCorrectFuzzy(question, submission, fuzzyThreshold)
-    );
+    return isInputCorrectExact(question, submission) || isInputCorrectFuzzy(question, submission, fuzzyThreshold);
   }
   return false;
 }
 
-function getWrongAnswerValue(
-  submission: AnswerSubmission
-): string | number | number[] {
+function getWrongAnswerValue(submission: AnswerSubmission): string | number | number[] {
   if (submission.answerX != null && submission.answerY != null) {
     return [submission.answerX, submission.answerY];
   }
@@ -168,10 +136,7 @@ function getWrongAnswerValue(
   return submission.answerText ?? '';
 }
 
-export function scoreSubmissions(
-  state: GameState,
-  basePoints = 1
-): GameState {
+export function scoreSubmissions(state: GameState, basePoints = 1): GameState {
   const round = state.quiz.rounds[state.currentRoundIndex];
   if (!round) return state;
 
@@ -184,8 +149,7 @@ export function scoreSubmissions(
     };
   }
 
-  const fuzzyThreshold =
-    state.quiz.meta.fuzzy_threshold ?? DEFAULT_FUZZY_THRESHOLD;
+  const fuzzyThreshold = state.quiz.meta.fuzzy_threshold ?? DEFAULT_FUZZY_THRESHOLD;
   const players = new Map(state.players);
 
   const wrongAnswers: typeof state.wrongAnswers = [];
@@ -214,9 +178,7 @@ export function scoreSubmissions(
       const pts =
         correct.length === 1
           ? maxPts
-          : Math.round(
-              maxPts - ((currentRank - 1) * (maxPts - minPts)) / (correct.length - 1)
-            );
+          : Math.round(maxPts - ((currentRank - 1) * (maxPts - minPts)) / (correct.length - 1));
       const player = players.get(sub.playerId)!;
       players.set(sub.playerId, { ...player, score: player.score + pts });
     }

@@ -1,9 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import {
-  loadConfig,
-  hasValidOperationalConfig,
-  verifyPassword as verifyPasswordScrypt,
-} from '../config.js';
+import { loadConfig, hasValidOperationalConfig, verifyPassword as verifyPasswordScrypt } from '../config.js';
 
 const SESSION_COOKIE = 'lgq_host_auth';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
@@ -94,12 +90,14 @@ export function isAuthenticated(cookieHeader: string | undefined): boolean {
   return true;
 }
 
+/** True if host auth is configured (config or env). Used for layout and server checks. */
 export function requireHostAuth(): boolean {
   if (hasValidOperationalConfig()) return true;
   if (process.env.HOST_PASSWORD) return true;
   return false;
 }
 
+/** Alias for requireHostAuth. Use in API routes that gate host-only actions. */
 export function requireHostPassword(): boolean {
   return requireHostAuth();
 }

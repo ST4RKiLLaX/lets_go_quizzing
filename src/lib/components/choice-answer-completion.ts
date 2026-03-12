@@ -1,9 +1,4 @@
-import type {
-  Completion,
-  CompletionContext,
-  CompletionResult,
-  CompletionSource,
-} from '@codemirror/autocomplete';
+import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import { insertCompletionText, pickedCompletion } from '@codemirror/autocomplete';
 import { jsonPointerForPosition } from 'codemirror-json-schema';
 import YAML from 'yaml';
@@ -35,8 +30,7 @@ function getAtPath(data: unknown, pointer: string): unknown {
  */
 export function choiceAnswerCompletion(ctx: CompletionContext): CompletionResult | null {
   const pointer = jsonPointerForPosition(ctx.state, ctx.pos, -1, MODES_YAML);
-  const isAnswerValue =
-    pointer.endsWith('/answer') || /\/answer\/\d+$/.test(pointer);
+  const isAnswerValue = pointer.endsWith('/answer') || /\/answer\/\d+$/.test(pointer);
   if (!isAnswerValue) return null;
 
   let data: unknown;

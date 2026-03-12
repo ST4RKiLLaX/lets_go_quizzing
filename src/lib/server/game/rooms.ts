@@ -33,7 +33,7 @@ export function createRoom(
     pendingPlayers: new Map(),
     waitingRoomEnabled: !!waitingRoomEnabled,
     allowLateJoin: !!allowLateJoin,
-    autoAdmitBeforeGame: autoAdmitBeforeGame ?? (!!waitingRoomEnabled),
+    autoAdmitBeforeGame: autoAdmitBeforeGame ?? !!waitingRoomEnabled,
     manualAdmitAfterGame: manualAdmitAfterGame ?? true,
     currentRoundIndex: 0,
     currentQuestionIndex: 0,

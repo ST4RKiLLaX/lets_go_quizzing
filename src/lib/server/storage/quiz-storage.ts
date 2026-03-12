@@ -7,10 +7,12 @@ const QUIZZES_DIR = join(process.cwd(), 'data', 'quizzes');
 const IMAGES_DIR = join(QUIZZES_DIR, 'images');
 
 function sanitizeFilename(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '') || 'quiz';
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '') || 'quiz'
+  );
 }
 
 export function saveQuiz(quiz: Quiz, filename: string): void {

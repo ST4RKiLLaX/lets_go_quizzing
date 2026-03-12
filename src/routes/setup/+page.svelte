@@ -32,7 +32,7 @@
         return;
       }
       goto(data.migrationMode ? '/?migrated=1' : '/');
-    } catch (e) {
+    } catch {
       error = 'Setup failed';
     } finally {
       submitting = false;

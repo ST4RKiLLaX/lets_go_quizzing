@@ -6,10 +6,7 @@
   "documentNamespace": "https://spdx.org/spdxdocs/lets-go-quizzing-0.0.1-1773247450657",
   "creationInfo": {
     "created": "2026-03-11T16:44:10.657Z",
-    "creators": [
-      "Tool: generate-sbom.js",
-      "Organization: lets-go-quizzing"
-    ]
+    "creators": ["Tool: generate-sbom.js", "Organization: lets-go-quizzing"]
   },
   "packages": [
     {

@@ -3,10 +3,7 @@ import test from 'node:test';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AdmZip from 'adm-zip';
-import {
-  resolveUniqueQuizFilename,
-  deleteQuizAndImages,
-} from '../src/lib/server/storage/quiz-storage.js';
+import { resolveUniqueQuizFilename, deleteQuizAndImages } from '../src/lib/server/storage/quiz-storage.js';
 import {
   buildQuizExportZip,
   parseQuizImportZip,
@@ -78,7 +75,10 @@ test('parseQuizImportZip validates and parses quiz + images', () => {
   const parsed = parseQuizImportZip(zip.toBuffer());
   assert.equal(parsed.yamlName, 'sample.yaml');
   assert.equal(parsed.quiz.meta.name, 'Zip Quiz');
-  assert.deepEqual(parsed.images.map((i) => i.name), ['pic.png']);
+  assert.deepEqual(
+    parsed.images.map((i) => i.name),
+    ['pic.png']
+  );
 });
 
 test('isSafeArchivePath rejects unsafe archive paths', () => {
@@ -137,7 +137,10 @@ test('buildQuizExportZip includes referenced existing images only', () => {
       quizYaml: 'meta:\n  name: Export Quiz\nrounds: []\n',
     });
     const zip = new AdmZip(zipBuffer);
-    const names = zip.getEntries().map((e) => e.entryName).sort();
+    const names = zip
+      .getEntries()
+      .map((e) => e.entryName)
+      .sort();
     assert.deepEqual(names, ['images/present.png', 'manifest.json', 'quiz.yaml']);
     const manifestRaw = zip.getEntry('manifest.json')?.getData().toString('utf-8') ?? '';
     assert.match(manifestRaw, /"includedImages": \[\s*"present\.png"\s*\]/);

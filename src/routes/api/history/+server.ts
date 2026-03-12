@@ -15,7 +15,8 @@ export async function GET() {
       return { filename: f, ...JSON.parse(content) };
     });
     return json(games);
-  } catch {
-    return json([]);
+  } catch (e) {
+    console.error('[history] Failed to read history:', e);
+    return json({ error: 'Failed to load history' }, { status: 500 });
   }
 }

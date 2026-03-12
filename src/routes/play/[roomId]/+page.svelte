@@ -30,7 +30,6 @@
   let wakeAutoAttempted = false;
   let wakeAutoAttemptInFlight = false;
   let showWakeEnableModal = false;
-  let clockOffsetMs = 0;
   const confettiDurationMs = 1200;
   let showConfetti = false;
   let confettiRunId = 0;
@@ -50,7 +49,7 @@
     void wakeManager.setUserEnabled(wakeRequested);
   }
   $: if (import.meta.env.DEV && typeof window !== 'undefined') {
-    (window as any).__lgqDebug = { socket, state };
+    (window as Window & { __lgqDebug?: unknown }).__lgqDebug = { socket, state };
   }
   onDestroy(() => {
     countdown?.destroy?.();
@@ -260,6 +259,7 @@
   $: {
     const key = currentQuestionKey;
     if (key && key !== prevQuestionKey) {
+      // eslint-disable-next-line no-useless-assignment -- state for next reactive run
       prevQuestionKey = key;
       selectedAnswer = null;
       selectedMultiSelect = null;
@@ -528,18 +528,6 @@
     return undefined;
   }
 
-  function getSubmittedAnswerText(questionId: string): string {
-    const playerId = getOrCreatePlayerId();
-    const sub = state?.submissions?.find(
-      (s) => s.playerId === playerId && s.questionId === questionId
-    );
-    return sub?.answerText ?? '';
-  }
-
-  function getDisplayedInputAnswer(questionId: string): string {
-    return getSubmittedAnswerText(questionId) || (selectedInput === questionId ? inputAnswer.trim() : '');
-  }
-
   function getQuestionOptions(q: Question): string[] {
     if (q.type === 'true_false') return ['True', 'False'];
     if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
@@ -664,6 +652,7 @@
       celebratedRevealKeys.add(revealKey);
       triggerConfetti();
     }
+    // eslint-disable-next-line no-useless-assignment -- state for next reactive run
     previousStateType = currentType;
   }
 

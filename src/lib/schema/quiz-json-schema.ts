@@ -51,7 +51,10 @@ export const QUIZ_JSON_SCHEMA = {
         description: 'A round with a name and list of questions',
         required: ['name', 'questions'],
         properties: {
-          name: { type: 'string', description: 'Round name (e.g. Round 1, Geography, Television). Leave blank for no name.' },
+          name: {
+            type: 'string',
+            description: 'Round name (e.g. Round 1, Geography, Television). Leave blank for no name.',
+          },
           questions: {
             type: 'array',
             description: 'List of questions in this round',
@@ -62,8 +65,21 @@ export const QUIZ_JSON_SCHEMA = {
               properties: {
                 id: { type: 'string', description: 'Unique question ID (e.g. q1, q2)' },
                 type: {
-                  enum: ['choice', 'true_false', 'poll', 'multi_select', 'puzzle', 'reorder', 'hotspot', 'slider', 'input', 'open_ended', 'word_cloud'],
-                  description: 'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
+                  enum: [
+                    'choice',
+                    'true_false',
+                    'poll',
+                    'multi_select',
+                    'puzzle',
+                    'reorder',
+                    'hotspot',
+                    'slider',
+                    'input',
+                    'open_ended',
+                    'word_cloud',
+                  ],
+                  description:
+                    'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -86,7 +102,8 @@ export const QUIZ_JSON_SCHEMA = {
                   description: 'Answer choices; one per line (required for choice and poll)',
                 },
                 answer: {
-                  description: 'Choice: index of correct option (0-based). True/false: true or false. Multi-select: correct option indexes. Slider: correct numeric value. Input: accepted answers',
+                  description:
+                    'Choice: index of correct option (0-based). True/false: true or false. Multi-select: correct option indexes. Slider: correct numeric value. Input: accepted answers',
                   oneOf: [
                     { type: 'integer', minimum: 0 },
                     { type: 'boolean' },
@@ -234,11 +251,36 @@ export const QUIZ_JSON_SCHEMA = {
                         type: 'object',
                         required: ['x', 'y', 'radius'],
                         properties: {
-                          x: { type: 'number', minimum: 0, maximum: 1, description: 'Target center X (0-1, left to right)' },
-                          y: { type: 'number', minimum: 0, maximum: 1, description: 'Target center Y (0-1, top to bottom)' },
-                          radius: { type: 'number', minimum: 0.01, maximum: 0.5, description: 'Tolerance radius as fraction of image (e.g. 0.1 = 10%)' },
-                          radiusY: { type: 'number', minimum: 0.01, maximum: 0.5, description: 'Optional Y radius for elliptical hotspot' },
-                          rotation: { type: 'number', minimum: 0, maximum: 360, description: 'Hotspot rotation in degrees (0–360)' },
+                          x: {
+                            type: 'number',
+                            minimum: 0,
+                            maximum: 1,
+                            description: 'Target center X (0-1, left to right)',
+                          },
+                          y: {
+                            type: 'number',
+                            minimum: 0,
+                            maximum: 1,
+                            description: 'Target center Y (0-1, top to bottom)',
+                          },
+                          radius: {
+                            type: 'number',
+                            minimum: 0.01,
+                            maximum: 0.5,
+                            description: 'Tolerance radius as fraction of image (e.g. 0.1 = 10%)',
+                          },
+                          radiusY: {
+                            type: 'number',
+                            minimum: 0.01,
+                            maximum: 0.5,
+                            description: 'Optional Y radius for elliptical hotspot',
+                          },
+                          rotation: {
+                            type: 'number',
+                            minimum: 0,
+                            maximum: 360,
+                            description: 'Hotspot rotation in degrees (0–360)',
+                          },
                         },
                       },
                     },

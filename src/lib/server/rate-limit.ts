@@ -19,12 +19,7 @@ function cleanupExpiredEntries(): void {
 const RATE_LIMIT_CLEANUP_MS = 5 * 60 * 1000; // 5 minutes
 setInterval(cleanupExpiredEntries, RATE_LIMIT_CLEANUP_MS);
 
-function checkRateLimit(
-  prefix: string,
-  identifier: string,
-  windowMs: number,
-  maxAttempts: number
-): boolean {
+function checkRateLimit(prefix: string, identifier: string, windowMs: number, maxAttempts: number): boolean {
   const key = `${prefix}:${identifier}`;
   const now = Date.now();
   const entry = attempts.get(key);

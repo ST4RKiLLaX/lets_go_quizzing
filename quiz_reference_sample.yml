@@ -5,10 +5,10 @@
 # --- META (quiz metadata) ---
 meta:
   # Required: Quiz title
-  name: "Sample Quiz"
+  name: 'Sample Quiz'
 
   # Optional: Author name
-  author: "Your Name"
+  author: 'Your Name'
 
   # Optional: Default timer in seconds. Omit or 0 for no timer.
   default_timer: 30
@@ -30,12 +30,12 @@ meta:
 
 # --- ROUNDS (each round has a name and list of questions) ---
 rounds:
-  - name: "Round 1"
+  - name: 'Round 1'
     questions:
       # --- CHOICE QUESTION (multiple choice) ---
       - id: q1
         type: choice
-        text: "What is the capital of Australia?"
+        text: 'What is the capital of Australia?'
         # Optional: Image. File (upload via Form view) or URL
         # image: q1.png
         # image: https://example.com/photo.jpg
@@ -47,7 +47,7 @@ rounds:
         # Answer: 0-based index of correct option. 0=Sydney, 1=Melbourne, 2=Canberra, 3=Perth
         answer: 2
         # Optional: Shown when the answer is revealed
-        explanation: "Canberra is the capital city of Australia, not Sydney."
+        explanation: 'Canberra is the capital city of Australia, not Sydney.'
 
       # --- INPUT QUESTION (fill in the blank) ---
       - id: q2
@@ -65,7 +65,7 @@ rounds:
       # --- CHOICE with image ---
       - id: q3
         type: choice
-        text: "Which animal is shown?"
+        text: 'Which animal is shown?'
         image: q3.png
         options:
           - Dog
@@ -76,6 +76,6 @@ rounds:
       # --- INPUT with single answer ---
       - id: q4
         type: input
-        text: "What year did World War II end?"
+        text: 'What year did World War II end?'
         answer:
-          - "1945"
+          - '1945'

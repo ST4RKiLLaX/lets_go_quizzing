@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { createSession, requireHostAuth, verifyWithEnvOrConfig, getCurrentAuthEpoch } from '$lib/server/auth/index.js';
+import { createSession, requireHostAuth, verifyWithEnvOrConfig, getCurrentAuthEpoch } from '$lib/server/auth.js';
+import { jsonWithCookie } from '$lib/server/response.js';
 import { checkLoginRateLimit } from '$lib/server/rate-limit.js';
 
 export async function POST({ request, getClientAddress }) {
@@ -22,16 +23,9 @@ export async function POST({ request, getClientAddress }) {
     }
     const url = new URL(request.url);
     const forwardedProto = request.headers.get('x-forwarded-proto');
-    const isSecure =
-      forwardedProto === 'https' || url.protocol === 'https:';
+    const isSecure = forwardedProto === 'https' || url.protocol === 'https:';
     const { cookie } = createSession({ secure: isSecure, authEpoch: getCurrentAuthEpoch() });
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': cookie,
-      },
-    });
+    return jsonWithCookie({ ok: true }, cookie);
   } catch {
     return json({ error: 'Invalid request' }, { status: 400 });
   }

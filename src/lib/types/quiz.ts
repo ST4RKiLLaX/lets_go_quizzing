@@ -36,6 +36,7 @@ export interface PollQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
   options: string[];
 }
 
@@ -79,6 +80,7 @@ export interface OpenEndedQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
 }
 
 export interface WordCloudQuestion {
@@ -87,6 +89,7 @@ export interface WordCloudQuestion {
   text: string;
   explanation?: string;
   image?: string;
+  points?: number;
 }
 
 export interface ReorderQuestion {

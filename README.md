@@ -1,17 +1,19 @@
 # Let's Go Quizzing
-> *Now with 100% less database!*
+
+> _Now with 100% less database!_
 
 A blazingly fast, real-time multiplayer trivia app stripped to the studs. Built for anyone who wants to host a live game without wrestling with databases, tracking cookies, or login walls.
 
 ## ✨ Core Features
-* ⚡ **True Real-Time Sync:** Powered entirely by WebSockets. No clunky API polling.
-* 🗂️ **Zero-Bloat Architecture:** Entirely file-based. Quizzes are read from simple YAML files, and game history is logged to JSON.
-* 🎮 **Dedicated Game Views:** Mobile-first player inputs, a powerful Host control center with manual scoring overrides, and a distraction-free Projector view for the big screen.
-* 👮 **Host Moderation:** Kick disruptive players from the room; optional ban blocks rejoin from the same browser/device for the rest of the session.
-* 🚫 **Content Filters:** Built-in profanity filter and custom keyword block list (Settings) for classroom-friendly gameplay.
-* 🛡️ **Built-In Security:** Stateful role authentication and websocket rate-limiting prevent event flooding and spoofing.
-* 📝 **Frictionless Quiz Creation:** Simple plain-text authoring with a built-in lightweight YAML editor.
-* 🔐 **One-Time Setup:** No database or `.env` required. Run `docker compose up`, complete setup in the UI, and manage credentials via the Settings page.
+
+- ⚡ **True Real-Time Sync:** Powered entirely by WebSockets. No clunky API polling.
+- 🗂️ **Zero-Bloat Architecture:** Entirely file-based. Quizzes are read from simple YAML files, and game history is logged to JSON.
+- 🎮 **Dedicated Game Views:** Mobile-first player inputs, a powerful Host control center with manual scoring overrides, and a distraction-free Projector view for the big screen.
+- 👮 **Host Moderation:** Kick disruptive players from the room; optional ban blocks rejoin from the same browser/device for the rest of the session.
+- 🚫 **Content Filters:** Built-in profanity filter and custom keyword block list (Settings) for classroom-friendly gameplay.
+- 🛡️ **Built-In Security:** Stateful role authentication and websocket rate-limiting prevent event flooding and spoofing.
+- 📝 **Frictionless Quiz Creation:** Simple plain-text authoring with a built-in lightweight YAML editor.
+- 🔐 **One-Time Setup:** No database or `.env` required. Run `docker compose up`, complete setup in the UI, and manage credentials via the Settings page.
 
 ---
 
@@ -24,6 +26,7 @@ npm install
 # Start the development server
 npm run dev
 ```
+
 Open `http://localhost:5173` to view the app.
 
 ---
@@ -39,9 +42,11 @@ Open `http://localhost:5173` to view the app.
 ---
 
 ## 🐳 Deployment (Docker)
-The recommended way to run this application in production is via Docker. 
+
+The recommended way to run this application in production is via Docker.
 
 ### Option 1: Docker Compose (Recommended)
+
 No `.env` file is required for basic use. Clone the repo and run:
 
 ```bash
@@ -53,7 +58,9 @@ Then open `http://localhost:3000` (or your server's address). You'll be redirect
 **Optional:** To use environment overrides (e.g. `ORIGIN`, `ROOM_ID_LEN`), create a `.env` file and uncomment the `env_file` section in `docker-compose.yml`. See `.env.example` for available variables.
 
 ### Option 2: Docker Run
+
 To run a standalone container with persistent data:
+
 ```bash
 docker build -t lets-go-quizzing .
 
@@ -72,25 +79,29 @@ You'll be redirected to setup automatically when you open the app.
 ## ⚙️ Configuration
 
 ### Setup and Config File
+
 On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). Via the **Settings** page (gear icon in the host nav), you can change username, password, ORIGIN, room code length, and content filters (profanity filter toggle and custom keyword block list).
 
 ### Environment Variables (Optional Overrides)
+
 These override config file values when set. Useful for Kubernetes, CI, or deployment-specific tuning.
 
-| Variable | Description | Overrides |
-| :--- | :--- | :--- |
-| `ORIGIN` | Comma-separated allowed origins for Socket.io CORS (e.g., `https://quiz.example.com`). **Set in production** to restrict WebSocket origins. | `config.origin` |
-| `ROOM_ID_LEN` | Length of generated room codes. Default is `6`. | `config.roomIdLen` |
-| `HOST_PASSWORD` | Legacy: enables hosting when no config exists. Used for migration from env-only setups. | — |
-| `ADDRESS_HEADER` | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs. | — |
+| Variable         | Description                                                                                                                                 | Overrides          |
+| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :----------------- |
+| `ORIGIN`         | Comma-separated allowed origins for Socket.io CORS (e.g., `https://quiz.example.com`). **Set in production** to restrict WebSocket origins. | `config.origin`    |
+| `ROOM_ID_LEN`    | Length of generated room codes. Default is `6`.                                                                                             | `config.roomIdLen` |
+| `HOST_PASSWORD`  | Legacy: enables hosting when no config exists. Used for migration from env-only setups.                                                     | —                  |
+| `ADDRESS_HEADER` | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs.                                                              | —                  |
 
 > **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your config or `.env`.
 
 ### Reverse Proxy Setup (Nginx, Cloudflare, Traefik, etc.)
+
 When running behind a reverse proxy that handles TLS/SSL, ensure you forward the correct headers so secure cookies and websockets function properly:
-* Forward the real IP: `proxy_set_header X-Forwarded-For $remote_addr;`
-* Terminate TLS correctly: `proxy_set_header X-Forwarded-Proto $scheme;`
-* Add security headers for all responses (including static assets): `add_header X-Content-Type-Options nosniff always;` (the `always` parameter ensures the header is set even for error responses).
+
+- Forward the real IP: `proxy_set_header X-Forwarded-For $remote_addr;`
+- Terminate TLS correctly: `proxy_set_header X-Forwarded-Proto $scheme;`
+- Add security headers for all responses (including static assets): `add_header X-Content-Type-Options nosniff always;` (the `always` parameter ensures the header is set even for error responses).
 
 ---
 
@@ -100,24 +111,25 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 
 ### Question Types
 
-| Type | Description | Scoring |
-| :--- | :--- | :--- |
-| `choice` | Multiple choice: pick one correct option | ✓ |
-| `true_false` | True or false | ✓ |
-| `poll` | Opinion poll; no correct answer | — |
-| `multi_select` | Choose multiple correct options | ✓ |
-| `slider` | Numeric value within a range | ✓ |
-| `input` | Fill in the blank (exact or fuzzy match) | ✓ |
-| `open_ended` | Long text response; not scored | — |
-| `word_cloud` | Short text aggregated into a visual cloud | — |
-| `reorder` | Arrange options in the correct order | ✓ |
-| `hotspot` | Tap a region on an image (e.g. map, diagram) | ✓ |
+| Type           | Description                                  | Scoring |
+| :------------- | :------------------------------------------- | :------ |
+| `choice`       | Multiple choice: pick one correct option     | ✓       |
+| `true_false`   | True or false                                | ✓       |
+| `poll`         | Opinion poll; no correct answer              | —       |
+| `multi_select` | Choose multiple correct options              | ✓       |
+| `slider`       | Numeric value within a range                 | ✓       |
+| `input`        | Fill in the blank (exact or fuzzy match)     | ✓       |
+| `open_ended`   | Long text response; not scored               | —       |
+| `word_cloud`   | Short text aggregated into a visual cloud    | —       |
+| `reorder`      | Arrange options in the correct order         | ✓       |
+| `hotspot`      | Tap a region on an image (e.g. map, diagram) | ✓       |
 
 Scored question types support an optional `points` multiplier (e.g. `points: 2` = double points, `points: 3` = triple). Default is 1. Works in both Standard and Ranked modes.
 
 ### Examples by Type
 
 **choice** — Single correct option (0-based index):
+
 ```yaml
 - id: q1
   type: choice
@@ -128,6 +140,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **true_false** — `true` = True is correct, `false` = False is correct:
+
 ```yaml
 - id: q2
   type: true_false
@@ -137,6 +150,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **poll** — Collect opinions; no answer stored:
+
 ```yaml
 - id: q3
   type: poll
@@ -145,16 +159,18 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **multi_select** — Indexes of all correct options:
+
 ```yaml
 - id: q4
   type: multi_select
   text: Which of these are prime numbers?
-  options: ["2", "4", "5", "9"]
+  options: ['2', '4', '5', '9']
   answer: [0, 2]
   explanation: 2 and 5 are prime.
 ```
 
 **slider** — Min, max, step, and correct value:
+
 ```yaml
 - id: q5
   type: slider
@@ -166,6 +182,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **input** — Accepted answers (add alternatives for typos). Optional `points` multiplier:
+
 ```yaml
 - id: q6
   type: input
@@ -176,6 +193,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **open_ended** — Long text; responses shown on reveal:
+
 ```yaml
 - id: q7
   type: open_ended
@@ -184,6 +202,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **word_cloud** — Short text aggregated by frequency:
+
 ```yaml
 - id: q8
   type: word_cloud
@@ -192,6 +211,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **reorder** — Correct order of option indexes:
+
 ```yaml
 - id: q9
   type: reorder
@@ -202,6 +222,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ```
 
 **hotspot** — Tap a region on an image. Requires `image`, `answer` with `x`, `y` (0–1, center), and `radius` (tolerance as fraction, e.g. 0.1 = 10%). Use the Form editor to click the image to set the target:
+
 ```yaml
 - id: q10
   type: hotspot
@@ -218,66 +239,67 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 ### Full Example Quiz
 
 The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` includes all of the above types. A complete example:
+
 ```yaml
 meta:
-  name: "Pub Quiz Night"
-  author: "Quizmaster"
+  name: 'Pub Quiz Night'
+  author: 'Quizmaster'
   default_timer: 30
   # Optional: choice option labels in views: "letters" (A,B,C) or "numbers" (1,2,3)
-  option_label_style: "letters"
+  option_label_style: 'letters'
 
 rounds:
-  - name: "Round 1"
+  - name: 'Round 1'
     questions:
-      - id: "q1"
-        type: "choice"
-        text: "What is the capital of Australia?"
-        options: ["Sydney", "Melbourne", "Canberra", "Perth"]
+      - id: 'q1'
+        type: 'choice'
+        text: 'What is the capital of Australia?'
+        options: ['Sydney', 'Melbourne', 'Canberra', 'Perth']
         answer: 2
-        explanation: "Canberra is Australia’s capital city."
-      - id: "q2"
-        type: "input"
+        explanation: 'Canberra is Australia’s capital city.'
+      - id: 'q2'
+        type: 'input'
         text: "Complete: 'Is this the real life? Is this just _____?'"
-        answer: ["fantasy", "fantsy"]
+        answer: ['fantasy', 'fantsy']
         explanation: "This lyric is from Queen's Bohemian Rhapsody."
-      - id: "q3"
-        type: "true_false"
-        text: "Lightning is hotter than the surface of the sun."
+      - id: 'q3'
+        type: 'true_false'
+        text: 'Lightning is hotter than the surface of the sun.'
         answer: true
-      - id: "q4"
-        type: "poll"
-        text: "Which snack should the host bring to the next quiz night?"
-        options: ["Popcorn", "Nachos", "Cookies", "Fruit"]
-  - name: "Round 2"
+      - id: 'q4'
+        type: 'poll'
+        text: 'Which snack should the host bring to the next quiz night?'
+        options: ['Popcorn', 'Nachos', 'Cookies', 'Fruit']
+  - name: 'Round 2'
     questions:
-      - id: "q5"
-        type: "multi_select"
-        text: "Which of these are prime numbers?"
-        options: ["2", "4", "5", "9"]
+      - id: 'q5'
+        type: 'multi_select'
+        text: 'Which of these are prime numbers?'
+        options: ['2', '4', '5', '9']
         answer: [0, 2]
-      - id: "q6"
-        type: "slider"
-        text: "How many players are on a standard soccer team on the field at once?"
+      - id: 'q6'
+        type: 'slider'
+        text: 'How many players are on a standard soccer team on the field at once?'
         min: 5
         max: 15
         step: 1
         answer: 11
-  - name: "Round 3"
+  - name: 'Round 3'
     questions:
-      - id: "q7"
-        type: "open_ended"
-        text: "In one sentence, why do you like pub quizzes?"
-        explanation: "Open-ended questions allow longer text answers without being scored."
-      - id: "q8"
-        type: "word_cloud"
-        text: "Describe your current mood in one word!"
-        explanation: "Word clouds aggregate repeated answers into a visual display."
-  - name: "Round 4"
+      - id: 'q7'
+        type: 'open_ended'
+        text: 'In one sentence, why do you like pub quizzes?'
+        explanation: 'Open-ended questions allow longer text answers without being scored.'
+      - id: 'q8'
+        type: 'word_cloud'
+        text: 'Describe your current mood in one word!'
+        explanation: 'Word clouds aggregate repeated answers into a visual display.'
+  - name: 'Round 4'
     questions:
-      - id: "q9"
-        type: "reorder"
-        text: "Order these historical events from earliest to most recent."
-        options: ["French Revolution", "Moon Landing", "Declaration of Independence"]
+      - id: 'q9'
+        type: 'reorder'
+        text: 'Order these historical events from earliest to most recent.'
+        options: ['French Revolution', 'Moon Landing', 'Declaration of Independence']
         answer: [2, 0, 1]
 ```
 
@@ -285,10 +307,10 @@ rounds:
 
 ## 🛠️ Tech Stack & Architecture
 
-* **Frontend:** SvelteKit, Tailwind CSS
-* **Backend:** Node.js, Socket.io
-* **Data Storage:** YAML (quizzes) and JSON (history)
-* **Transparency:** Ships with an automatically generated SPDX 2.3 `sbom.json` for easy software supply chain auditing. Regenerate with `npm run sbom`.
+- **Frontend:** SvelteKit, Tailwind CSS
+- **Backend:** Node.js, Socket.io
+- **Data Storage:** YAML (quizzes) and JSON (history)
+- **Transparency:** Ships with an automatically generated SPDX 2.3 `sbom.json` for easy software supply chain auditing. Regenerate with `npm run sbom`.
 
 > **Architecture Note:** Game state (rooms, active players) is held entirely in-memory for maximum speed. Restarting the server will wipe active games. Horizontal scaling (multiple instances) is not currently supported.
 
@@ -300,19 +322,19 @@ This section explains the security model for contributors. Understanding these p
 
 ### Security Model Overview
 
-| Layer | Protection | Location |
-|-------|------------|----------|
-| **Host auth** | Username + password; scrypt hashing in config; session cookie; constant-time env fallback (SHA-256) | `auth/index.ts`, `config.ts`, `api/auth/login` |
-| **Room password** | Optional per-room password for player joins; same constant-time verification | `socket.ts` `player:join` |
-| **Kick & ban** | Lightweight session moderation: host kicks; ban blocks rejoin by `playerId` (same browser/device). Bypassable via clear storage or incognito—not strong identity enforcement. | `socket.ts` `host:kick`, `player:join` |
-| **Content filters** | Profanity filter + custom block list applied to names, emoji, open-ended, word cloud, input | `profanity.ts`, config, Settings API, socket handlers |
-| **Player identity** | Server-authoritative; client-supplied `playerId` ignored for register/answer | `socket.ts` |
-| **Duplicate joins** | Reject if `playerId` already connected | `socket.ts` `player:join` |
-| **Answer key exposure** | Role-aware serialization; players/projector get scrubbed quiz until reveal | `socket.ts` `serializePlayerState` |
-| **Input bounds** | Name 50 chars; emoji 4 chars; answerText 75–200 chars (by type); truncation | `socket.ts` |
-| **Rate limiting** | Player join, host create/join, login, host get_state | `rate-limit.ts` |
-| **Path validation** | Quiz filenames, images, archives; no `..` or traversal | `parser.ts`, API routes |
-| **Privacy by design** | In-memory state; nothing persists unless explicitly logged to history | Game state lifecycle |
+| Layer                   | Protection                                                                                                                                                                    | Location                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Host auth**           | Username + password; scrypt hashing in config; session cookie; constant-time env fallback (SHA-256)                                                                           | `auth/index.ts`, `config.ts`, `api/auth/login`        |
+| **Room password**       | Optional per-room password for player joins; same constant-time verification                                                                                                  | `socket.ts` `player:join`                             |
+| **Kick & ban**          | Lightweight session moderation: host kicks; ban blocks rejoin by `playerId` (same browser/device). Bypassable via clear storage or incognito—not strong identity enforcement. | `socket.ts` `host:kick`, `player:join`                |
+| **Content filters**     | Profanity filter + custom block list applied to names, emoji, open-ended, word cloud, input                                                                                   | `profanity.ts`, config, Settings API, socket handlers |
+| **Player identity**     | Server-authoritative; client-supplied `playerId` ignored for register/answer                                                                                                  | `socket.ts`                                           |
+| **Duplicate joins**     | Reject if `playerId` already connected                                                                                                                                        | `socket.ts` `player:join`                             |
+| **Answer key exposure** | Role-aware serialization; players/projector get scrubbed quiz until reveal                                                                                                    | `socket.ts` `serializePlayerState`                    |
+| **Input bounds**        | Name 50 chars; emoji 4 chars; answerText 75–200 chars (by type); truncation                                                                                                   | `socket.ts`                                           |
+| **Rate limiting**       | Player join, host create/join, login, host get_state                                                                                                                          | `rate-limit.ts`                                       |
+| **Path validation**     | Quiz filenames, images, archives; no `..` or traversal                                                                                                                        | `parser.ts`, API routes                               |
+| **Privacy by design**   | In-memory state; nothing persists unless explicitly logged to history                                                                                                         | Game state lifecycle                                  |
 
 ### Key Architectural Decisions
 

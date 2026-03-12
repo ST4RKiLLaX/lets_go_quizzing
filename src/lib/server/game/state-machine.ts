@@ -1,11 +1,6 @@
-import type { Quiz, Question } from '../storage/parser.js';
+import type { Quiz } from '../storage/parser.js';
 
-export type GameStateType =
-  | 'Lobby'
-  | 'Question'
-  | 'RevealAnswer'
-  | 'Scoreboard'
-  | 'End';
+export type GameStateType = 'Lobby' | 'Question' | 'RevealAnswer' | 'Scoreboard' | 'End';
 
 export interface Player {
   id: string;
@@ -65,12 +60,6 @@ export type GameEvent =
   | { type: 'SHOW_LEADERBOARD' }
   | { type: 'END_GAME' };
 
-function getCurrentQuestion(state: GameState): Question | null {
-  const round = state.quiz.rounds[state.currentRoundIndex];
-  if (!round) return null;
-  return round.questions[state.currentQuestionIndex] ?? null;
-}
-
 function hasNextQuestion(state: GameState): boolean {
   const round = state.quiz.rounds[state.currentRoundIndex];
   if (!round) return false;
@@ -81,10 +70,7 @@ function hasNextRound(state: GameState): boolean {
   return state.currentRoundIndex < state.quiz.rounds.length - 1;
 }
 
-export function transition(
-  state: GameState,
-  event: GameEvent
-): GameState {
+export function transition(state: GameState, event: GameEvent): GameState {
   const st = state.type;
   if (st === 'Lobby') {
     if (event.type === 'END_GAME') {
@@ -100,9 +86,7 @@ export function transition(
         currentRoundIndex: 0,
         currentQuestionIndex: 0,
         startedAt: Date.now(),
-        timerEndsAt: state.quiz.meta.default_timer
-          ? Date.now() + state.quiz.meta.default_timer * 1000
-          : undefined,
+        timerEndsAt: state.quiz.meta.default_timer ? Date.now() + state.quiz.meta.default_timer * 1000 : undefined,
       };
     }
   } else if (st === 'Question') {
@@ -182,12 +166,7 @@ export function transition(
   return state;
 }
 
-export function createInitialState(
-  roomId: string,
-  quiz: Quiz,
-  quizFilename: string,
-  hostSocketId: string
-): GameState {
+export function createInitialState(roomId: string, quiz: Quiz, quizFilename: string, hostSocketId: string): GameState {
   return {
     type: 'Lobby',
     roomId,

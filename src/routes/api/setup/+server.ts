@@ -1,10 +1,7 @@
 import { json } from '@sveltejs/kit';
-import {
-  hasValidOperationalConfig,
-  createConfigAtomic,
-  hashPassword,
-} from '$lib/server/config.js';
-import { createSession, getCurrentAuthEpoch } from '$lib/server/auth/index.js';
+import { hasValidOperationalConfig, createConfigAtomic, hashPassword } from '$lib/server/config.js';
+import { createSession, getCurrentAuthEpoch } from '$lib/server/auth.js';
+import { jsonWithCookie } from '$lib/server/response.js';
 import { checkSetupRateLimit } from '$lib/server/rate-limit.js';
 
 const RECOVERY_MODE = process.env.RECOVERY_MODE === 'true' || process.env.RECOVERY_MODE === '1';
@@ -54,14 +51,7 @@ export async function POST({ request, getClientAddress }) {
     const forwardedProto = request.headers.get('x-forwarded-proto');
     const isSecure = forwardedProto === 'https' || url.protocol === 'https:';
     const { cookie } = createSession({ secure: isSecure, authEpoch: getCurrentAuthEpoch() });
-
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': cookie,
-      },
-    });
+    return jsonWithCookie({ ok: true }, cookie);
   } catch (e) {
     console.error('[setup] Error:', e);
     return json({ error: 'Setup failed' }, { status: 500 });

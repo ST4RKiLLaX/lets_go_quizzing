@@ -23,7 +23,6 @@
   let showEndQuizModal = false;
   let countdown: ReturnType<typeof useCountdown> | null = null;
   let wakeManager: ReturnType<typeof createWakeManager> | null = null;
-  let clockOffsetMs = 0;
   $: optionLabelStyle = getOptionLabelStyle(state?.quiz?.meta);
   $: totalTimerSeconds = state?.quiz?.meta?.default_timer ?? 30;
   $: currentRoundQuestionTotal =
@@ -46,8 +45,11 @@
   $: quizLive = state?.type !== 'Lobby' && state?.type !== 'End';
   $: hostQuizLiveStore.set(!!state && quizLive ? { live: true, roomId } : { live: false });
   let hostRejoinPrefilled = false;
-  $: if (joinError !== 'Invalid password') hostRejoinPrefilled = false;
+  $: if (joinError !== 'Invalid password') {
+    hostRejoinPrefilled = false;
+  }
   $: if (joinError === 'Invalid password' && !hostRejoinPrefilled && typeof window !== 'undefined') {
+    // eslint-disable-next-line no-useless-assignment -- state for next reactive run
     hostRejoinPrefilled = true;
     try {
       hostRejoinUsername = sessionStorage.getItem('lgq_host_username') ?? '';
@@ -129,10 +131,6 @@
 
   function next() {
     socket?.emit('host:next', {}, () => {});
-  }
-
-  function showLeaderboard() {
-    socket?.emit('host:show_leaderboard', {}, () => {});
   }
 
   function openEndQuizModal() {
