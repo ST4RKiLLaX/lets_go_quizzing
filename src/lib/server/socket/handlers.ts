@@ -197,6 +197,27 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     void broadcastStateToRoom(io, roomId, next, ['state:update']);
   });
 
+  socket.on('host:start_question', (_, ack) => {
+    const roomId = socket.data.roomId;
+    if (!roomId || socket.data.role !== 'host') {
+      ack?.({ error: 'Unauthorized' });
+      return;
+    }
+    const state = getRoom(roomId);
+    if (!state) {
+      ack?.({ error: 'Room not found' });
+      return;
+    }
+    if (state.type !== 'QuestionPreview') {
+      ack?.({ error: 'Can only start question from preview' });
+      return;
+    }
+    const next = transition(state, { type: 'START_QUESTION' });
+    setRoom(roomId, next);
+    ack?.({ ok: true });
+    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+  });
+
   socket.on('host:next', (_, ack) => {
     const roomId = socket.data.roomId;
     if (!roomId || socket.data.role !== 'host') {

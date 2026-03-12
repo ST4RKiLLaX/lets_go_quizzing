@@ -51,15 +51,23 @@
   $: isLastQuestionInRound =
     currentRoundQuestionTotal > 0 && currentQuestionNumber >= currentRoundQuestionTotal;
   $: hostActionLabel =
-    state?.type === 'Question'
-      ? 'Reveal'
-      : state?.type === 'RevealAnswer'
-        ? isLastQuestionInRound
-          ? 'Leaderboard'
-          : 'Next'
-        : 'Next';
+    state?.type === 'QuestionPreview'
+      ? 'Start Question'
+      : state?.type === 'Question'
+        ? 'Reveal'
+        : state?.type === 'RevealAnswer'
+          ? isLastQuestionInRound
+            ? 'Leaderboard'
+            : 'Next'
+          : 'Next';
   $: hostActionClass =
-    state?.type === 'Question' ? 'bg-amber-600' : state?.type === 'RevealAnswer' ? 'bg-green-600' : 'bg-green-600';
+    state?.type === 'QuestionPreview'
+      ? 'bg-pub-accent'
+      : state?.type === 'Question'
+        ? 'bg-amber-600'
+        : state?.type === 'RevealAnswer'
+          ? 'bg-green-600'
+          : 'bg-green-600';
   let hostRejoinPrefilled = false;
   $: if (joinError !== 'Invalid password') {
     hostRejoinPrefilled = false;
@@ -78,6 +86,7 @@
     hostQuizLiveStore.set({ live: false });
     countdown?.destroy?.();
     void wakeManager?.destroy();
+    if (previewIntervalId) clearInterval(previewIntervalId);
   });
   let socket: import('socket.io-client').Socket | null = null;
 
@@ -148,7 +157,11 @@
   });
 
   function next() {
-    socket?.emit('host:next', {}, () => {});
+    if (state?.type === 'QuestionPreview') {
+      socket?.emit('host:start_question', {}, () => {});
+    } else {
+      socket?.emit('host:next', {}, () => {});
+    }
   }
 
   function openEndQuizModal() {
@@ -203,6 +216,47 @@
     }
   }
 
+  const QUESTION_TYPE_LABELS: Record<string, string> = {
+    choice: 'Multiple choice',
+    true_false: 'True or false',
+    poll: 'Opinion poll',
+    multi_select: 'Choose multiple',
+    reorder: 'Order items',
+    hotspot: 'Hotspot',
+    slider: 'Slider',
+    input: 'Fill in the blank',
+    open_ended: 'Open ended',
+    word_cloud: 'Word cloud',
+  };
+  const QUESTION_MECHANIC_REMINDER: Record<string, string> = {
+    choice: 'Players pick one option.',
+    true_false: 'Players pick True or False.',
+    poll: 'Players pick an option (no correct answer).',
+    multi_select: 'Players select all correct options.',
+    reorder: 'Players drag to reorder.',
+    hotspot: 'Players tap a region on the image.',
+    slider: 'Players move a slider to the value.',
+    input: 'Players type their answer.',
+    open_ended: 'Players write a text response.',
+    word_cloud: 'Players submit short words.',
+  };
+  let previewElapsedSeconds = 0;
+  let previewIntervalId: ReturnType<typeof setInterval> | null = null;
+  $: {
+    if (state?.type === 'QuestionPreview') {
+      if (previewIntervalId) clearInterval(previewIntervalId);
+      previewElapsedSeconds = 0;
+      previewIntervalId = setInterval(() => {
+        previewElapsedSeconds += 1;
+      }, 1000);
+    } else {
+      if (previewIntervalId) {
+        clearInterval(previewIntervalId);
+        previewIntervalId = null;
+      }
+      previewElapsedSeconds = 0;
+    }
+  }
   let kickError = '';
   function kick(playerId: string, ban = false) {
     kickError = '';
@@ -301,6 +355,47 @@
           </button>
         </div>
       </div>
+    {:else if state?.type === 'QuestionPreview'}
+      {#if currentQuestion}
+        {@const q = currentQuestion}
+        <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <p class="text-pub-gold text-base font-semibold">
+              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+            </p>
+            <span class="text-pub-muted text-sm tabular-nums">{Math.floor(previewElapsedSeconds / 60)}:{String(previewElapsedSeconds % 60).padStart(2, '0')}</span>
+          </div>
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-pub-dark text-pub-muted mb-3">
+            {QUESTION_TYPE_LABELS[q.type] ?? q.type}
+          </span>
+          <p class="text-xl mb-4">{q.text}</p>
+          {#if q.type === 'hotspot' && q.image}
+            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
+            {#if src}
+              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+            {/if}
+          {:else if q.image}
+            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
+            {#if src}
+              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+            {/if}
+          {/if}
+          <p class="text-sm text-pub-muted mb-6">{QUESTION_MECHANIC_REMINDER[q.type] ?? ''}</p>
+          {#if currentRoundQuestionTotal > 0}
+            <p class="text-center text-sm font-medium text-pub-muted mb-4">
+              {currentQuestionNumber}/{currentRoundQuestionTotal}
+            </p>
+          {/if}
+          <div class="flex gap-4 mt-6 flex-wrap items-center">
+            <button
+              class="px-4 py-2 {hostActionClass} rounded-lg font-medium hover:opacity-90 ml-auto"
+              onclick={next}
+            >
+              {hostActionLabel}
+            </button>
+          </div>
+        </div>
+      {/if}
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
         {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
@@ -608,7 +703,7 @@
       <p class="text-pub-muted">Connecting...</p>
     {/if}
     </div>
-    {#if state && (state.type === 'Lobby' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
+    {#if state && (state.type === 'Lobby' || state.type === 'QuestionPreview' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
       <HostSidebar
         state={state}
         kickError={kickError}

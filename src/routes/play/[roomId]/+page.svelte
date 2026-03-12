@@ -888,6 +888,11 @@
         <p class="text-pub-muted">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
         <p class="text-pub-muted mt-2">Players: {(state?.players ?? []).length}</p>
       </div>
+    {:else if state?.type === 'QuestionPreview'}
+      <div class="bg-pub-darker rounded-lg p-6 text-center">
+        <h2 class="text-xl font-bold mb-2">Get Ready</h2>
+        <p class="text-pub-muted">Next question coming up</p>
+      </div>
     {:else if state?.type === 'Question'}
       {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}-${state?.quizFilename ?? ''}`}
       {#if currentQuestion}

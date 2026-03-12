@@ -1,6 +1,6 @@
 import type { Quiz } from '../storage/parser.js';
 
-export type GameStateType = 'Lobby' | 'Question' | 'RevealAnswer' | 'Scoreboard' | 'End';
+export type GameStateType = 'Lobby' | 'QuestionPreview' | 'Question' | 'RevealAnswer' | 'Scoreboard' | 'End';
 
 export interface Player {
   id: string;
@@ -57,6 +57,7 @@ export interface GameState {
 
 export type GameEvent =
   | { type: 'START_GAME' }
+  | { type: 'START_QUESTION' }
   | { type: 'NEXT' }
   | { type: 'STOP_TIMER' }
   | { type: 'SHOW_LEADERBOARD' }
@@ -84,11 +85,25 @@ export function transition(state: GameState, event: GameEvent): GameState {
     if (event.type === 'START_GAME') {
       return {
         ...state,
-        type: 'Question',
+        type: 'QuestionPreview',
         currentRoundIndex: 0,
         currentQuestionIndex: 0,
         startedAt: Date.now(),
-        timerEndsAt: state.quiz.meta.default_timer ? Date.now() + state.quiz.meta.default_timer * 1000 : undefined,
+      };
+    }
+  } else if (st === 'QuestionPreview') {
+    if (event.type === 'END_GAME') {
+      return {
+        ...state,
+        type: 'End',
+      };
+    }
+    if (event.type === 'START_QUESTION') {
+      const timer = state.quiz.meta.default_timer;
+      return {
+        ...state,
+        type: 'Question',
+        timerEndsAt: timer ? Date.now() + timer * 1000 : undefined,
       };
     }
   } else if (st === 'Question') {
@@ -115,14 +130,12 @@ export function transition(state: GameState, event: GameEvent): GameState {
     }
     if (event.type === 'NEXT') {
       if (hasNextQuestion(state)) {
-        const timer = state.quiz.meta.default_timer;
         return {
           ...state,
-          type: 'Question',
+          type: 'QuestionPreview',
           currentQuestionIndex: state.currentQuestionIndex + 1,
           submissions: [],
           wrongAnswers: [],
-          timerEndsAt: timer ? Date.now() + timer * 1000 : undefined,
         };
       }
       return {
@@ -139,15 +152,13 @@ export function transition(state: GameState, event: GameEvent): GameState {
   } else if (st === 'Scoreboard') {
     if (event.type === 'NEXT') {
       if (hasNextRound(state) && !hasNextQuestion(state)) {
-        const timer = state.quiz.meta.default_timer;
         return {
           ...state,
-          type: 'Question',
+          type: 'QuestionPreview',
           currentRoundIndex: state.currentRoundIndex + 1,
           currentQuestionIndex: 0,
           submissions: [],
           wrongAnswers: [],
-          timerEndsAt: timer ? Date.now() + timer * 1000 : undefined,
         };
       }
       if (!hasNextRound(state) && !hasNextQuestion(state)) {

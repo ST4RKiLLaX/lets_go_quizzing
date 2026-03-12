@@ -195,6 +195,16 @@
       {/if}
       {#if state?.type === 'Lobby'}
       <ProjectorLobbyView roomId={roomId ?? ''} joinUrl={joinUrl} />
+    {:else if state?.type === 'QuestionPreview'}
+      <div class="bg-pub-darker rounded-lg p-6 text-center">
+        <h2 class="text-3xl font-bold text-pub-gold mb-2">Incoming</h2>
+        <p class="text-xl text-pub-muted">Next question</p>
+        {#if currentRoundQuestionTotal > 0}
+          <p class="mt-4 text-sm font-medium text-pub-muted">
+            Question {currentQuestionNumber} of {currentRoundQuestionTotal}
+          </p>
+        {/if}
+      </div>
     {:else if state?.type === 'Question'}
       <div class="bg-pub-darker rounded-lg p-6" data-question-id={currentQuestion?.id}>
         {#key `${state?.currentRoundIndex}-${state?.currentQuestionIndex}-${(state?.submissions?.length ?? 0)}`}
