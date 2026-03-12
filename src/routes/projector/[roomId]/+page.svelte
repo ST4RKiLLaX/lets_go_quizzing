@@ -4,8 +4,9 @@
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { createSocket } from '$lib/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
-  import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
+  import type { HotspotQuestion } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
+  import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -67,28 +68,6 @@
       const p = players.find((x) => x.id === s.playerId);
       return p ? { emoji: p.emoji, name: p.name } : { emoji: '?', name: 'Unknown' };
     });
-  }
-
-  function getQuestionOptions(q: Question): string[] {
-    if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
-    return [];
-  }
-
-  function getOptionCounts(questionId: string): Map<number, number> {
-    const counts = new Map<number, number>();
-    for (const submission of state?.submissions ?? []) {
-      if (submission.questionId !== questionId) continue;
-      if (submission.answerIndex != null) {
-        counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
-      }
-      if (submission.answerIndexes?.length) {
-        for (const answerIndex of submission.answerIndexes) {
-          counts.set(answerIndex, (counts.get(answerIndex) ?? 0) + 1);
-        }
-      }
-    }
-    return counts;
   }
 
   function getCorrectAnswersInRankOrder(): Array<{ emoji: string; name: string; rank: number; points: number }> {
@@ -419,7 +398,7 @@
               {/each}
             </ul>
           {:else if q.type === 'multi_select'}
-            {@const counts = getOptionCounts(q.id)}
+            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded-lg {q.answer.includes(i) ? 'ring-2 ring-green-500' : 'opacity-60'}">
@@ -452,7 +431,7 @@
               </ul>
             </div>
           {:else if q.type === 'poll'}
-            {@const counts = getOptionCounts(q.id)}
+            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded-lg">

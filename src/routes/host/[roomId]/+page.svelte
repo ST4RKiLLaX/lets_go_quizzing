@@ -6,8 +6,8 @@
   import { hostSessionStore } from '$lib/stores/host-session.js';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedState } from '$lib/types/game.js';
-  import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
+  import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
@@ -184,29 +184,6 @@
     });
   }
 
-  function getQuestionOptions(q: Question): string[] {
-    if (q.type === 'true_false') return ['True', 'False'];
-    if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') return q.options;
-    if (q.type === 'hotspot') return [];
-    return [];
-  }
-
-  function getOptionCounts(questionId: string): Map<number, number> {
-    const counts = new Map<number, number>();
-    for (const submission of state?.submissions ?? []) {
-      if (submission.questionId !== questionId) continue;
-      if (submission.answerIndex != null) {
-        counts.set(submission.answerIndex, (counts.get(submission.answerIndex) ?? 0) + 1);
-      }
-      if (submission.answerIndexes?.length) {
-        for (const answerIndex of submission.answerIndexes) {
-          counts.set(answerIndex, (counts.get(answerIndex) ?? 0) + 1);
-        }
-      }
-    }
-    return counts;
-  }
-
   function getWrongAnswerDisplay(wa: { playerId: string; questionId: string; answer: string | number | number[] }) {
     const player = state?.players?.find((p) => p.id === wa.playerId);
     const q = currentQuestion;
@@ -345,7 +322,7 @@
               {/each}
             </ul>
           {:else if q.type === 'multi_select'}
-            {@const counts = getOptionCounts(q.id)}
+            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (q.answer.includes(i) ? 'ring-2 ring-green-500' : 'opacity-60') : ''}">
@@ -382,7 +359,7 @@
               </div>
             </div>
           {:else if q.type === 'poll'}
-            {@const counts = getOptionCounts(q.id)}
+            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
             <ul class="space-y-2">
               {#each q.options as opt, i}
                 <li class="px-4 py-2 bg-pub-dark rounded">
