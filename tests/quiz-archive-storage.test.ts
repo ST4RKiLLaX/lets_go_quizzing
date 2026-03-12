@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test, expect } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AdmZip from 'adm-zip';
@@ -26,7 +25,7 @@ test('resolveUniqueQuizFilename appends numeric suffix on collisions', () => {
   const second = `${stem}_2.yaml`;
   writeFileSync(join(quizzesDir, first), 'meta:\n  name: A\nrounds: []\n', 'utf-8');
   try {
-    assert.equal(resolveUniqueQuizFilename(first), second);
+    expect(resolveUniqueQuizFilename(first)).toBe(second);
   } finally {
     rmSync(join(quizzesDir, first), { force: true });
   }
@@ -43,8 +42,8 @@ test('deleteQuizAndImages removes yaml and related image folder', () => {
 
   deleteQuizAndImages(filename);
 
-  assert.equal(existsSync(quizPath), false);
-  assert.equal(existsSync(imageDir), false);
+  expect(existsSync(quizPath)).toBe(false);
+  expect(existsSync(imageDir)).toBe(false);
 });
 
 test('parseQuizImportZip validates and parses quiz + images', () => {
@@ -73,19 +72,16 @@ test('parseQuizImportZip validates and parses quiz + images', () => {
   zip.addFile('images/pic.png', Buffer.from([1, 2, 3]));
 
   const parsed = parseQuizImportZip(zip.toBuffer());
-  assert.equal(parsed.yamlName, 'sample.yaml');
-  assert.equal(parsed.quiz.meta.name, 'Zip Quiz');
-  assert.deepEqual(
-    parsed.images.map((i) => i.name),
-    ['pic.png']
-  );
+  expect(parsed.yamlName).toBe('sample.yaml');
+  expect(parsed.quiz.meta.name).toBe('Zip Quiz');
+  expect(parsed.images.map((i) => i.name)).toEqual(['pic.png']);
 });
 
 test('isSafeArchivePath rejects unsafe archive paths', () => {
-  assert.equal(isSafeArchivePath('images/pic.png'), true);
-  assert.equal(isSafeArchivePath('../escape.png'), false);
-  assert.equal(isSafeArchivePath('/abs/path.png'), false);
-  assert.equal(isSafeArchivePath('images\\win.png'), false);
+  expect(isSafeArchivePath('images/pic.png')).toBe(true);
+  expect(isSafeArchivePath('../escape.png')).toBe(false);
+  expect(isSafeArchivePath('/abs/path.png')).toBe(false);
+  expect(isSafeArchivePath('images\\win.png')).toBe(false);
 });
 
 test('buildQuizExportZip includes referenced existing images only', () => {
@@ -141,10 +137,10 @@ test('buildQuizExportZip includes referenced existing images only', () => {
       .getEntries()
       .map((e) => e.entryName)
       .sort();
-    assert.deepEqual(names, ['images/present.png', 'manifest.json', 'quiz.yaml']);
+    expect(names).toEqual(['images/present.png', 'manifest.json', 'quiz.yaml']);
     const manifestRaw = zip.getEntry('manifest.json')?.getData().toString('utf-8') ?? '';
-    assert.match(manifestRaw, /"includedImages": \[\s*"present\.png"\s*\]/);
-    assert.match(manifestRaw, /"missingReferencedImages": \[\s*"missing\.png"\s*\]/);
+    expect(manifestRaw).toMatch(/"includedImages": \[\s*"present\.png"\s*\]/);
+    expect(manifestRaw).toMatch(/"missingReferencedImages": \[\s*"missing\.png"\s*\]/);
   } finally {
     rmSync(join(imagesRoot, stem), { recursive: true, force: true });
   }
@@ -184,5 +180,5 @@ test('collectReferencedLocalImages skips URLs and invalid extensions', () => {
       },
     ],
   };
-  assert.deepEqual(collectReferencedLocalImages(quiz), ['pic.png']);
+  expect(collectReferencedLocalImages(quiz)).toEqual(['pic.png']);
 });

@@ -1,5 +1,4 @@
-import { describe, it, beforeEach } from 'node:test';
-import assert from 'node:assert';
+import { describe, it, beforeEach, expect } from 'vitest';
 import {
   containsCustomBlockedTerm,
   setCustomBlockTestOverride,
@@ -13,42 +12,42 @@ describe('custom block list', () => {
   });
 
   it('67! → blocked (punctuation does not break digit token)', () => {
-    assert.strictEqual(containsCustomBlockedTerm('67!'), true);
+    expect(containsCustomBlockedTerm('67!')).toBe(true);
   });
 
   it('hello, skibidi. → blocked (punctuation breaks tokens; skibidi matches)', () => {
-    assert.strictEqual(containsCustomBlockedTerm('hello, skibidi.'), true);
+    expect(containsCustomBlockedTerm('hello, skibidi.')).toBe(true);
   });
 
   it('skibbity → not blocked (different spelling; exact match only)', () => {
-    assert.strictEqual(containsCustomBlockedTerm('skibbity'), false);
+    expect(containsCustomBlockedTerm('skibbity')).toBe(false);
   });
 
   it('skibidi-toilet → blocked if skibidi is listed (tokenization splits on -)', () => {
-    assert.strictEqual(containsCustomBlockedTerm('skibidi-toilet'), true);
+    expect(containsCustomBlockedTerm('skibidi-toilet')).toBe(true);
   });
 
   it('classy → not blocked unless explicitly listed', () => {
-    assert.strictEqual(containsCustomBlockedTerm('classy'), false);
+    expect(containsCustomBlockedTerm('classy')).toBe(false);
   });
 
   it('SKIBIDI → blocked (normalized match)', () => {
-    assert.strictEqual(containsCustomBlockedTerm('SKIBIDI'), true);
+    expect(containsCustomBlockedTerm('SKIBIDI')).toBe(true);
   });
 
   it('67 in middle of text → blocked', () => {
-    assert.strictEqual(containsCustomBlockedTerm('hello 67 world'), true);
+    expect(containsCustomBlockedTerm('hello 67 world')).toBe(true);
   });
 
   it('returns false when filter disabled', () => {
     setCustomBlockTestOverride({ enabled: false, terms: ['67', 'skibidi'] });
     resetCustomBlockCache();
-    assert.strictEqual(containsCustomBlockedTerm('67!'), false);
+    expect(containsCustomBlockedTerm('67!')).toBe(false);
   });
 
   it('returns false when terms empty', () => {
     setCustomBlockTestOverride({ enabled: true, terms: [] });
     resetCustomBlockCache();
-    assert.strictEqual(containsCustomBlockedTerm('67!'), false);
+    expect(containsCustomBlockedTerm('67!')).toBe(false);
   });
 });

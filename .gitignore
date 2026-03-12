@@ -36,3 +36,9 @@ data/history/*.json
 data/quizzes/**
 !data/quizzes/
 !data/quizzes/quiz_reference_sample.yml
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

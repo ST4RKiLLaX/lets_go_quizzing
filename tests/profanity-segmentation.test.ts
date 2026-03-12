@@ -1,141 +1,140 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from 'vitest';
 import { containsProfanityAggressive, resetProfanityCache } from '../src/lib/server/profanity.js';
 
 describe('segmented profanity', () => {
   it('catches bitchass (bitch+ass)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('bitchass'), true);
+    expect(containsProfanityAggressive('bitchass')).toBe(true);
   });
 
   it('catches bitchfag (bitch+fag)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('bitchfag'), true);
+    expect(containsProfanityAggressive('bitchfag')).toBe(true);
   });
 
   it('catches fagfuckbitch (fag+fuck+bitch)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('fagfuckbitch'), true);
+    expect(containsProfanityAggressive('fagfuckbitch')).toBe(true);
   });
 
   it('catches assbitch (ass+bitch)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('assbitch'), true);
+    expect(containsProfanityAggressive('assbitch')).toBe(true);
   });
 
   it('catches fuckbitchass (fuck+bitch+ass)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('fuckbitchass'), true);
+    expect(containsProfanityAggressive('fuckbitchass')).toBe(true);
   });
 
   it('does not catch class', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('class'), false);
+    expect(containsProfanityAggressive('class')).toBe(false);
   });
 
   it('does not catch assassin', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('assassin'), false);
+    expect(containsProfanityAggressive('assassin')).toBe(false);
   });
 
   it('does not catch bass', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('bass'), false);
+    expect(containsProfanityAggressive('bass')).toBe(false);
   });
 
   it('does not catch classass', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('classass'), false);
+    expect(containsProfanityAggressive('classass')).toBe(false);
   });
 
   it('does not catch butterfly', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('butterfly'), false);
+    expect(containsProfanityAggressive('butterfly')).toBe(false);
   });
 
   it('does not catch fagfuckbitchx (whole-token segmentation fails)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('fagfuckbitchx'), false);
+    expect(containsProfanityAggressive('fagfuckbitchx')).toBe(false);
   });
 
   it('does not catch bitchfagx (whole-token segmentation fails)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('bitchfagx'), false);
+    expect(containsProfanityAggressive('bitchfagx')).toBe(false);
   });
 });
 
 describe('suffix variant aliases (Tier 1)', () => {
   it('catches fucky', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('fucky'), true);
+    expect(containsProfanityAggressive('fucky')).toBe(true);
   });
 
   it('catches fuckey and fuckie', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('fuckey'), true);
-    assert.strictEqual(containsProfanityAggressive('fuckie'), true);
+    expect(containsProfanityAggressive('fuckey')).toBe(true);
+    expect(containsProfanityAggressive('fuckie')).toBe(true);
   });
 
   it('catches faggy', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('faggy'), true);
+    expect(containsProfanityAggressive('faggy')).toBe(true);
   });
 
   it('catches faggey and faggie', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('faggey'), true);
-    assert.strictEqual(containsProfanityAggressive('faggie'), true);
+    expect(containsProfanityAggressive('faggey')).toBe(true);
+    expect(containsProfanityAggressive('faggie')).toBe(true);
   });
 
   it('catches shitty', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('shitty'), true);
+    expect(containsProfanityAggressive('shitty')).toBe(true);
   });
 
   it('catches bitchy', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('bitchy'), true);
+    expect(containsProfanityAggressive('bitchy')).toBe(true);
   });
 
   it('catches cunty', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('cunty'), true);
+    expect(containsProfanityAggressive('cunty')).toBe(true);
   });
 
   it('catches slutty', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('slutty'), true);
+    expect(containsProfanityAggressive('slutty')).toBe(true);
   });
 
   it('catches twaty', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('twaty'), true);
+    expect(containsProfanityAggressive('twaty')).toBe(true);
   });
 
   it('aggressive filter allows cocky', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('cocky'), false);
+    expect(containsProfanityAggressive('cocky')).toBe(false);
   });
 
   it('aggressive filter allows sexy', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('sexy'), false);
+    expect(containsProfanityAggressive('sexy')).toBe(false);
   });
 
   it('aggressive filter allows classy', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('classy'), false);
+    expect(containsProfanityAggressive('classy')).toBe(false);
   });
 });
 
 describe('spaced evasion', () => {
   it('catches f u u u c k k y (spaced with repeated letters)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('f u u u c k k y'), true);
+    expect(containsProfanityAggressive('f u u u c k k y')).toBe(true);
   });
 
   it('catches f u c k y (spaced)', () => {
     resetProfanityCache();
-    assert.strictEqual(containsProfanityAggressive('f u c k y'), true);
+    expect(containsProfanityAggressive('f u c k y')).toBe(true);
   });
 });
