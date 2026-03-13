@@ -38,6 +38,28 @@
       <button
         type="button"
         class="p-2 rounded-lg text-pub-muted opacity-40 cursor-not-allowed"
+        aria-label="Creator (disabled during quiz)"
+        disabled
+        title="Creator unavailable while quiz is live"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        class="p-2 rounded-lg text-pub-muted opacity-40 cursor-not-allowed"
         aria-label="Settings (disabled during quiz)"
         disabled
         title="Settings unavailable while quiz is live"
@@ -60,6 +82,27 @@
         </svg>
       </button>
     {:else}
+    <a
+      href="/creator"
+      class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold"
+      aria-label="Creator"
+      title="Creator"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+    </a>
     <a
       href="/settings"
       class="p-2 rounded-lg text-pub-muted hover:bg-pub-dark hover:text-pub-gold"
