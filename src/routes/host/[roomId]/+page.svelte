@@ -452,7 +452,14 @@
             {@const ar = hq.imageAspectRatio ?? 1}
             {@const rY = hq.answer.radiusY ?? hq.answer.radius}
             {@const rot = hq.answer.rotation ?? 0}
-            {@const hotspotSubs = (state?.submissions ?? []).filter((s) => s.questionId === q.id && s.answerX != null && s.answerY != null)}
+            {@const hotspotSubs = (state?.submissions ?? []).filter(
+              (s) =>
+                s.questionId === q.id &&
+                s.answerX != null &&
+                s.answerY != null &&
+                s.visibility !== 'blocked' &&
+                !s.projectorHiddenByHost
+            )}
             {#if src}
               <div class="relative inline-block max-w-full my-4">
                 <img src={src} alt="" class="max-w-full rounded-lg block" />
@@ -461,18 +468,19 @@
                     class="absolute border-2 border-green-500 bg-green-500/30 pointer-events-none rounded-full origin-center"
                     style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
                   ></div>
-                  {#each hotspotSubs as sub}
-                    {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
-                    {@const isWrong = state?.wrongAnswers?.some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
-                    <HotspotEmojiMarker
-                      x={sub.answerX!}
-                      y={sub.answerY!}
-                      emoji={player?.emoji ?? '?'}
-                      name={player?.name ?? 'Unknown'}
-                      isWrong={isWrong}
-                    />
-                  {/each}
                 {/if}
+                {#each hotspotSubs as sub}
+                  {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
+                  {@const isWrong = state?.wrongAnswers?.some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
+                  <HotspotEmojiMarker
+                    x={sub.answerX!}
+                    y={sub.answerY!}
+                    emoji={player?.emoji ?? '?'}
+                    name={player?.name ?? 'Unknown'}
+                    isWrong={isWrong}
+                    showCorrectness={state?.type === 'RevealAnswer'}
+                  />
+                {/each}
               </div>
             {/if}
           {:else if q.image}

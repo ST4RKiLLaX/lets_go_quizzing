@@ -346,7 +346,14 @@
             {@const ar = hq.imageAspectRatio ?? 1}
             {@const rY = hq.answer.radiusY ?? hq.answer.radius}
             {@const rot = hq.answer.rotation ?? 0}
-            {@const hotspotSubs = (state?.submissions ?? []).filter((s) => s.questionId === q.id && s.answerX != null && s.answerY != null)}
+            {@const hotspotSubs = (state?.submissions ?? []).filter(
+              (s) =>
+                s.questionId === q.id &&
+                s.answerX != null &&
+                s.answerY != null &&
+                s.visibility !== 'blocked' &&
+                !s.projectorHiddenByHost
+            )}
             {#if src}
               <div class="relative inline-block max-w-full my-4">
                 <img src={src} alt="" class="max-w-full rounded-lg block" />
@@ -356,7 +363,7 @@
                 ></div>
                 {#each hotspotSubs as sub}
                   {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
-                  {@const isWrong = state?.wrongAnswers?.some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
+                  {@const isWrong = (state?.wrongAnswers ?? []).some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
                   <HotspotEmojiMarker
                     x={sub.answerX!}
                     y={sub.answerY!}
