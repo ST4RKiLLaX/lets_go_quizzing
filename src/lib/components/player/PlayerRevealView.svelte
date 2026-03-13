@@ -13,6 +13,7 @@
 <script lang="ts">
   import type { Readable } from 'svelte/store';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
+  import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
@@ -27,6 +28,8 @@
   export let quizFilename: string | undefined = undefined;
   export let optionLabelStyle: 'letters' | 'numbers';
   export let revealData: RevealData = {};
+  export let playerEmoji = '😀';
+  export let playerName = '';
 </script>
 
 <div class="bg-pub-darker rounded-lg p-6">
@@ -54,10 +57,14 @@
             style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
           ></div>
           {#if tap}
-            <div
-              class="absolute w-3 h-3 rounded-full bg-pub-gold border-2 border-white pointer-events-none"
-              style="left: {(tap.x * 100)}%; top: {(tap.y * 100)}%; transform: translate(-50%, -50%);"
-            ></div>
+            <HotspotEmojiMarker
+              x={tap.x}
+              y={tap.y}
+              emoji={playerEmoji}
+              name={playerName}
+              isWrong={revealData.wasCorrect === false}
+              showCorrectness={true}
+            />
           {/if}
         </div>
       {/if}

@@ -1025,6 +1025,8 @@
         quizFilename={state.quizFilename}
         optionLabelStyle={optionLabelStyle}
         revealData={revealData}
+        playerEmoji={playerDisplayEmoji}
+        playerName={playerDisplayName}
       />
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
       <PlayerEndView
