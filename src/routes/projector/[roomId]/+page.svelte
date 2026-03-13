@@ -16,6 +16,7 @@
   import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
   import ProjectorLeaderboardView from '$lib/components/projector/ProjectorLeaderboardView.svelte';
   import ProjectorLobbyView from '$lib/components/projector/ProjectorLobbyView.svelte';
+  import SliderDisplay from '$lib/components/SliderDisplay.svelte';
 
   const roomId = $page.params.roomId;
 
@@ -298,7 +299,7 @@
             </div>
             <p class="mt-4 text-xl text-pub-muted text-center">Match items to options</p>
           {:else if q.type === 'slider'}
-            <p class="text-xl text-pub-muted">Choose a value on the slider</p>
+            <SliderDisplay min={q.min} max={q.max} step={q.step} mode="idle" />
           {:else if q.type === 'input'}
             <p class="text-xl text-pub-muted">Fill in the blank</p>
           {:else if q.type === 'open_ended'}
@@ -450,20 +451,29 @@
               {/each}
             </ul>
           {:else if q.type === 'slider'}
-            <div class="space-y-3">
-              <div class="px-4 py-4 bg-pub-dark rounded-lg">
-                <input
-                  type="range"
-                  min={q.min}
-                  max={q.max}
-                  step={q.step}
-                  value={q.answer}
-                  disabled
-                  class="w-full accent-pub-gold"
-                />
-                <p class="mt-2 text-center text-pub-gold font-semibold">{q.answer}</p>
-              </div>
-            </div>
+            {@const sliderSubs = (state.submissions ?? []).filter(
+              (s) =>
+                s.questionId === q.id &&
+                s.answerNumber != null &&
+                s.visibility !== 'blocked' &&
+                !s.projectorHiddenByHost
+            )}
+            {@const wrongPlayerIds = new Set(
+              (state.wrongAnswers ?? []).filter((w) => w.questionId === q.id).map((w) => w.playerId)
+            )}
+            <SliderDisplay
+              min={q.min}
+              max={q.max}
+              step={q.step}
+              mode="reveal"
+              value={q.answer}
+              submissions={sliderSubs.map((s) => ({
+                emoji: (state.players ?? []).find((p) => p.id === s.playerId)?.emoji ?? '?',
+                answerNumber: s.answerNumber!,
+                isWrong: wrongPlayerIds.has(s.playerId),
+              }))}
+              showCorrect={true}
+            />
           {:else if q.type === 'input'}
             <p class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-pub-gold text-pub-gold">
               Correct: {q.answer.filter(Boolean).join(' / ')}
