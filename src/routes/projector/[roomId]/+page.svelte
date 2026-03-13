@@ -273,6 +273,30 @@
               {/each}
             </ul>
             <p class="mt-4 text-xl text-pub-muted text-center">Arrange these in the correct order</p>
+          {:else if q.type === 'matching'}
+            <div class="flex gap-4 flex-col sm:flex-row">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-pub-muted mb-2">Items</p>
+                <ul class="space-y-2">
+                  {#each q.items as item}
+                    <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
+                      <span class="break-words">{item}</span>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-pub-muted mb-2">Options</p>
+                <ul class="space-y-2">
+                  {#each getShuffledReorderIndices(q.id + ':options', q.options.length) as optIndex}
+                    <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
+                      <span class="break-words">{q.options[optIndex]}</span>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            </div>
+            <p class="mt-4 text-xl text-pub-muted text-center">Match items to options</p>
           {:else if q.type === 'slider'}
             <p class="text-xl text-pub-muted">Choose a value on the slider</p>
           {:else if q.type === 'input'}
@@ -394,6 +418,18 @@
                       </span>
                       <span class="flex-1 break-words">{q.options[optIndex]}</span>
                     </div>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {:else if q.type === 'matching'}
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold text-pub-muted mb-2 text-center">Correct Pairs</h3>
+              <ul class="space-y-2">
+                {#each q.items as item, i}
+                  <li class="px-4 py-2 bg-pub-dark rounded-lg ring-2 ring-green-500">
+                    <span class="font-medium">{item}</span>
+                    <span class="block text-pub-gold text-sm mt-1">→ {q.options[q.answer[i]]}</span>
                   </li>
                 {/each}
               </ul>

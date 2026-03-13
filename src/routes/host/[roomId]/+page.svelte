@@ -222,6 +222,7 @@
     poll: 'Opinion poll',
     multi_select: 'Choose multiple',
     reorder: 'Order items',
+    matching: 'Matching',
     hotspot: 'Hotspot',
     slider: 'Slider',
     input: 'Fill in the blank',
@@ -234,6 +235,7 @@
     poll: 'Players pick an option (no correct answer).',
     multi_select: 'Players select all correct options.',
     reorder: 'Players drag to reorder.',
+    matching: 'Players tap to match items to options.',
     hotspot: 'Players tap a region on the image.',
     slider: 'Players move a slider to the value.',
     input: 'Players type their answer.',
@@ -305,6 +307,11 @@
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(', ');
     } else if (Array.isArray(wa.answer) && q?.type === 'reorder') {
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(' → ');
+    } else if (Array.isArray(wa.answer) && q?.type === 'matching' && q.items?.length === wa.answer.length) {
+      const indexes = wa.answer as number[];
+      display = q.items
+        .map((item, i) => `${item} → ${q.options[indexes[i]] ?? String(indexes[i])}`)
+        .join(', ');
     } else if (Array.isArray(wa.answer) && q?.type === 'hotspot' && wa.answer.length >= 2) {
       display = `(${(wa.answer[0] * 100).toFixed(0)}%, ${(wa.answer[1] * 100).toFixed(0)}%)`;
     } else if (typeof wa.answer === 'number' && q?.type === 'true_false') {
@@ -499,6 +506,39 @@
                 </ul>
               </div>
             </div>
+          {:else if q.type === 'matching'}
+            <div class="space-y-4">
+              {#if state?.type === 'RevealAnswer'}
+                <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Pairs:</h3>
+              {/if}
+              <div class="flex gap-4 flex-col sm:flex-row">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-pub-muted mb-2">Items</p>
+                  <ul class="space-y-2">
+                    {#each q.items as item, i}
+                      <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
+                        <span class="font-medium">{item}</span>
+                        {#if state?.type === 'RevealAnswer'}
+                          <span class="block text-pub-gold text-sm mt-1">→ {q.options[q.answer[i]]}</span>
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+                {#if state?.type !== 'RevealAnswer'}
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-pub-muted mb-2">Options</p>
+                    <ul class="space-y-2 opacity-60">
+                      {#each getShuffledReorderIndices(q.id + ':options', q.options.length) as optIndex}
+                        <li class="px-4 py-2 bg-pub-dark rounded">
+                          <span class="break-words">{q.options[optIndex]}</span>
+                        </li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
+              </div>
+            </div>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
             <ul class="space-y-2">
@@ -627,7 +667,7 @@
           </button>
         </div>
 
-          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder' || currentQuestion?.type === 'hotspot') && state.wrongAnswers?.length > 0}
+          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder' || currentQuestion?.type === 'matching' || currentQuestion?.type === 'hotspot') && state.wrongAnswers?.length > 0}
             <div class="mt-6 pt-6 border-t border-pub-muted">
               <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
             <div class="flex flex-wrap gap-2">

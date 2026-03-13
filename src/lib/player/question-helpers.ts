@@ -7,7 +7,7 @@ import type { SerializedSubmission } from '$lib/types/game.js';
  */
 export function getQuestionOptions(q: Question): string[] {
   if (q.type === 'true_false') return ['True', 'False'];
-  if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder') {
+  if (q.type === 'choice' || q.type === 'poll' || q.type === 'multi_select' || q.type === 'reorder' || q.type === 'matching') {
     return q.options;
   }
   return [];

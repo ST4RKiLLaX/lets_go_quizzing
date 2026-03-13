@@ -16,7 +16,7 @@
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
-  import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
 
   export let question: Question | null = null;
   export let roundName: string;
@@ -141,6 +141,36 @@
                     </span>
                     <span class="flex-1 break-words">{q.options[optIndex]}</span>
                   </div>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+    {:else if q.type === 'matching'}
+      {@const mq = q as MatchingQuestion}
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Pairs:</h3>
+          <ul class="space-y-2">
+            {#each mq.items as item, i}
+              <li class="px-4 py-2 bg-pub-dark rounded ring-2 ring-green-500">
+                <span class="font-medium">{item}</span>
+                <span class="block text-pub-gold text-sm mt-1">→ {mq.options[mq.answer[i]]}</span>
+              </li>
+            {/each}
+          </ul>
+        </div>
+        {#if (revealData.submittedAnswerIndexes ?? []).length > 0}
+          <div>
+            <h3 class="text-sm font-semibold text-pub-muted mb-2">Your Matches:</h3>
+            <ul class="space-y-2 opacity-60">
+              {#each mq.items as item, i}
+                {@const playerOptIdx = revealData.submittedAnswerIndexes?.[i] ?? -1}
+                {@const isCorrect = playerOptIdx === mq.answer[i]}
+                <li class="px-4 py-2 bg-pub-dark rounded {isCorrect ? 'ring-1 ring-green-500/50' : 'ring-1 ring-red-500/50'}">
+                  <span class="font-medium">{item}</span>
+                  <span class="block text-sm mt-1">→ {playerOptIdx >= 0 ? mq.options[playerOptIdx] : '—'}</span>
                 </li>
               {/each}
             </ul>

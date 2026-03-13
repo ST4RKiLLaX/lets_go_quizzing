@@ -941,6 +941,25 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           answerIndexes: normalized,
           submittedAt: Date.now(),
         };
+      } else if (question.type === 'matching') {
+        const normalized = Array.isArray(answerIndexes)
+          ? answerIndexes.filter(
+              (value) => Number.isInteger(value) && value >= 0 && value < question.options.length
+            )
+          : [];
+        if (
+          normalized.length !== question.items.length ||
+          new Set(normalized).size !== question.items.length
+        ) {
+          ack?.({ error: 'Invalid matching answer' });
+          return;
+        }
+        submission = {
+          playerId,
+          questionId,
+          answerIndexes: normalized,
+          submittedAt: Date.now(),
+        };
       } else if (question.type === 'slider') {
         if (
           answerNumber == null ||

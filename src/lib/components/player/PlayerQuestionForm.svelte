@@ -5,7 +5,8 @@
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
-  import type { Question, HotspotQuestion } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
+  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
 
   export let question: Question;
   export let roundName: string;
@@ -27,6 +28,7 @@
   export let isHotspotSubmitted: (questionId: string) => boolean;
   export let isMultiSelectSubmitted: (questionId: string) => boolean;
   export let isReorderSubmitted: (questionId: string) => boolean;
+  export let isMatchingSubmitted: (questionId: string) => boolean;
   export let isSliderSubmitted: (questionId: string) => boolean;
   export let isInputSubmitted: (questionId: string) => boolean;
   export let getSelectedOptionLabel: (q: Question) => string;
@@ -44,13 +46,40 @@
   export let submitChoice: (questionId: string, answerIndex: number) => void;
   export let submitMultiSelect: (questionId: string, answerIndexes: number[]) => void;
   export let submitReorder: (questionId: string, answerIndexes: number[]) => void;
+  export let submitMatching: (questionId: string, answerIndexes: number[]) => void;
   export let submitSlider: (questionId: string, answerNumber: number) => void;
   export let submitHotspot: (questionId: string, x: number, y: number) => void;
   export let submitInput: (questionId: string, answerText: string) => void;
   export let toggleMultiSelectDraft: (optionIndex: number) => void;
   export let hotspotDraftByQuestionId: Record<string, { x: number; y: number }> = {};
   export let updateHotspotDraft: (questionId: string, x: number, y: number) => void = () => {};
+  export let matchingDraft: number[] = [];
   export let emoji = '😀';
+
+  let selectedMatchingOption: number | null = null;
+
+  function handleSlotTap(
+    questionId: string,
+    slotIndex: number,
+    draft: number[],
+    isFilled: boolean,
+    selectedOpt: number | null
+  ) {
+    if (isMatchingSubmitted(questionId) || questionTimeExpired) {
+      return;
+    }
+    if (selectedOpt != null) {
+      const newDraft = [...draft];
+      const prevSlot = newDraft.indexOf(selectedOpt);
+      if (prevSlot >= 0) newDraft[prevSlot] = -1;
+      newDraft[slotIndex] = selectedOpt;
+      matchingDraft = newDraft;
+    } else if (isFilled) {
+      const newDraft = [...draft];
+      newDraft[slotIndex] = -1;
+      matchingDraft = newDraft;
+    }
+  }
 </script>
 
 <div class="bg-pub-darker rounded-lg p-6">
@@ -245,6 +274,74 @@
           Submit Ordering
         </button>
       </div>
+    {:else if q.type === 'matching'}
+      {@const mq = q as MatchingQuestion}
+      {@const shuffledOptIndices = getShuffledReorderIndices(q.id + ':options', mq.options.length)}
+      {@const draft = mq.items.map((_, i) => matchingDraft[i] ?? -1)}
+      {@const allMatched = draft.length === mq.items.length && draft.every((v) => v >= 0)}
+      <p class="text-sm text-pub-muted mb-4">Tap an option, then tap an item to match</p>
+      <div class="flex gap-4 flex-col sm:flex-row">
+        <div class="flex-1 space-y-2">
+          <p class="text-sm font-medium text-pub-gold mb-2">Items</p>
+          {#each mq.items as item, i}
+            {@const optIdx = draft[i] ?? -1}
+            {@const isFilled = optIdx >= 0}
+            <div
+              role="button"
+              tabindex="0"
+              class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left cursor-pointer select-none [touch-action:manipulation] {isMatchingSubmitted(q.id) || questionTimeExpired ? 'opacity-60 pointer-events-none' : ''} {selectedMatchingOption != null ? 'ring-1 ring-pub-gold/50' : ''}"
+              onclick={() => handleSlotTap(q.id, i, draft, isFilled, selectedMatchingOption)}
+              onkeydown={(e) => e.key === 'Enter' && handleSlotTap(q.id, i, draft, isFilled, selectedMatchingOption)}
+            >
+              <span class="font-medium">{item}</span>
+              <span class="block text-pub-muted text-sm mt-1">
+                {isFilled ? mq.options[optIdx] : 'Tap to match'}
+              </span>
+            </div>
+          {/each}
+        </div>
+        <div class="flex-1 space-y-2">
+          <p class="text-sm font-medium text-pub-gold mb-2">Options</p>
+          {#each shuffledOptIndices as optIndex}
+            {@const isSelected = selectedMatchingOption === optIndex}
+            {@const isUsed = draft.includes(optIndex)}
+            <button
+              type="button"
+              class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isSelected ? 'ring-2 ring-pub-gold' : ''} {isMatchingSubmitted(q.id) || questionTimeExpired ? 'opacity-60' : ''}"
+              disabled={isMatchingSubmitted(q.id) || questionTimeExpired}
+              onclick={() => {
+                if (isMatchingSubmitted(q.id) || questionTimeExpired) return;
+                selectedMatchingOption = optIndex;
+              }}
+            >
+              <span class="w-4 text-pub-gold" aria-hidden="true">
+                {#if isSelected}
+                  ●
+              {/if}
+              </span>
+              {#if isUsed}
+                <span class="text-pub-gold/70" aria-hidden="true">✓</span>
+              {/if}
+              <span class="flex-1 break-words">{mq.options[optIndex]}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+      {#if !isMatchingSubmitted(q.id)}
+        <button
+          type="button"
+          class="mt-4 px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          disabled={!allMatched || questionTimeExpired}
+          onclick={() => {
+            if (allMatched && !questionTimeExpired) {
+              submitMatching(q.id, draft);
+              selectedMatchingOption = null;
+            }
+          }}
+        >
+          Submit
+        </button>
+      {/if}
     {:else if q.type === 'slider'}
       <div class="space-y-4">
         <div class="px-4 py-4 bg-pub-dark rounded-lg {isSliderSubmitted(q.id) ? 'opacity-60' : ''}">
@@ -338,6 +435,10 @@
       {:else if q.type === 'reorder'}
         <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
           Your order: {getSelectedOptionLabels(q).join(', ')}
+        </p>
+      {:else if q.type === 'matching' && getSelectedOptionLabels(q).length > 0}
+        <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
+          Your matches: {getSelectedOptionLabels(q).join(', ')}
         </p>
       {:else if q.type === 'slider' && getSubmittedAnswerNumber(q.id) != null}
         <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">

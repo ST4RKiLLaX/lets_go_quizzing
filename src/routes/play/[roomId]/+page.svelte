@@ -262,8 +262,10 @@
   let selectedAnswer: { questionId: string; answerIndex: number } | null = null;
   let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedReorder: { questionId: string; answerIndexes: number[] } | null = null;
+  let selectedMatching: { questionId: string; answerIndexes: number[] } | null = null;
   let selectedSlider: { questionId: string; answerNumber: number } | null = null;
   let hotspotDraftByQuestionId: Record<string, { x: number; y: number }> = {};
+  let matchingDraft: number[] = [];
   let autoSubmitAttemptsByQuestionId: Record<string, true> = {};
   let selectedInput: string | null = null;
   let multiSelectDraft: number[] = [];
@@ -283,8 +285,10 @@
       selectedAnswer = null;
       selectedMultiSelect = null;
       selectedReorder = null;
+      selectedMatching = null;
       selectedSlider = null;
       hotspotDraftByQuestionId = {};
+      matchingDraft = [];
       autoSubmitAttemptsByQuestionId = {};
       selectedInput = null;
       multiSelectDraft = [];
@@ -334,6 +338,7 @@
     selectedAnswer?.questionId === currentQuestionId ||
     selectedMultiSelect?.questionId === currentQuestionId ||
     selectedReorder?.questionId === currentQuestionId ||
+    selectedMatching?.questionId === currentQuestionId ||
     selectedSlider?.questionId === currentQuestionId ||
     (currentQuestion?.type === 'hotspot' && hasSubmitted(currentQuestionId)) ||
     selectedInput === currentQuestionId;
@@ -402,6 +407,43 @@
       if (ack?.error) {
         submitError = ack.error;
         selectedMultiSelect = null;
+        state =
+          state?.submissions != null
+            ? {
+                ...state,
+                submissions: state.submissions.filter(
+                  (s) => !(s.playerId === playerId && s.questionId === questionId)
+                ),
+              }
+            : state;
+      }
+    });
+  }
+
+  function submitMatching(questionId: string, answerIndexes: number[]) {
+    if (
+      hasSubmitted(questionId) ||
+      selectedMatching?.questionId === questionId ||
+      questionTimeExpired
+    ) {
+      return;
+    }
+    submitError = '';
+    selectedMatching = { questionId, answerIndexes: [...answerIndexes] };
+    const playerId = getOrCreatePlayerId();
+    state = state
+      ? {
+          ...state,
+          submissions: [
+            ...(state.submissions ?? []),
+            { playerId, questionId, answerIndexes: [...answerIndexes] },
+          ],
+        }
+      : state;
+    socket?.emit('player:answer', { questionId, answerIndexes: [...answerIndexes] }, (ack: { error?: string }) => {
+      if (ack?.error) {
+        submitError = ack.error;
+        selectedMatching = null;
         state =
           state?.submissions != null
             ? {
@@ -588,6 +630,23 @@
             : reorderDraft;
       return indexes.map((index) => q.options[index]).filter(Boolean);
     }
+    if (q.type === 'matching') {
+      const indexes =
+        getSubmittedAnswerIndexes(q.id).length > 0
+          ? getSubmittedAnswerIndexes(q.id)
+          : selectedMatching?.questionId === q.id
+            ? selectedMatching.answerIndexes
+            : q.id === currentQuestionId
+              ? matchingDraft
+              : [];
+      return q.items
+        .map((item, i) => {
+          const idx = indexes[i];
+          if (idx == null || idx < 0 || idx >= q.options.length) return '';
+          return `${item} → ${q.options[idx]}`;
+        })
+        .filter(Boolean);
+    }
     const indexes =
       getSubmittedAnswerIndexes(q.id).length > 0
         ? getSubmittedAnswerIndexes(q.id)
@@ -609,6 +668,10 @@
     return hasSubmitted(questionId) || selectedReorder?.questionId === questionId;
   }
 
+  function isMatchingSubmitted(questionId: string): boolean {
+    return hasSubmitted(questionId) || selectedMatching?.questionId === questionId;
+  }
+
   function isHotspotSubmitted(questionId: string): boolean {
     return hasSubmitted(questionId);
   }
@@ -621,6 +684,10 @@
 
   $: if (currentQuestion?.type === 'reorder' && reorderDraft.length === 0) {
     reorderDraft = getShuffledReorderIndices(currentQuestion.id, currentQuestion.options.length);
+  }
+
+  $: if (currentQuestion?.type === 'matching' && matchingDraft.length === 0) {
+    matchingDraft = currentQuestion.items.map(() => -1);
   }
 
   $: playerId = getOrCreatePlayerId();
@@ -679,12 +746,16 @@
     } else if (q.type === 'choice' || q.type === 'true_false' || q.type === 'poll') {
       const idx = sub?.answerIndex ?? (selectedAnswer?.questionId === qId ? selectedAnswer.answerIndex : undefined);
       if (idx != null) base.submittedAnswerIndex = idx;
-    } else if (q.type === 'multi_select' || q.type === 'reorder') {
+    } else if (q.type === 'multi_select' || q.type === 'reorder' || q.type === 'matching') {
       const idxs =
         (sub?.answerIndexes?.length ? sub.answerIndexes : undefined) ??
         (selectedMultiSelect?.questionId === qId ? selectedMultiSelect.answerIndexes : undefined) ??
         (selectedReorder?.questionId === qId ? selectedReorder.answerIndexes : undefined) ??
-        (q.type === 'reorder' && reorderDraft.length > 0 ? reorderDraft : undefined);
+        (selectedMatching?.questionId === qId ? selectedMatching.answerIndexes : undefined) ??
+        (q.type === 'reorder' && reorderDraft.length > 0 ? reorderDraft : undefined) ??
+        (q.type === 'matching' && qId === currentQuestionId && matchingDraft.every((v) => v >= 0)
+          ? matchingDraft
+          : undefined);
       if (idxs?.length) base.submittedAnswerIndexes = [...idxs];
     } else if (q.type === 'slider') {
       const num = sub?.answerNumber ?? (selectedSlider?.questionId === qId ? selectedSlider.answerNumber : undefined);
@@ -880,7 +951,7 @@
         bind:emoji
         {unavailableEmojis}
         {registerError}
-        onRegister={register}
+        onRegister={() => register()}
       />
     {:else if state?.type === 'Lobby'}
       <div class="bg-pub-darker rounded-lg p-6">
@@ -916,6 +987,7 @@
         {isHotspotSubmitted}
         {isMultiSelectSubmitted}
         {isReorderSubmitted}
+        {isMatchingSubmitted}
         {isSliderSubmitted}
         {isInputSubmitted}
         {getSelectedOptionLabel}
@@ -929,10 +1001,12 @@
         bind:inputAnswer
         hotspotDraftByQuestionId={hotspotDraftByQuestionId}
         updateHotspotDraft={updateHotspotDraft}
+        bind:matchingDraft
         emoji={playerDisplayEmoji}
         {submitChoice}
         {submitMultiSelect}
         {submitReorder}
+        {submitMatching}
         {submitSlider}
         {submitHotspot}
         {submitInput}

@@ -13,6 +13,11 @@
     updateSliderQuestion as actUpdateSliderQuestion,
     addInputAnswer as actAddInputAnswer,
     removeInputAnswer as actRemoveInputAnswer,
+    addMatchingItem as actAddMatchingItem,
+    removeMatchingItem as actRemoveMatchingItem,
+    addMatchingOption as actAddMatchingOption,
+    removeMatchingOption as actRemoveMatchingOption,
+    setMatchingAnswer as actSetMatchingAnswer,
     updateQuestionField as actUpdateQuestionField,
     updateQuestion as actUpdateQuestion,
     updateHotspotAnswer as actUpdateHotspotAnswer,
@@ -83,7 +88,7 @@
   function setQuestionType(
     ri: number,
     qi: number,
-    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'hotspot'
+    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'matching' | 'hotspot'
   ) {
     quiz = actSetQuestionType(quiz, ri, qi, type);
   }
@@ -309,6 +314,21 @@
           }}
           onRemoveInputAnswer={(ai) => {
             quiz = actRemoveInputAnswer(quiz, ri, qi, ai);
+          }}
+          onAddMatchingItem={() => {
+            quiz = actAddMatchingItem(quiz, ri, qi);
+          }}
+          onRemoveMatchingItem={(ii) => {
+            quiz = actRemoveMatchingItem(quiz, ri, qi, ii);
+          }}
+          onAddMatchingOption={() => {
+            quiz = actAddMatchingOption(quiz, ri, qi);
+          }}
+          onRemoveMatchingOption={(oi) => {
+            quiz = actRemoveMatchingOption(quiz, ri, qi, oi);
+          }}
+          onSetMatchingAnswer={(itemIndex, optionIndex) => {
+            quiz = actSetMatchingAnswer(quiz, ri, qi, itemIndex, optionIndex);
           }}
           onUpdateHotspotAnswer={(patch) => {
             quiz = actUpdateHotspotAnswer(quiz, ri, qi, patch);

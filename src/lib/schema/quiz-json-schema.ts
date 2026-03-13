@@ -72,6 +72,7 @@ export const QUIZ_JSON_SCHEMA = {
                     'multi_select',
                     'puzzle',
                     'reorder',
+                    'matching',
                     'hotspot',
                     'slider',
                     'input',
@@ -79,7 +80,7 @@ export const QUIZ_JSON_SCHEMA = {
                     'word_cloud',
                   ],
                   description:
-                    'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
+                    'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, matching = match items to options, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -234,6 +235,32 @@ export const QUIZ_JSON_SCHEMA = {
                   if: { properties: { type: { const: 'word_cloud' } }, required: ['type'] },
                   then: {
                     properties: {},
+                  },
+                },
+                {
+                  if: { properties: { type: { const: 'matching' } }, required: ['type'] },
+                  then: {
+                    required: ['items', 'options', 'answer'],
+                    properties: {
+                      items: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'string' },
+                        description: 'Items to match (left column). Must be non-empty and unique.',
+                      },
+                      options: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'string' },
+                        description: 'Options pool (right column). Must be non-empty and unique.',
+                      },
+                      answer: {
+                        type: 'array',
+                        minItems: 2,
+                        items: { type: 'integer', minimum: 0 },
+                        description: 'answer[i] = index of correct option for items[i]',
+                      },
+                    },
                   },
                 },
                 {

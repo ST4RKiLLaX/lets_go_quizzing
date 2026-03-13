@@ -114,6 +114,18 @@ export interface HotspotQuestion {
   answer: { x: number; y: number; radius: number; radiusY?: number; rotation?: number };
 }
 
+export interface MatchingQuestion {
+  id: string;
+  type: 'matching';
+  text: string;
+  explanation?: string;
+  image?: string;
+  points?: number;
+  items: string[];
+  options: string[];
+  answer: number[];
+}
+
 export type Question =
   | ChoiceQuestion
   | TrueFalseQuestion
@@ -124,7 +136,8 @@ export type Question =
   | OpenEndedQuestion
   | WordCloudQuestion
   | ReorderQuestion
-  | HotspotQuestion;
+  | HotspotQuestion
+  | MatchingQuestion;
 
 export interface Round {
   name: string;
@@ -235,6 +248,17 @@ export function createEmptyHotspotQuestion(id: string): HotspotQuestion {
     text: '',
     image: '',
     answer: { x: 0.5, y: 0.5, radius: 0.1 },
+  };
+}
+
+export function createEmptyMatchingQuestion(id: string): MatchingQuestion {
+  return {
+    id,
+    type: 'matching',
+    text: '',
+    items: ['', ''],
+    options: ['', '', '', ''],
+    answer: [0, 1],
   };
 }
 

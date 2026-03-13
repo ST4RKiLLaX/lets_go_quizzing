@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Question, HotspotQuestion, InputQuestion } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion, InputQuestion, MatchingQuestion } from '$lib/types/quiz.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
 
   export let question: Question;
@@ -15,6 +15,11 @@
   export let onUpdateSliderQuestion: (field: 'min' | 'max' | 'step' | 'answer', value: number) => void;
   export let onAddInputAnswer: () => void;
   export let onRemoveInputAnswer: (ai: number) => void;
+  export let onAddMatchingItem: () => void;
+  export let onRemoveMatchingItem: (ii: number) => void;
+  export let onAddMatchingOption: () => void;
+  export let onRemoveMatchingOption: (oi: number) => void;
+  export let onSetMatchingAnswer: (itemIndex: number, optionIndex: number) => void;
   export let onUpdateHotspotAnswer: (patch: Partial<HotspotQuestion['answer']>) => void;
   export let onSetHotspotImageAspectRatio: (ar: number) => void;
   export let onImageUpload: (file: File) => void;
@@ -42,6 +47,7 @@
       <option value="poll">Poll</option>
       <option value="multi_select">Multi-select</option>
       <option value="reorder">Reorder</option>
+      <option value="matching">Matching</option>
       <option value="hotspot">Hotspot (image click)</option>
       <option value="slider">Slider</option>
       <option value="input">Fill in the blank</option>
@@ -68,7 +74,7 @@
       class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
     ></textarea>
   </div>
-  {#if ['choice', 'true_false', 'multi_select', 'slider', 'input', 'reorder', 'hotspot'].includes(question.type)}
+  {#if ['choice', 'true_false', 'multi_select', 'slider', 'input', 'reorder', 'matching', 'hotspot'].includes(question.type)}
     <div class="mb-3">
       <label for="points-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">Points multiplier</label>
       <input
@@ -389,6 +395,93 @@
       >
         + Add alternative
       </button>
+    </div>
+  {:else if question.type === 'matching'}
+    {@const mq = question as MatchingQuestion}
+    <div class="space-y-4">
+      <div class="space-y-2" role="group" aria-label="Items (left column)">
+        <span class="block text-sm text-pub-muted">Items (left column)</span>
+        {#each mq.items as _item, ii}
+          <div class="flex gap-2 items-center">
+            <input
+              type="text"
+              value={mq.items[ii]}
+              on:input={(e) => {
+                const val = (e.currentTarget as HTMLInputElement).value;
+                onTransform((q) => {
+                  const m = q as MatchingQuestion;
+                  const items = [...m.items];
+                  items[ii] = val;
+                  return { ...q, items } as Question;
+                });
+              }}
+              placeholder="Item {ii + 1}"
+              class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
+            />
+            <select
+              value={mq.answer[ii]}
+              on:change={(e) => onSetMatchingAnswer(ii, Number((e.currentTarget as HTMLSelectElement).value))}
+              class="bg-pub-darker border border-pub-muted rounded px-2 py-1 text-sm"
+            >
+              {#each mq.options as _opt, oi}
+                <option value={oi}>{mq.options[oi] || `Option ${oi + 1}`}</option>
+              {/each}
+            </select>
+            <button
+              type="button"
+              class="text-red-400 text-sm"
+              on:click={() => onRemoveMatchingItem(ii)}
+              disabled={mq.items.length <= 2}
+            >
+              ×
+            </button>
+          </div>
+        {/each}
+        <button
+          type="button"
+          class="text-sm text-pub-accent hover:underline"
+          on:click={onAddMatchingItem}
+        >
+          + Add item
+        </button>
+      </div>
+      <div class="space-y-2" role="group" aria-label="Options (right column)">
+        <span class="block text-sm text-pub-muted">Options (right column)</span>
+        {#each mq.options as _opt, oi}
+          <div class="flex gap-2 items-center">
+            <input
+              type="text"
+              value={mq.options[oi]}
+              on:input={(e) => {
+                const val = (e.currentTarget as HTMLInputElement).value;
+                onTransform((q) => {
+                  const m = q as MatchingQuestion;
+                  const options = [...m.options];
+                  options[oi] = val;
+                  return { ...q, options } as Question;
+                });
+              }}
+              placeholder="Option {oi + 1}"
+              class="flex-1 bg-pub-darker border border-pub-muted rounded px-3 py-1"
+            />
+            <button
+              type="button"
+              class="text-red-400 text-sm"
+              on:click={() => onRemoveMatchingOption(oi)}
+              disabled={mq.options.length <= 2}
+            >
+              ×
+            </button>
+          </div>
+        {/each}
+        <button
+          type="button"
+          class="text-sm text-pub-accent hover:underline"
+          on:click={onAddMatchingOption}
+        >
+          + Add option
+        </button>
+      </div>
     </div>
   {/if}
   <div class="mt-3">

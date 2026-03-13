@@ -20,6 +20,7 @@ import type {
   InputQuestion,
   ReorderQuestion,
   HotspotQuestion,
+  MatchingQuestion,
 } from '$lib/types/quiz.js';
 import { createEmptyChoiceQuestion, generateQuestionId } from '$lib/types/quiz.js';
 
@@ -33,6 +34,7 @@ export type QuestionType =
   | 'open_ended'
   | 'word_cloud'
   | 'reorder'
+  | 'matching'
   | 'hotspot';
 
 export function addRound(quiz: Quiz): Quiz {
@@ -112,12 +114,14 @@ export function setQuestionType(
                     ? { ...base, type: 'word_cloud' }
                     : type === 'reorder'
                       ? { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] }
-                      : {
-                          ...base,
-                          type: 'hotspot',
-                          image: (base.image as string) ?? '',
-                          answer: { x: 0.5, y: 0.5, radius: 0.1 },
-                        };
+                      : type === 'matching'
+                        ? { ...base, type: 'matching', items: ['', ''], options: ['', '', '', ''], answer: [0, 1] }
+                        : {
+                            ...base,
+                            type: 'hotspot',
+                            image: (base.image as string) ?? '',
+                            answer: { x: 0.5, y: 0.5, radius: 0.1 },
+                          };
   return {
     ...quiz,
     rounds: quiz.rounds.map((r, i) =>
@@ -370,6 +374,87 @@ export function setHotspotImageAspectRatio(quiz: Quiz, ri: number, qi: number, a
   if (q.type !== 'hotspot') return quiz;
   if (q.imageAspectRatio !== undefined && Math.abs(q.imageAspectRatio - ar) <= 0.001) return quiz;
   return updateQuestionField(quiz, ri, qi, { imageAspectRatio: ar } as Partial<Question>);
+}
+
+export function addMatchingItem(quiz: Quiz, ri: number, qi: number): Quiz {
+  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
+  if (q.type !== 'matching') return quiz;
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) =>
+      i === ri
+        ? {
+            ...r,
+            questions: r.questions.map((qu, j) =>
+              j === qi
+                ? { ...q, items: [...q.items, ''], answer: [...q.answer, 0] }
+                : qu
+            ),
+          }
+        : r
+    ),
+  };
+}
+
+export function removeMatchingItem(quiz: Quiz, ri: number, qi: number, ii: number): Quiz {
+  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
+  if (q.type !== 'matching' || q.items.length <= 2) return quiz;
+  const newItems = q.items.filter((_, i) => i !== ii);
+  const newAnswer = q.answer.filter((_, i) => i !== ii);
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) =>
+      i === ri
+        ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, items: newItems, answer: newAnswer } : qu)) }
+        : r
+    ),
+  };
+}
+
+export function addMatchingOption(quiz: Quiz, ri: number, qi: number): Quiz {
+  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
+  if (q.type !== 'matching') return quiz;
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) =>
+      i === ri
+        ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, options: [...q.options, ''] } : qu)) }
+        : r
+    ),
+  };
+}
+
+export function removeMatchingOption(quiz: Quiz, ri: number, qi: number, oi: number): Quiz {
+  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
+  if (q.type !== 'matching' || q.options.length <= 2) return quiz;
+  const newOptions = q.options.filter((_, i) => i !== oi);
+  const newAnswer = q.answer
+    .map((idx) => (idx === oi ? 0 : idx > oi ? idx - 1 : idx))
+    .map((idx, i) => Math.min(idx, newOptions.length - 1));
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) =>
+      i === ri
+        ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, options: newOptions, answer: newAnswer } : qu)) }
+        : r
+    ),
+  };
+}
+
+export function setMatchingAnswer(quiz: Quiz, ri: number, qi: number, itemIndex: number, optionIndex: number): Quiz {
+  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
+  if (q.type !== 'matching' || itemIndex < 0 || itemIndex >= q.items.length) return quiz;
+  if (optionIndex < 0 || optionIndex >= q.options.length) return quiz;
+  const newAnswer = [...q.answer];
+  newAnswer[itemIndex] = optionIndex;
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) =>
+      i === ri
+        ? { ...r, questions: r.questions.map((qu, j) => (j === qi ? { ...q, answer: newAnswer } : qu)) }
+        : r
+    ),
+  };
 }
 
 export function clearImage(quiz: Quiz, ri: number, qi: number): Quiz {
