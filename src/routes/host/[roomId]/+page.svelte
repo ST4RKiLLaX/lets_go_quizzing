@@ -21,6 +21,7 @@
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
+  let copied = false;
   let joinError = '';
   let hostRejoinUsername = '';
   let hostRejoinPassword = '';
@@ -352,7 +353,35 @@
             Share this code: <span class="text-pub-gold font-mono text-lg sm:text-xl">{roomId}</span>
           </p>
         </div>
-        <p class="text-pub-muted mb-4">Players join at: <span class="text-sm break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/play/{roomId}</span></p>
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <p class="text-pub-muted">
+            Players join at: <span class="text-sm break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/play/{roomId}</span>
+          </p>
+          <button
+            type="button"
+            class="px-3 py-1.5 text-sm bg-pub-dark hover:bg-pub-accent/30 rounded-lg font-medium text-pub-gold shrink-0"
+            onclick={async () => {
+              const url = typeof window !== 'undefined' ? `${window.location.origin}/play/${roomId}` : '';
+              try {
+                await navigator.clipboard.writeText(url);
+                copied = true;
+                setTimeout(() => (copied = false), 2000);
+              } catch {
+                // fallback for older browsers
+                const ta = document.createElement('textarea');
+                ta.value = url;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                copied = true;
+                setTimeout(() => (copied = false), 2000);
+              }
+            }}
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
         <div class="flex flex-wrap gap-3 sm:gap-4">
           <button
             class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
