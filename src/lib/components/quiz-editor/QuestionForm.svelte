@@ -8,7 +8,7 @@
   export let roundIndex: number;
   export let questionIndex: number;
   export let quizFilename: string | undefined = undefined;
-  export let uploadingFor: { ri: number; qi: number } | null = null;
+  export let uploadingFor: { questionId: string } | null = null;
   export let onPatch: (patch: Partial<Question>) => void;
   export let onTransform: (fn: (q: Question) => Question) => void;
   export let onAddOption: () => void;
@@ -41,6 +41,14 @@
 
   const ri = roundIndex;
   const qi = questionIndex;
+
+  $: canUploadFile = !!quizFilename?.trim();
+
+  /** Avoid <label for> focusing the hidden input — browsers scroll it into view and break <main> scroll. */
+  let imageFileInput: HTMLInputElement | undefined;
+  function triggerImageFilePicker() {
+    imageFileInput?.click();
+  }
 </script>
 
 <div
@@ -179,29 +187,51 @@
       type="text"
       value={question.image ?? ''}
       on:input={(e) => onPatch({ image: (e.currentTarget as HTMLInputElement).value || undefined })}
-      placeholder={question.type === 'hotspot' ? 'https://... or upload above' : 'https://... or leave empty'}
+      placeholder={quizFilename?.trim()
+        ? question.type === 'hotspot'
+          ? 'https://... or choose file below'
+          : 'https://... or choose file below'
+        : 'https://... (paste URL — save quiz first to upload a file)'}
       class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
     />
-    {#if quizFilename}
-      <div class="flex items-center gap-2">
-        <label for="upload-{ri}-{qi}" class="text-sm text-pub-muted">Or upload</label>
-        <input
-          id="upload-{ri}-{qi}"
-          type="file"
-          accept="image/*"
-          class="text-sm text-pub-muted"
-          on:change={(e) => {
-            const file = e.currentTarget.files?.[0];
-            if (file) onImageUpload(file);
-            e.currentTarget.value = '';
-          }}
-          disabled={uploadingFor?.ri === ri && uploadingFor?.qi === qi}
-        />
-        {#if uploadingFor?.ri === ri && uploadingFor?.qi === qi}
-          <span class="text-sm text-pub-muted">Uploading...</span>
-        {/if}
-      </div>
-    {/if}
+    <div class="flex flex-wrap items-center gap-2">
+      <input
+        bind:this={imageFileInput}
+        id="upload-{ri}-{qi}"
+        type="file"
+        accept="image/*"
+        tabindex="-1"
+        aria-hidden="true"
+        class="fixed -left-[9999px] top-0 h-px w-px opacity-0 overflow-hidden m-0 p-0 border-0"
+        on:change={(e) => {
+          const file = e.currentTarget.files?.[0];
+          if (file) onImageUpload(file);
+          e.currentTarget.value = '';
+        }}
+        disabled={!canUploadFile || uploadingFor?.questionId === question.id}
+      />
+      <button
+        type="button"
+        class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg border border-pub-muted bg-pub-dark text-pub-gold select-none"
+        class:opacity-40={!canUploadFile || uploadingFor?.questionId === question.id}
+        class:cursor-pointer={canUploadFile && uploadingFor?.questionId !== question.id}
+        class:hover:bg-pub-darker={canUploadFile && uploadingFor?.questionId !== question.id}
+        disabled={!canUploadFile || uploadingFor?.questionId === question.id}
+        title={!canUploadFile
+          ? 'Open this quiz from the creator list or save a new quiz first, then upload.'
+          : undefined}
+        on:click={triggerImageFilePicker}
+      >
+        Choose image file
+      </button>
+      {#if uploadingFor?.questionId === question.id}
+        <span class="text-sm text-pub-muted">Uploading…</span>
+      {:else if !canUploadFile}
+        <span class="text-xs text-pub-muted max-w-sm">
+          Save the quiz (or open it from your list) to enable uploads.
+        </span>
+      {/if}
+    </div>
     {#if question.image}
       <button
         type="button"

@@ -56,7 +56,8 @@
   let yamlStr = '';
   $: if (mode === 'yaml' && quiz) yamlStr = quizToYaml(quiz);
   let saving = false;
-  let uploadingFor: { ri: number; qi: number } | null = null;
+  /** Tracks in-flight image upload by stable question id (indices can change if user reorders). */
+  let uploadingFor: { questionId: string } | null = null;
   let error = '';
   let questionPendingRemove: { ri: number; qi: number } | null = null;
   /** Question id that was reordered (for brief highlight + clearer UX) */
@@ -142,25 +143,54 @@
     }
   }
 
-  async function handleImageUpload(ri: number, qi: number, file: File) {
-    if (!quizFilename) return;
-    uploadingFor = { ri, qi };
+  function findQuestionSlotByQuestionId(q: Quiz, questionId: string): { ri: number; qi: number } | null {
+    for (let ri = 0; ri < q.rounds.length; ri++) {
+      const questions = q.rounds[ri].questions;
+      for (let qi = 0; qi < questions.length; qi++) {
+        if (questions[qi].id === questionId) return { ri, qi };
+      }
+    }
+    return null;
+  }
+
+  async function handleImageUploadForQuestion(questionId: string, file: File) {
+    if (!quizFilename?.trim()) {
+      error =
+        'Cannot upload: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).';
+      return;
+    }
+    if (!questionId?.trim()) {
+      error = 'Cannot upload: question ID is missing. Try reloading the page.';
+      return;
+    }
+    uploadingFor = { questionId };
     error = '';
     try {
       const formData = new FormData();
       formData.append('quizFilename', quizFilename);
-      formData.append('questionId', quiz.rounds[ri].questions[qi].id);
+      formData.append('questionId', questionId);
       formData.append('file', file);
       const res = await fetch('/api/quizzes/images', {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-      quiz = actUpdateQuestionField(quiz, ri, qi, { image: data.filename });
+      const raw = await res.text();
+      let data: { error?: string; filename?: string };
+      try {
+        data = JSON.parse(raw) as { error?: string; filename?: string };
+      } catch {
+        throw new Error(
+          res.ok ? 'Invalid server response' : `Upload failed (${res.status}): ${raw.slice(0, 120)}`
+        );
+      }
+      const slot = findQuestionSlotByQuestionId(quiz, questionId);
+      if (!res.ok) throw new Error(data.error ?? `Upload failed (${res.status})`);
+      if (!data.filename) throw new Error('Upload succeeded but no filename returned');
+      if (!slot) throw new Error('Question was removed during upload');
+      quiz = actUpdateQuestionField(quiz, slot.ri, slot.qi, { image: data.filename });
     } catch (e) {
-      error = String(e);
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       uploadingFor = null;
     }
@@ -421,7 +451,7 @@
           onSetHotspotImageAspectRatio={(ar) => {
             quiz = actSetHotspotImageAspectRatio(quiz, ri, qi, ar);
           }}
-          onImageUpload={(file) => handleImageUpload(ri, qi, file)}
+          onImageUpload={(file) => handleImageUploadForQuestion(question.id, file)}
           onClearImage={() => clearImage(ri, qi)}
           onSetQuestionType={(type) => setQuestionType(ri, qi, type)}
           onRemoveQuestion={() => openRemoveQuestionModal(ri, qi)}
