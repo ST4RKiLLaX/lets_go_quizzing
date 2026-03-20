@@ -298,7 +298,7 @@
   }
 </script>
 
-<div class="min-h-full flex flex-col items-center justify-center p-6">
+<div class="min-h-full flex flex-col items-center justify-center px-6 pb-6 pt-15 sm:pt-16">
   <h1 class="text-4xl font-bold text-pub-gold mb-2">Let's Go Quizzing</h1>
   <p class="text-pub-muted mb-8">The Markdown of Quiz Apps</p>
   {#if $page.url.searchParams.get('migrated') === '1'}
