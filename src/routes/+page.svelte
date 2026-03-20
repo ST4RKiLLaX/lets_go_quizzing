@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { goto, invalidateAll } from '$app/navigation';
+  import { afterNavigate, goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
+  import { get } from 'svelte/store';
   import { onDestroy, onMount } from 'svelte';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import { createSocket } from '$lib/socket.js';
@@ -51,6 +52,17 @@
       refreshHostAuthState();
     }
   }
+
+  /** Deep link from creator quiz list: /?host=1&quiz=filename.yaml */
+  afterNavigate(({ to }) => {
+    if (to?.url.pathname !== '/') return;
+    const param = to.url.searchParams.get('quiz');
+    if (!param) return;
+    const list = (get(page).data.quizzes ?? []) as QuizListItem[];
+    if (list.some((q) => q.filename === param)) {
+      quizFilename = param;
+    }
+  });
 
   onMount(() => {
     const handlePointerDown = (event: PointerEvent) => {

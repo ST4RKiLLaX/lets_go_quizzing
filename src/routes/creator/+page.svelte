@@ -216,6 +216,28 @@
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </a>
+                  <a
+                    href="/?host=1&quiz={encodeURIComponent(quiz.filename)}"
+                    class="inline-flex items-center justify-center p-2 rounded-lg text-sky-400 hover:bg-pub-darker hover:text-sky-300"
+                    title="Host this quiz (create room)"
+                    aria-label="Host {quiz.title}"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                      <polyline points="17 2 12 7 7 2" />
+                    </svg>
+                  </a>
                   <button
                     type="button"
                     class="inline-flex items-center justify-center p-2 rounded-lg text-emerald-400 hover:bg-pub-darker hover:text-emerald-300 disabled:opacity-50"
