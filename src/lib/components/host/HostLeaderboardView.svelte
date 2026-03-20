@@ -4,7 +4,6 @@
   export let title: string;
   export let isEnd: boolean;
   export let players: SerializedPlayer[] = [];
-  export let roomId: string;
   export let onNext: (() => void) | undefined = undefined;
   export let nextLabel: string | undefined = undefined;
 </script>

@@ -738,7 +738,6 @@
         title="Leaderboard"
         isEnd={false}
         players={(state.players ?? []).sort((a, b) => b.score - a.score)}
-        roomId={roomId ?? ''}
         onNext={next}
         nextLabel={state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
       />
@@ -747,7 +746,6 @@
         title="Game Over!"
         isEnd={true}
         players={(state.players ?? []).sort((a, b) => b.score - a.score)}
-        roomId={roomId ?? ''}
       />
     {:else if joinError === 'Invalid password'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
