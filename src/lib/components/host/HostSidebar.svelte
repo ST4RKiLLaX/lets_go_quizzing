@@ -61,15 +61,18 @@
     {/if}
     <ol class="space-y-2 text-sm">
       {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
-        <li class="flex items-center gap-2 group">
-          <span class="text-pub-gold font-bold w-6">#{i + 1}</span>
-          <span>{player.emoji}</span>
-          <span class="truncate flex-1">{player.name}</span>
-          <span class="font-bold">{player.score}</span>
-          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <li class="flex items-center gap-2 min-w-0 group">
+          <span class="text-pub-gold font-bold w-6 shrink-0 tabular-nums">#{i + 1}</span>
+          <span class="shrink-0" aria-hidden="true">{player.emoji}</span>
+          <span class="truncate min-w-0 flex-1 text-left">{player.name}</span>
+          <span class="font-bold tabular-nums shrink-0">{player.score}</span>
+          <!-- opacity-0 still reserves width; hide until hover so score sits at the edge -->
+          <div
+            class="hidden shrink-0 gap-1 group-hover:flex group-hover:items-center"
+          >
             <button
               type="button"
-              class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
+              class="px-2 py-0.5 text-xs bg-pub-dark border border-pub-muted rounded hover:border-red-500 hover:text-red-400 whitespace-nowrap"
               on:click={() => onKick(player.id)}
               title="Kick from room"
             >
@@ -77,7 +80,7 @@
             </button>
             <button
               type="button"
-              class="px-2 py-0.5 text-xs text-pub-muted border border-pub-muted rounded hover:border-red-500 hover:text-red-400"
+              class="px-2 py-0.5 text-xs text-pub-muted border border-pub-muted rounded hover:border-red-500 hover:text-red-400 whitespace-nowrap"
               on:click={() => onKick(player.id, true)}
               title="Kick and ban from room"
             >
