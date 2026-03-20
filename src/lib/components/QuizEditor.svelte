@@ -6,6 +6,7 @@
     removeRound as actRemoveRound,
     addQuestion as actAddQuestion,
     removeQuestion as actRemoveQuestion,
+    moveQuestion as actMoveQuestion,
     setQuestionType as actSetQuestionType,
     addOption as actAddOption,
     removeOption as actRemoveOption,
@@ -26,6 +27,9 @@
   } from '$lib/components/quiz-editor/QuizEditorActions.js';
   import { quizToYaml, yamlToQuiz } from '$lib/utils/quiz-yaml.js';
   import { QUIZ_JSON_SCHEMA } from '$lib/schema/quiz-json-schema.js';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import { flip } from 'svelte/animate';
+  import { cubicOut } from 'svelte/easing';
   import type { ComponentType } from 'svelte';
   import { onMount } from 'svelte';
 
@@ -40,6 +44,10 @@
   export let onSave: (quiz: Quiz) => Promise<void>;
   export let saveLabel = 'Save';
   export let quizFilename: string | undefined = undefined;
+  /** Sticky top bar with title + actions (used on per-quiz edit screen) */
+  export let stickyToolbar = false;
+  export let stickyTitle: string | undefined = undefined;
+  export let onCancel: (() => void) | undefined = undefined;
 
   let mode: 'form' | 'yaml' =
     (typeof window !== 'undefined' && (localStorage.getItem(STORAGE_KEY) as 'form' | 'yaml' | null) === 'yaml')
@@ -50,6 +58,10 @@
   let saving = false;
   let uploadingFor: { ri: number; qi: number } | null = null;
   let error = '';
+  let questionPendingRemove: { ri: number; qi: number } | null = null;
+  /** Question id that was reordered (for brief highlight + clearer UX) */
+  let reorderHighlightId: string | null = null;
+  let reorderHighlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   function switchToYaml() {
     error = '';
@@ -81,8 +93,32 @@
     quiz = actAddQuestion(quiz, ri);
   }
 
-  function removeQuestion(ri: number, qi: number) {
+  function openRemoveQuestionModal(ri: number, qi: number) {
+    questionPendingRemove = { ri, qi };
+  }
+
+  function closeRemoveQuestionModal() {
+    questionPendingRemove = null;
+  }
+
+  function confirmRemoveQuestion() {
+    if (!questionPendingRemove) return;
+    const { ri, qi } = questionPendingRemove;
     quiz = actRemoveQuestion(quiz, ri, qi);
+    questionPendingRemove = null;
+  }
+
+  function moveQuestionInRound(ri: number, qi: number, delta: -1 | 1) {
+    const movedId = quiz.rounds[ri].questions[qi]?.id;
+    quiz = actMoveQuestion(quiz, ri, qi, delta);
+    if (movedId) {
+      reorderHighlightId = movedId;
+      if (reorderHighlightTimer) clearTimeout(reorderHighlightTimer);
+      reorderHighlightTimer = setTimeout(() => {
+        reorderHighlightId = null;
+        reorderHighlightTimer = null;
+      }, 900);
+    }
   }
 
   function setQuestionType(
@@ -133,9 +169,48 @@
   function clearImage(ri: number, qi: number) {
     quiz = actClearImage(quiz, ri, qi);
   }
+
+  $: saveDisabled = saving || (mode === 'form' && !quiz.meta.name.trim());
 </script>
 
-<div class="space-y-8">
+<div class={stickyToolbar ? 'px-4 sm:px-6 md:px-8' : ''}>
+  {#if stickyToolbar}
+    <header
+      class="sticky top-0 z-40 mb-6 flex flex-col gap-2 border-b border-pub-muted bg-pub-darker pt-3 pb-4 sm:pt-3.5 sm:pb-5"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3 gap-y-2">
+        {#if stickyTitle}
+          <h1 class="text-xl sm:text-2xl font-bold text-pub-gold min-w-0 truncate">{stickyTitle}</h1>
+        {:else}
+          <span class="min-w-0 flex-1"></span>
+        {/if}
+        <div class="flex items-center gap-2 shrink-0">
+          {#if onCancel}
+            <button
+              type="button"
+              class="px-4 py-2 text-sm rounded-lg border border-pub-muted bg-pub-dark text-pub-muted hover:text-white hover:border-pub-gold/50"
+              on:click={onCancel}
+            >
+              Cancel
+            </button>
+          {/if}
+          <button
+            type="button"
+            class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50 text-sm sm:text-base"
+            on:click={handleSave}
+            disabled={saveDisabled}
+          >
+            {saving ? 'Saving...' : saveLabel}
+          </button>
+        </div>
+      </div>
+      {#if error}
+        <p class="text-red-400 text-sm">{error}</p>
+      {/if}
+    </header>
+  {/if}
+
+  <div class="space-y-8">
   <div class="flex gap-2">
     <button
       type="button"
@@ -164,19 +239,21 @@
     {:else}
       <div class="p-4 bg-pub-darker rounded-lg text-pub-muted animate-pulse">Loading editor…</div>
     {/if}
-    <div class="flex gap-4 items-center flex-wrap">
-      <button
-        type="button"
-        class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-        on:click={handleSave}
-        disabled={saving}
-      >
-        {saving ? 'Saving...' : saveLabel}
-      </button>
-      {#if error}
-        <span class="text-red-400 text-sm">{error}</span>
-      {/if}
-    </div>
+    {#if !stickyToolbar}
+      <div class="flex gap-4 items-center flex-wrap">
+        <button
+          type="button"
+          class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          on:click={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : saveLabel}
+        </button>
+        {#if error}
+          <span class="text-red-400 text-sm">{error}</span>
+        {/if}
+      </div>
+    {/if}
   {:else}
   <section class="bg-pub-darker rounded-lg p-6">
     <h2 class="text-lg font-semibold mb-4">Quiz info</h2>
@@ -284,11 +361,19 @@
         </button>
       </div>
 
-      {#each round.questions as question, qi}
+      {#each round.questions as question, qi (question.id)}
+        <div animate:flip={{ duration: 320, easing: cubicOut }}>
         <QuestionForm
           {question}
           roundIndex={ri}
           questionIndex={qi}
+          questionNumber={qi + 1}
+          questionCount={round.questions.length}
+          canMoveUp={qi > 0}
+          canMoveDown={qi < round.questions.length - 1}
+          onMoveUp={() => moveQuestionInRound(ri, qi, -1)}
+          onMoveDown={() => moveQuestionInRound(ri, qi, 1)}
+          recentlyReordered={reorderHighlightId === question.id}
           {quizFilename}
           {uploadingFor}
           onPatch={(patch) => {
@@ -339,9 +424,10 @@
           onImageUpload={(file) => handleImageUpload(ri, qi, file)}
           onClearImage={() => clearImage(ri, qi)}
           onSetQuestionType={(type) => setQuestionType(ri, qi, type)}
-          onRemoveQuestion={() => removeQuestion(ri, qi)}
+          onRemoveQuestion={() => openRemoveQuestionModal(ri, qi)}
           removeDisabled={round.questions.length <= 1}
         />
+        </div>
       {/each}
       <button
         type="button"
@@ -363,17 +449,51 @@
         + Add round
       </button>
     {/if}
-    <button
-      type="button"
-      class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-      on:click={handleSave}
-      disabled={saving || (mode === 'form' && !quiz.meta.name.trim())}
-    >
-      {saving ? 'Saving...' : saveLabel}
-    </button>
-    {#if error}
-      <span class="text-red-400 text-sm">{error}</span>
+    {#if !stickyToolbar}
+      <button
+        type="button"
+        class="px-6 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+        on:click={handleSave}
+        disabled={saveDisabled}
+      >
+        {saving ? 'Saving...' : saveLabel}
+      </button>
+      {#if error}
+        <span class="text-red-400 text-sm">{error}</span>
+      {/if}
     {/if}
   </div>
   {/if}
+  </div>
 </div>
+
+<ConfirmModal
+  open={questionPendingRemove != null}
+  title="Remove question?"
+  titleId="quiz-editor-remove-question-modal"
+  confirmLabel="Remove question"
+  confirmButtonClass="bg-red-700"
+  onClose={closeRemoveQuestionModal}
+  onConfirm={confirmRemoveQuestion}
+>
+  {#if questionPendingRemove}
+    {@const pr = questionPendingRemove}
+    {@const pendingRound = quiz.rounds[pr.ri]}
+    {@const pendingQ = pendingRound?.questions[pr.qi]}
+    {#if pendingQ}
+      <p class="text-sm text-pub-muted mb-2">
+        Round:
+        <span class="text-pub-gold font-medium">{pendingRound.name || `Round ${pr.ri + 1}`}</span>
+      </p>
+      <p class="text-sm text-pub-muted mb-5">
+        This will remove the question from your draft. Save to persist; leaving without saving
+        discards changes.
+      </p>
+      <p class="text-xs text-pub-muted font-mono line-clamp-4 break-words rounded border border-pub-muted bg-pub-dark p-3">
+        {pendingQ.text?.trim() || '(empty question)'}
+      </p>
+    {:else}
+      <p class="text-sm text-pub-muted mb-5">Remove this question from the quiz?</p>
+    {/if}
+  {/if}
+</ConfirmModal>

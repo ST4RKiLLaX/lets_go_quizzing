@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Question, HotspotQuestion, InputQuestion, MatchingQuestion } from '$lib/types/quiz.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import { scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   export let question: Question;
   export let roundIndex: number;
@@ -28,11 +30,87 @@
   export let onRemoveQuestion: () => void;
   export let removeDisabled = false;
 
+  export let questionNumber: number;
+  export let questionCount: number;
+  export let canMoveUp: boolean;
+  export let canMoveDown: boolean;
+  export let onMoveUp: () => void;
+  export let onMoveDown: () => void;
+  /** Brief highlight after user reorders this question */
+  export let recentlyReordered = false;
+
   const ri = roundIndex;
   const qi = questionIndex;
 </script>
 
-<div class="mb-6 p-4 bg-pub-dark rounded-lg">
+<div
+  class="mb-6 p-4 bg-pub-dark rounded-lg transition-[box-shadow,ring-width] duration-500 ease-out {recentlyReordered
+    ? 'ring-2 ring-amber-400/50 shadow-[0_0_24px_rgba(251,191,36,0.12)]'
+    : 'ring-0 ring-transparent shadow-none'}"
+>
+  <div class="flex gap-3 items-start">
+    <div
+      class="flex flex-col items-center gap-0.5 shrink-0 w-10 sm:w-11 pt-0.5"
+      role="group"
+      aria-label="Question {questionNumber} of {questionCount}, reorder"
+    >
+      <button
+        type="button"
+        class="p-1 rounded-md border border-pub-muted text-pub-muted hover:text-pub-gold hover:border-pub-gold/40 disabled:opacity-25 disabled:cursor-not-allowed"
+        disabled={!canMoveUp}
+        aria-label="Move question {questionNumber} of {questionCount} up"
+        on:click={onMoveUp}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 15 12 9 18 15" />
+        </svg>
+      </button>
+      {#key questionNumber}
+        <span
+          in:scale={{ duration: 220, delay: 40, start: 0.75, opacity: 0.7, easing: cubicOut }}
+          class="text-pub-gold font-bold text-base tabular-nums leading-none py-1 inline-block min-w-[1.25rem] text-center"
+          title="Question {questionNumber} of {questionCount}"
+          aria-hidden="true"
+        >
+          {questionNumber}
+        </span>
+      {/key}
+      <span class="sr-only">Question {questionNumber} of {questionCount}</span>
+      <button
+        type="button"
+        class="p-1 rounded-md border border-pub-muted text-pub-muted hover:text-pub-gold hover:border-pub-gold/40 disabled:opacity-25 disabled:cursor-not-allowed"
+        disabled={!canMoveDown}
+        aria-label="Move question {questionNumber} of {questionCount} down"
+        on:click={onMoveDown}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+    </div>
+    <div class="min-w-0 flex-1">
   <div class="flex gap-2 mb-2">
     <select
       value={question.type}
@@ -494,5 +572,7 @@
       rows="2"
       class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
     ></textarea>
+  </div>
+    </div>
   </div>
 </div>

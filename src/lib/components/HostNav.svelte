@@ -31,7 +31,9 @@
   }
 </script>
 
-<nav class="flex items-center justify-between px-4 py-3 bg-pub-darker border-b border-pub-muted">
+<nav
+  class="flex items-center justify-between gap-4 px-5 py-3.5 sm:px-8 bg-pub-darker border-b border-pub-muted"
+>
   <a href="/" class="text-lg font-bold text-pub-gold hover:opacity-90">Let's Go Quizzing</a>
   <div class="flex items-center gap-2">
     {#if quizLive}

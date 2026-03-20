@@ -80,6 +80,24 @@ export function removeQuestion(quiz: Quiz, ri: number, qi: number): Quiz {
   };
 }
 
+/** Swap question at qi with neighbor qi+delta. Preserves question ids (e.g. image paths). */
+export function moveQuestion(
+  quiz: Quiz,
+  ri: number,
+  qi: number,
+  delta: -1 | 1
+): Quiz {
+  const round = quiz.rounds[ri];
+  const j = qi + delta;
+  if (j < 0 || j >= round.questions.length) return quiz;
+  const questions = [...round.questions];
+  [questions[qi], questions[j]] = [questions[j], questions[qi]];
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((r, i) => (i === ri ? { ...r, questions } : r)),
+  };
+}
+
 export function setQuestionType(
   quiz: Quiz,
   ri: number,

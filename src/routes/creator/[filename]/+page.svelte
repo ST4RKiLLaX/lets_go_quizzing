@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import QuizEditor from '$lib/components/QuizEditor.svelte';
   import { createEmptyQuiz } from '$lib/types/quiz.js';
@@ -25,15 +26,15 @@
 
 <div class="min-h-full p-6">
   <div class="max-w-3xl mx-auto">
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-2xl font-bold text-pub-gold">Edit: {filename}</h1>
-      <p class="flex gap-4 items-center">
-        <a href="/creator" class="text-pub-muted hover:text-white">← Back</a>
-        <a href="/" class="text-pub-muted hover:text-white">Home</a>
-      </p>
-    </div>
     {#if quizData}
-      <QuizEditor bind:quiz onSave={handleSave} quizFilename={filename} />
+      <QuizEditor
+        bind:quiz
+        onSave={handleSave}
+        quizFilename={filename}
+        stickyToolbar
+        stickyTitle={`Edit: ${filename}`}
+        onCancel={() => goto('/creator')}
+      />
     {:else}
       <p class="text-pub-muted">Loading...</p>
     {/if}
