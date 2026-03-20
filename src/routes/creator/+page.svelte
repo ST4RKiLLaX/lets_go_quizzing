@@ -91,7 +91,12 @@
     openMenuFilename = openMenuFilename === filename ? null : filename;
   }
 
-  function closeQuizMenu() {
+  /** Pass the click event from window; omit when forcing close (e.g. after export). */
+  function closeQuizMenu(event?: Event) {
+    if (event) {
+      const t = event.target;
+      if (t instanceof HTMLElement && t.closest('[data-quiz-list-actions]')) return;
+    }
     openMenuFilename = null;
   }
 </script>
@@ -187,7 +192,7 @@
                   class="flex items-center gap-1 shrink-0"
                   role="group"
                   aria-label="Quiz actions for {quiz.title}"
-                  on:click={(e) => e.stopPropagation()}
+                  data-quiz-list-actions
                 >
                   <a
                     href="/creator/{encodeURIComponent(quiz.filename)}"
@@ -268,7 +273,6 @@
                       <div
                         class="absolute right-0 top-full mt-1 z-20 min-w-[11rem] py-1 rounded-lg border border-pub-muted bg-pub-darker shadow-lg"
                         role="menu"
-                        on:click={(e) => e.stopPropagation()}
                       >
                         <button
                           type="button"
