@@ -5,6 +5,10 @@
  * Page roots under src/routes/+layout.svelte should use min-h-full (fill <main>), not
  * min-h-screen (100vh). <main> is shorter than the viewport because of the footer and
  * optional HostNav; min-h-screen inside it forces overflow and unnecessary scrollbars.
+ *
+ * html/body use overflow-hidden so the only vertical scroll is <main> (flex-1 +
+ * overflow-y-auto in +layout.svelte). Otherwise the document also scrolls and two
+ * scrollbars appear.
  */
 
 /* YAML editor schema hover tooltip - readable on dark theme */
