@@ -322,7 +322,7 @@
   }
 </script>
 
-<div class="min-h-screen p-4 sm:p-6">
+<div class="min-h-full p-4 sm:p-6">
   <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
     <div class="flex-1 min-w-0">
     <div class="mb-4 sm:mb-6">

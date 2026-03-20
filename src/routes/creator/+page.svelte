@@ -71,7 +71,7 @@
   }
 </script>
 
-<div class="min-h-screen p-6">
+<div class="min-h-full p-6">
   <div class="max-w-2xl mx-auto">
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-2xl font-bold text-pub-gold">Quiz Creator</h1>

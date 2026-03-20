@@ -179,7 +179,7 @@
   });
 </script>
 
-<div class="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
+<div class="min-h-full p-4 sm:p-6 flex flex-col items-center justify-center">
   <div class="w-full max-w-4xl">
     {#if !state}
       <ProjectorJoinView

@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 @config "../tailwind.config.js";
 
+/*
+ * Page roots under src/routes/+layout.svelte should use min-h-full (fill <main>), not
+ * min-h-screen (100vh). <main> is shorter than the viewport because of the footer and
+ * optional HostNav; min-h-screen inside it forces overflow and unnecessary scrollbars.
+ */
+
 /* YAML editor schema hover tooltip - readable on dark theme */
 .cm-editor .cm6-json-schema-hover {
   background-color: #1e293b;

@@ -29,7 +29,7 @@
 </script>
 
 {#if data.authRequired && !data.authenticated}
-  <div class="min-h-screen p-6 flex items-center justify-center">
+  <div class="min-h-full p-6 flex items-center justify-center">
     <div class="w-full max-w-md bg-pub-darker rounded-lg p-6">
       <h2 class="text-xl font-bold mb-4">Host authentication required</h2>
       <p class="text-pub-muted mb-4">Enter the host password to create or edit quizzes.</p>
@@ -71,7 +71,7 @@
     </div>
   </div>
 {:else if !data.authRequired}
-  <div class="min-h-screen p-6 flex items-center justify-center">
+  <div class="min-h-full p-6 flex items-center justify-center">
     <div class="w-full max-w-md bg-pub-darker rounded-lg p-6 text-center">
       <h2 class="text-xl font-bold mb-4">Quiz creation disabled</h2>
       <p class="text-pub-muted mb-4">Complete setup to enable hosting and quiz creation.</p>

@@ -51,7 +51,7 @@
   }
 </script>
 
-<div class="min-h-screen p-6">
+<div class="min-h-full p-6">
   <div class="max-w-3xl mx-auto">
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-2xl font-bold text-pub-gold">Edit: {filename}</h1>

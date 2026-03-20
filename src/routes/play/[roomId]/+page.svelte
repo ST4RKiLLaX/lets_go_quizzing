@@ -883,7 +883,7 @@
 
 </script>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-full flex flex-col">
   {#if state}
     <PlayerNav
       settingsDisabled={settingsDisabled}

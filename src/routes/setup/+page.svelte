@@ -40,7 +40,7 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center p-6 bg-pub-dark">
+<div class="min-h-full flex items-center justify-center p-6 bg-pub-dark">
   <div class="w-full max-w-md">
     <h1 class="text-2xl font-bold text-pub-gold mb-2">Let's Go Quizzing</h1>
     <p class="text-pub-muted mb-6">Complete setup to get started</p>
