@@ -11,10 +11,11 @@
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
+  import { sortPlayersByScore } from '$lib/utils/players.js';
   import { useCountdown } from '$lib/timer.js';
   import { onMount, onDestroy } from 'svelte';
   import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
-  import ProjectorLeaderboardView from '$lib/components/projector/ProjectorLeaderboardView.svelte';
+  import SessionLeaderboardView from '$lib/components/shared/SessionLeaderboardView.svelte';
   import ProjectorLobbyView from '$lib/components/projector/ProjectorLobbyView.svelte';
   import SliderDisplay from '$lib/components/SliderDisplay.svelte';
 
@@ -547,10 +548,10 @@
         {/if}
       </div>
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
-      <ProjectorLeaderboardView
+      <SessionLeaderboardView
         title={state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
         isEnd={state.type === 'End'}
-        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        players={sortPlayersByScore(state.players)}
       />
     {:else}
       <p class="text-pub-muted text-center">Connecting...</p>

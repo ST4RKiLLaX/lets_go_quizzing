@@ -5,7 +5,7 @@
   import PlayerLobbyForm from '$lib/components/player/PlayerLobbyForm.svelte';
   import PlayerQuestionForm from '$lib/components/player/PlayerQuestionForm.svelte';
   import PlayerRevealView, { type RevealData } from '$lib/components/player/PlayerRevealView.svelte';
-  import PlayerEndView from '$lib/components/player/PlayerEndView.svelte';
+  import SessionLeaderboardView from '$lib/components/shared/SessionLeaderboardView.svelte';
   import PlayerExitModal from '$lib/components/player/PlayerExitModal.svelte';
   import PlayerNav from '$lib/components/PlayerNav.svelte';
   import PlayerSettingsModal from '$lib/components/player/PlayerSettingsModal.svelte';
@@ -18,6 +18,7 @@
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
+  import { sortPlayersByScore } from '$lib/utils/players.js';
   import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
@@ -1029,10 +1030,10 @@
         playerName={playerDisplayName}
       />
     {:else if state?.type === 'Scoreboard' || state?.type === 'End'}
-      <PlayerEndView
+      <SessionLeaderboardView
         title={state.type === 'End' ? 'Quiz ended by host' : 'Leaderboard'}
         isEnd={state.type === 'End'}
-        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        players={sortPlayersByScore(state.players)}
       />
     {:else}
       <p class="text-pub-muted">Connecting...</p>

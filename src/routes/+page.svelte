@@ -7,11 +7,7 @@
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
-
-  type QuizListItem = {
-    filename: string;
-    title: string;
-  };
+  import type { QuizListItem } from '$lib/types/quiz-list.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';

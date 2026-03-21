@@ -2,11 +2,7 @@
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
   import CreatorDeleteQuizModal from '$lib/components/creator/CreatorDeleteQuizModal.svelte';
-
-  type QuizListItem = {
-    filename: string;
-    title: string;
-  };
+  import type { QuizListItem } from '$lib/types/quiz-list.js';
 
   $: quizzes = ($page.data.quizzes ?? []) as QuizListItem[];
 

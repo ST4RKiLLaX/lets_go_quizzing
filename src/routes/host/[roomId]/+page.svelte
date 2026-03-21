@@ -16,6 +16,7 @@
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
+  import { sortPlayersByScore } from '$lib/utils/players.js';
   import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
@@ -737,7 +738,7 @@
       <HostLeaderboardView
         title="Leaderboard"
         isEnd={false}
-        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        players={sortPlayersByScore(state.players)}
         onNext={next}
         nextLabel={state.currentRoundIndex < (state.quiz?.rounds?.length ?? 0) - 1 ? 'Next Round' : 'Finish'}
       />
@@ -745,7 +746,7 @@
       <HostLeaderboardView
         title="Game Over!"
         isEnd={true}
-        players={(state.players ?? []).sort((a, b) => b.score - a.score)}
+        players={sortPlayersByScore(state.players)}
       />
     {:else if joinError === 'Invalid password'}
       <div class="bg-pub-darker rounded-lg p-4 sm:p-6">

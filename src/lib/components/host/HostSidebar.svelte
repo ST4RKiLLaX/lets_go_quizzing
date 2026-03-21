@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { SerializedState } from '$lib/types/game.js';
+  import { sortPlayersByScore } from '$lib/utils/players.js';
 
   export let state: SerializedState;
+  $: sortedPlayers = sortPlayersByScore(state.players);
   export let kickError: string;
   export let onKick: (playerId: string, ban?: boolean) => void;
   export let onApprove: (playerId: string) => void;
@@ -60,7 +62,7 @@
       <p class="text-sm text-red-400 mb-2">{kickError}</p>
     {/if}
     <ol class="space-y-2 text-sm">
-      {#each (state.players ?? []).sort((a, b) => b.score - a.score) as player, i}
+      {#each sortedPlayers as player, i}
         <li class="flex items-center gap-2 min-w-0 group">
           <span class="text-pub-gold font-bold w-6 shrink-0 tabular-nums">#{i + 1}</span>
           <span class="shrink-0" aria-hidden="true">{player.emoji}</span>
