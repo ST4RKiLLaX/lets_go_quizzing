@@ -15,9 +15,18 @@
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
-  import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import { onMount, onDestroy } from 'svelte';
+  import {
+    QUESTION_MECHANIC_REMINDER,
+    QUESTION_TYPE_LABELS,
+  } from '$lib/constants/question-copy.js';
+  import RevealChoiceTrueFalseList from '$lib/components/shared/question-display/RevealChoiceTrueFalseList.svelte';
+  import RevealMultiSelectList from '$lib/components/shared/question-display/RevealMultiSelectList.svelte';
+  import PollOptionsList from '$lib/components/shared/question-display/PollOptionsList.svelte';
+  import HostWrongAnswersStrip from '$lib/components/host/HostWrongAnswersStrip.svelte';
+  import HostOpenEndedRevealModeration from '$lib/components/host/HostOpenEndedRevealModeration.svelte';
+  import HostWordCloudRevealModeration from '$lib/components/host/HostWordCloudRevealModeration.svelte';
 
   const roomId = $page.params.roomId;
 
@@ -218,32 +227,6 @@
     }
   }
 
-  const QUESTION_TYPE_LABELS: Record<string, string> = {
-    choice: 'Multiple choice',
-    true_false: 'True or false',
-    poll: 'Opinion poll',
-    multi_select: 'Choose multiple',
-    reorder: 'Order items',
-    matching: 'Matching',
-    hotspot: 'Hotspot',
-    slider: 'Slider',
-    input: 'Fill in the blank',
-    open_ended: 'Open ended',
-    word_cloud: 'Word cloud',
-  };
-  const QUESTION_MECHANIC_REMINDER: Record<string, string> = {
-    choice: 'Players pick one option.',
-    true_false: 'Players pick True or False.',
-    poll: 'Players pick an option (no correct answer).',
-    multi_select: 'Players select all correct options.',
-    reorder: 'Players drag to reorder.',
-    matching: 'Players tap to match items to options.',
-    hotspot: 'Players tap a region on the image.',
-    slider: 'Players move a slider to the value.',
-    input: 'Players type their answer.',
-    open_ended: 'Players write a text response.',
-    word_cloud: 'Players submit short words.',
-  };
   let previewElapsedSeconds = 0;
   let previewIntervalId: ReturnType<typeof setInterval> | null = null;
   $: {
@@ -492,38 +475,56 @@
           {/if}
           {#if q.type === 'choice' || q.type === 'true_false'}
             {@const options = getQuestionOptions(q)}
-            <ul class="space-y-2">
-              {#each options as opt, i}
-                {@const correctIndex = q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)}
-                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (correctIndex === i ? 'ring-2 ring-green-500' : 'opacity-60') : (correctIndex === i ? 'ring-2 ring-green-500' : '')}">
-                  <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
-                      {formatOptionLabel(i, optionLabelStyle)}
-                    </span>
-                    <span class="flex-1 break-words">
-                      {opt} {#if state?.type === 'RevealAnswer' && correctIndex === i}(correct){/if}
-                    </span>
-                  </div>
-                </li>
-              {/each}
-            </ul>
+            {#if state?.type === 'RevealAnswer'}
+              {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
+              <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} />
+            {:else}
+              <ul class="space-y-2">
+                {#each options as opt, i}
+                  {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
+                  <li
+                    class="px-4 py-2 bg-pub-dark rounded {correctIndex === i
+                      ? 'ring-2 ring-green-500'
+                      : ''}"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none"
+                      >
+                        {formatOptionLabel(i, optionLabelStyle)}
+                      </span>
+                      <span class="flex-1 break-words">{opt}</span>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           {:else if q.type === 'multi_select'}
             {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
-            <ul class="space-y-2">
-              {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? (q.answer.includes(i) ? 'ring-2 ring-green-500' : 'opacity-60') : ''}">
-                  <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
-                      {formatOptionLabel(i, optionLabelStyle)}
-                    </span>
-                    <span class="flex-1 break-words">
-                      {opt} {#if state?.type === 'RevealAnswer' && q.answer.includes(i)}(correct){/if}
-                    </span>
-                    <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
-                  </div>
-                </li>
-              {/each}
-            </ul>
+            {#if state?.type === 'RevealAnswer'}
+              <RevealMultiSelectList
+                options={q.options}
+                correctIndices={q.answer}
+                {counts}
+                {optionLabelStyle}
+              />
+            {:else}
+              <ul class="space-y-2">
+                {#each q.options as opt, i}
+                  <li class="px-4 py-2 bg-pub-dark rounded">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none"
+                      >
+                        {formatOptionLabel(i, optionLabelStyle)}
+                      </span>
+                      <span class="flex-1 break-words">{opt}</span>
+                      <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           {:else if q.type === 'reorder'}
             <div class="space-y-4">
               <div>
@@ -579,21 +580,13 @@
             </div>
           {:else if q.type === 'poll'}
             {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
-            <ul class="space-y-2">
-              {#each q.options as opt, i}
-                <li class="px-4 py-2 bg-pub-dark rounded">
-                  <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
-                      {formatOptionLabel(i, optionLabelStyle)}
-                    </span>
-                    <span class="flex-1 break-words">{opt}</span>
-                    {#if state?.type === 'RevealAnswer'}
-                      <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
-                    {/if}
-                  </div>
-                </li>
-              {/each}
-            </ul>
+            <PollOptionsList
+              options={q.options}
+              {optionLabelStyle}
+              showCounts={state?.type === 'RevealAnswer'}
+              {counts}
+              itemRoundedClass="rounded"
+            />
           {:else if q.type === 'slider'}
             <div class="space-y-3">
               <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted">
@@ -612,69 +605,19 @@
               Correct: {q.answer.filter(Boolean).join(' / ')}
             </p>
           {:else if q.type === 'open_ended' && state?.type === 'RevealAnswer'}
-            {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked')}
-            {@const blockedCount = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility === 'blocked').length}
-            <div class="space-y-2 mt-4">
-              <h3 class="text-sm font-semibold text-pub-muted">Responses:</h3>
-              <ul class="space-y-1">
-                {#each visibleSubs as sub}
-                  {@const player = state.players.find(p => p.id === sub.playerId)}
-                  {@const isHidden = sub.projectorHiddenByHost === true}
-                  {@const pendingKey = `sub:${sub.playerId}:${sub.questionId}`}
-                  <li class="px-4 py-2 bg-pub-dark rounded text-sm flex items-center justify-between gap-2">
-                    <span><span class="text-pub-muted mr-2">{player?.emoji} {player?.name}:</span>{sub.answerText}</span>
-                    <button
-                      type="button"
-                      class="px-2 py-1 text-xs rounded bg-pub-darker border border-pub-muted hover:bg-pub-muted/20 disabled:opacity-50"
-                      disabled={visibilityPending === pendingKey}
-                      onclick={() => setSubmissionVisibility(sub.playerId, sub.questionId, isHidden)}
-                    >
-                      {isHidden ? 'Show' : 'Hide'}
-                    </button>
-                  </li>
-                {/each}
-              </ul>
-              {#if blockedCount > 0}
-                <p class="text-sm text-pub-muted italic">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
-              {/if}
-            </div>
+            <HostOpenEndedRevealModeration
+              {state}
+              questionId={q.id}
+              {visibilityPending}
+              onToggleSubmissionVisibility={setSubmissionVisibility}
+            />
           {:else if q.type === 'word_cloud' && state?.type === 'RevealAnswer'}
-            {@const visibleSubs = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility !== 'blocked')}
-            {@const blockedCount = (state.submissions ?? []).filter(s => s.questionId === q.id && s.visibility === 'blocked').length}
-            {@const wordCounts = visibleSubs.reduce((acc, s) => {
-              for (const token of getWordCloudTokens(s.answerText ?? '')) {
-                acc.set(token, (acc.get(token) || 0) + 1);
-              }
-              return acc;
-            }, new Map<string, number>())}
-            {@const hiddenSet = new Set((state.hiddenWordsByQuestion ?? {})[q.id] ?? [])}
-            <div class="mt-4 space-y-4">
-              <div class="flex flex-wrap gap-3 justify-center items-center p-6 bg-pub-dark rounded min-h-[150px]">
-                {#each Array.from(wordCounts).sort((a, b) => b[1] - a[1]) as [word, count]}
-                  {@const isHidden = hiddenSet.has(word)}
-                  {@const pendingKey = `word:${q.id}:${word}`}
-                  <div class="flex items-center gap-1">
-                    <span
-                      style="font-size: {Math.max(1, Math.min(3.5, 0.9 + count * 0.3))}rem; opacity: {Math.min(1, 0.5 + count * 0.2)}"
-                      class="text-pub-gold font-bold leading-none inline-block"
-                    >
-                      {word} ({count})
-                    </span>
-                    <button
-                      type="button"
-                      class="px-2 py-0.5 text-xs rounded bg-pub-darker border border-pub-muted hover:bg-pub-muted/20 disabled:opacity-50"
-                      disabled={visibilityPending === pendingKey}
-                      onclick={() => setWordVisibility(q.id, word, isHidden)}
-                    >
-                      {isHidden ? 'Show' : 'Hide'}
-                    </button>
-                  </div>
-                {/each}
-              </div>
-              {#if blockedCount > 0}
-                <p class="text-sm text-pub-muted italic">{blockedCount} blocked response{blockedCount === 1 ? '' : 's'}</p>
-              {/if}
-            </div>
+            <HostWordCloudRevealModeration
+              {state}
+              questionId={q.id}
+              {visibilityPending}
+              onToggleWordVisibility={setWordVisibility}
+            />
           {/if}
           {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
             <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
@@ -705,34 +648,12 @@
           </button>
         </div>
 
-          {#if state?.type === 'RevealAnswer' && (currentQuestion?.type === 'input' || currentQuestion?.type === 'true_false' || currentQuestion?.type === 'multi_select' || currentQuestion?.type === 'slider' || currentQuestion?.type === 'reorder' || currentQuestion?.type === 'matching' || currentQuestion?.type === 'hotspot') && state.wrongAnswers?.length > 0}
-            <div class="mt-6 pt-6 border-t border-pub-muted">
-              <h3 class="text-sm font-semibold text-pub-muted mb-2">Wrong answers (Use + or - to adjust points)</h3>
-            <div class="flex flex-wrap gap-2">
-              {#each state.wrongAnswers as wa}
-                <div class="flex items-center gap-1 px-3 py-1 bg-pub-dark rounded text-sm">
-                  <span>{getWrongAnswerDisplay(wa)}</span>
-                  <button
-                    type="button"
-                    class="w-6 h-6 flex items-center justify-center rounded bg-green-600/80 hover:bg-green-600 text-white text-xs font-bold"
-                    onclick={() => override(wa.playerId, wa.questionId, 1)}
-                    title="Award point"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    class="w-6 h-6 flex items-center justify-center rounded bg-red-900/80 hover:bg-red-900 text-white text-xs font-bold"
-                    onclick={() => override(wa.playerId, wa.questionId, -1)}
-                    title="Remove point"
-                  >
-                    −
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
+        <HostWrongAnswersStrip
+          {state}
+          currentQuestion={currentQuestion}
+          getDisplay={getWrongAnswerDisplay}
+          onOverride={override}
+        />
       </div>
     {:else if state?.type === 'Scoreboard'}
       <HostLeaderboardView

@@ -115,7 +115,7 @@
         <div
           class="absolute flex items-center justify-center text-2xl pointer-events-none -top-2"
           style="left: {(pct * 100)}%; transform: translate(-50%, -50%); text-shadow: {stroke};"
-          title={sub.answerNumber}
+          title={String(sub.answerNumber)}
         >
           {sub.emoji}
         </div>
