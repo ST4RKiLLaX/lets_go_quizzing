@@ -14,7 +14,9 @@ Extract the three modals from [play/[roomId]/+page.svelte](src/routes/play/[room
 | Script    | ~720  | Socket, handlers, wake, confetti, state        |
 | Template  | ~190  | Main content + modals                           |
 
-**Already extracted:** PlayerNav, PlayerConfetti, PlayerRevealView, PlayerEndView, PlayerJoinForm, PlayerLobbyForm, PlayerQuestionForm
+**Already extracted:** PlayerNav, PlayerConfetti, PlayerRevealView, SessionLeaderboardView (shared scoreboard/end UI — see DRY note below), PlayerJoinForm, PlayerLobbyForm, PlayerQuestionForm
+
+**DRY note:** Scoreboard and end states use [`SessionLeaderboardView.svelte`](../src/lib/components/shared/SessionLeaderboardView.svelte) under `$lib/components/shared/`, which wraps [`LeaderboardPlayerList.svelte`](../src/lib/components/shared/LeaderboardPlayerList.svelte). The play page imports it from shared; the old `PlayerEndView.svelte` path was removed in favor of this component.
 
 ---
 

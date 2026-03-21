@@ -66,11 +66,9 @@ Further slim [play/[roomId]/+page.svelte](src/routes/play/[roomId]/+page.svelte)
 
 ---
 
-## Phase 3: Extract Scoreboard/End Block (Optional)
+## Phase 3: Extract Scoreboard/End Block (Optional) — **Superseded**
 
-**New file:** `PlayerEndView.svelte` or `PlayerScoreboard.svelte`
-
-Handles both `Scoreboard` and `End` state types. ~25 lines. Low risk, quick win.
+Originally targeted `PlayerEndView.svelte` or `PlayerScoreboard.svelte`. **Implemented later as shared DRY:** [`SessionLeaderboardView.svelte`](../src/lib/components/shared/SessionLeaderboardView.svelte) (projector + play) and [`LeaderboardPlayerList.svelte`](../src/lib/components/shared/LeaderboardPlayerList.svelte) (also used by [`HostLeaderboardView.svelte`](../src/lib/components/host/HostLeaderboardView.svelte)). The standalone `PlayerEndView.svelte` and duplicate `ProjectorLeaderboardView.svelte` were removed.
 
 ---
 
@@ -89,7 +87,7 @@ Stop if:
 
 1. **Phase 1:** Create PlayerRevealView.svelte (thin shell, switch on question.type)
 2. Checkpoint: Manual test Reveal phase
-3. **Phase 3** (optional): PlayerEndView — small, low risk
+3. **Phase 3:** Scoreboard/end UI — done via `SessionLeaderboardView` + `LeaderboardPlayerList` (shared with host/projector/play)
 4. **Phase 2** (optional): Modals — reassess after Phase 1
 
 ---

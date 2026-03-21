@@ -56,11 +56,13 @@ Estimated: 12–15 props. Stop if >15.
 
 ## 2. Pass 8 Phase 4 — Host Sidebar
 
+**Status:** Extracted. Component lives at [`src/lib/components/host/HostSidebar.svelte`](../src/lib/components/host/HostSidebar.svelte) and is used from the host room page. Line counts below are historical.
+
 | Field | Value |
 |-------|-------|
 | **Current line count** | ~58 lines (426–483) |
 | **Location** | `src/routes/host/[roomId]/+page.svelte` |
-| **Proposed component** | `HostSidebar.svelte` |
+| **Component** | `HostSidebar.svelte` (implemented under `$lib/components/host/`) |
 
 ### What makes extraction attractive
 
@@ -88,7 +90,7 @@ If passing `state`: ~5 props. If destructuring: ~8 props.
 
 ### Recommendation
 
-**Extract now.** Low risk, clear boundary, modest prop count. No dependency on Host Question/Reveal (that reassessment is complete; result: defer). Clean win with no overlap with PlayerRevealView or HostQuestionRevealView.
+**Done** (was: extract now). Host sidebar is a dedicated component; player list uses `sortPlayersByScore` from `$lib/utils/players.js` for ordering.
 
 ---
 
