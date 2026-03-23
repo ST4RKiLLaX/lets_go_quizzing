@@ -5,6 +5,7 @@
   "scripts": {
     "sbom": "node scripts/generate-sbom.js",
     "update-profanity": "node scripts/update-profanity-list.js",
+    "load": "tsx scripts/load-test.ts",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",

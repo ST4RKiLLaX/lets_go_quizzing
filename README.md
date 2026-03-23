@@ -86,12 +86,13 @@ On first run, you're redirected to the setup page to create an admin account. Cr
 
 These override config file values when set. Useful for Kubernetes, CI, or deployment-specific tuning.
 
-| Variable         | Description                                                                                                                                 | Overrides          |
-| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :----------------- |
-| `ORIGIN`         | Comma-separated allowed origins for Socket.io CORS (e.g., `https://quiz.example.com`). **Set in production** to restrict WebSocket origins. | `config.origin`    |
-| `ROOM_ID_LEN`    | Length of generated room codes. Default is `6`.                                                                                             | `config.roomIdLen` |
-| `HOST_PASSWORD`  | Legacy: enables hosting when no config exists. Used for migration from env-only setups.                                                     | —                  |
-| `ADDRESS_HEADER` | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs.                                                              | —                  |
+| Variable                    | Description                                                                                                                                 | Overrides          |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :----------------- |
+| `ORIGIN`                    | Comma-separated allowed origins for Socket.io CORS (e.g., `https://quiz.example.com`). **Set in production** to restrict WebSocket origins. | `config.origin`    |
+| `ROOM_ID_LEN`               | Length of generated room codes. Default is `6`.                                                                                             | `config.roomIdLen` |
+| `HOST_PASSWORD`             | Legacy: enables hosting when no config exists. Used for migration from env-only setups.                                                     | —                  |
+| `ADDRESS_HEADER`            | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs.                                                              | —                  |
+| `LOAD_TEST_PLAYER_JOIN_MAX` | Test-only override for benchmark deployments. Raises the player/projector join limit without changing normal defaults.                      | —                  |
 
 > **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your config or `.env`.
 
@@ -102,6 +103,22 @@ When running behind a reverse proxy that handles TLS/SSL, ensure you forward the
 - Forward the real IP: `proxy_set_header X-Forwarded-For $remote_addr;`
 - Terminate TLS correctly: `proxy_set_header X-Forwarded-Proto $scheme;`
 - Add security headers for all responses (including static assets): `add_header X-Content-Type-Options nosniff always;` (the `always` parameter ensures the header is set even for error responses).
+
+### Load Testing
+
+The repository includes a raw Socket.IO load harness that exercises the real host/player game flow:
+
+```bash
+npm run load -- --base-url http://localhost:3000 --quiz-filename test_quiz.yaml --players 50
+```
+
+Recommended usage:
+
+- Run the app on the target server and run the load generator from a separate machine for realistic capacity measurements.
+- Point `--base-url` at either the direct app URL or the Nginx-fronted URL to compare both paths.
+- If the benchmark deployment would otherwise hit the per-IP join limiter, temporarily set `LOAD_TEST_PLAYER_JOIN_MAX` higher on the app server.
+
+The first version prints a CLI summary with join latency, answer latency, disconnect counts, and final room-update propagation timing.
 
 ---
 
