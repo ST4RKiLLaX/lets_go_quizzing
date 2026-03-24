@@ -24,35 +24,39 @@
   export let currentRoundQuestionTotal: number;
   export let currentQuestionNumber: number;
 
-  function getAnsweredInOrder(): Array<{ emoji: string; name: string }> {
-    const q = currentQuestion;
-    if (!q || !state?.submissions) return [];
-    const submitted = state.submissions.filter((s) => s.questionId === q.id);
-    const players = state.players ?? [];
+  function getAnsweredInOrder(
+    question: Question | null,
+    currentState: SerializedState | null | undefined
+  ): Array<{ emoji: string; name: string }> {
+    if (!question || !currentState?.submissions) return [];
+    const submitted = currentState.submissions.filter((s) => s.questionId === question.id);
+    const players = currentState.players ?? [];
     return submitted.map((s) => {
       const p = players.find((x) => x.id === s.playerId);
       return p ? { emoji: p.emoji, name: p.name } : { emoji: '?', name: 'Unknown' };
     });
   }
 
-  function getCorrectAnswersInRankOrder(): Array<{
+  function getCorrectAnswersInRankOrder(
+    question: Question | null,
+    currentState: SerializedState | null | undefined
+  ): Array<{
     emoji: string;
     name: string;
     rank: number;
     points: number;
   }> {
-    const q = currentQuestion;
-    if (!q || !state?.submissions || !state?.wrongAnswers) return [];
+    if (!question || !currentState?.submissions || !currentState?.wrongAnswers) return [];
     const wrongPlayerIds = new Set(
-      state.wrongAnswers.filter((w) => w.questionId === q.id).map((w) => w.playerId)
+      currentState.wrongAnswers.filter((w) => w.questionId === question.id).map((w) => w.playerId)
     );
-    const correct = state.submissions
-      .filter((s) => s.questionId === q.id && !wrongPlayerIds.has(s.playerId))
+    const correct = currentState.submissions
+      .filter((s) => s.questionId === question.id && !wrongPlayerIds.has(s.playerId))
       .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0));
-    const weight = (q as { points?: number }).points ?? 1;
-    const maxPts = (state.quiz?.meta?.ranked_max_points ?? 100) * weight;
-    const minPts = (state.quiz?.meta?.ranked_min_points ?? 10) * weight;
-    const players = state.players ?? [];
+    const weight = (question as { points?: number }).points ?? 1;
+    const maxPts = (currentState.quiz?.meta?.ranked_max_points ?? 100) * weight;
+    const minPts = (currentState.quiz?.meta?.ranked_min_points ?? 10) * weight;
+    const players = currentState.players ?? [];
     let currentRank = 1;
     let prevTime = -1;
     return correct.map((s, i) => {
@@ -74,10 +78,10 @@
     });
   }
 
-  $: answeredList = phase === 'question' ? getAnsweredInOrder() : [];
+  $: answeredList = phase === 'question' ? getAnsweredInOrder(currentQuestion, state) : [];
   $: rankedCorrectList =
     phase === 'reveal' && (state.quiz?.meta?.scoring_mode ?? 'standard') === 'ranked'
-      ? getCorrectAnswersInRankOrder()
+      ? getCorrectAnswersInRankOrder(currentQuestion, state)
       : [];
 
   $: q = currentQuestion;
