@@ -16,9 +16,10 @@ import {
   checkHostGetStateRateLimit,
 } from '../rate-limit.js';
 import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
-import { broadcastStateToRoom } from './broadcast.js';
+import { broadcastRoomPatchToRoom, broadcastStateToRoom } from './broadcast.js';
 import { saveHistory } from './history.js';
 import { normalizeWordCloudToken } from '../../utils/word-cloud.js';
+import { flushQueuedQuestionPatch, queueQuestionPatch } from './question-patch.js';
 
 function logHostAuthFailure(
   event: 'host:create' | 'host:join',
@@ -49,6 +50,7 @@ export interface SocketHandlerContext {
   serializePlayerState: typeof serializePlayerState;
   serializeProjectorState: typeof serializeProjectorState;
   broadcastStateToRoom: typeof broadcastStateToRoom;
+  broadcastRoomPatchToRoom: typeof broadcastRoomPatchToRoom;
   saveHistory: typeof saveHistory;
   logHostAuthFailure: typeof logHostAuthFailure;
 }
@@ -115,7 +117,7 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
         socket.data.roomId = roomId;
         const state = getRoom(roomId)!;
         ack?.({ roomId, state: serializeHostState(state) });
-        void broadcastStateToRoom(io, roomId, state, ['state:update']);
+        void broadcastStateToRoom(io, roomId, state);
       } catch (e) {
         ack?.({ error: String(e) });
       }
@@ -194,7 +196,7 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     const next = transition(state, { type: 'START_GAME' });
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
   socket.on('host:start_question', (_, ack) => {
@@ -215,10 +217,10 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     const next = transition(state, { type: 'START_QUESTION' });
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
-  socket.on('host:next', (_, ack) => {
+  socket.on('host:next', async (_, ack) => {
     const roomId = socket.data.roomId;
     if (!roomId || socket.data.role !== 'host') {
       ack?.({ error: 'Unauthorized' });
@@ -230,6 +232,7 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       return;
     }
     if (state.type === 'Question') {
+      await flushQueuedQuestionPatch(io, roomId, state);
       state = scoreSubmissions(state);
       setRoom(roomId, state);
     }
@@ -239,10 +242,10 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       saveHistory(next);
     }
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
-  socket.on('host:stop_timer', (_, ack) => {
+  socket.on('host:stop_timer', async (_, ack) => {
     const roomId = socket.data.roomId;
     if (!roomId || socket.data.role !== 'host') {
       ack?.({ error: 'Unauthorized' });
@@ -253,12 +256,13 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       ack?.({ error: 'Room not found' });
       return;
     }
+    await flushQueuedQuestionPatch(io, roomId, state);
     state = scoreSubmissions(state);
     setRoom(roomId, state);
     const next = transition(state, { type: 'STOP_TIMER' });
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
   socket.on('host:show_leaderboard', (_, ack) => {
@@ -275,10 +279,10 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     const next = transition(state, { type: 'SHOW_LEADERBOARD' });
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
-  socket.on('host:end_game', (_, ack) => {
+  socket.on('host:end_game', async (_, ack) => {
     const roomId = socket.data.roomId;
     if (!roomId || socket.data.role !== 'host') {
       ack?.({ error: 'Unauthorized' });
@@ -289,13 +293,16 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       ack?.({ error: 'Room not found' });
       return;
     }
+    if (state.type === 'Question') {
+      await flushQueuedQuestionPatch(io, roomId, state);
+    }
     const next = transition(state, { type: 'END_GAME' });
     setRoom(roomId, next);
     if (next.type === 'End') {
       saveHistory(next);
     }
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
   socket.on('host:override', (payload: { playerId: string; questionId: string; delta?: number }, ack) => {
@@ -325,7 +332,7 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
     const next = { ...state, players };
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['state:update']);
+    void broadcastStateToRoom(io, roomId, next);
   });
 
   socket.on(
@@ -358,7 +365,7 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       const next = { ...state, submissions };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      void broadcastStateToRoom(io, roomId, next, ['state:update']);
+      void broadcastStateToRoom(io, roomId, next);
     }
   );
 
@@ -401,7 +408,7 @@ function registerHostGameHandlers(ctx: SocketHandlerContext): void {
       const next = { ...state, hiddenWordsByQuestion: map };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      void broadcastStateToRoom(io, roomId, next, ['state:update']);
+      void broadcastStateToRoom(io, roomId, next);
     }
   );
 }
@@ -447,7 +454,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
         targetSocket.disconnect(true);
       }
     }
-    void broadcastStateToRoom(io, roomId, next, ['room:update', 'state:update']);
+    void broadcastStateToRoom(io, roomId, next);
     ack?.({ ok: true });
   });
 
@@ -506,7 +513,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
       targetSocket.data.playerId = playerId;
       targetSocket.emit('player:admitted', { state: serializePlayerState(nextState) });
     }
-    void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+    void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
   });
 
@@ -545,7 +552,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
     if (targetSocket) {
       targetSocket.emit('player:denied', { usedEmojis });
     }
-    void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+    void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
   });
 
@@ -608,13 +615,13 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
         targetSocket.emit('player:admitted', { state: serialized });
       }
     }
-    void broadcastStateToRoom(io, roomId, nextState, ['room:update', 'state:update']);
+    void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
   });
 }
 
 function registerPlayerHandlers(ctx: SocketHandlerContext): void {
-  const { io, socket, getRoom, setRoom, roomExists, serializePlayerState, broadcastStateToRoom } = ctx;
+  const { io, socket, getRoom, setRoom, roomExists, serializePlayerState, broadcastRoomPatchToRoom } = ctx;
 
   socket.on(
     'player:join',
@@ -727,7 +734,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           socket.data.role = 'player';
           socket.data.playerId = resolvedPlayerId;
           ack?.({ roomId, playerId: resolvedPlayerId, state: serializePlayerState(nextState) });
-          void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
+          void broadcastRoomPatchToRoom(io, roomId, nextState);
           return;
         }
         const pending: PendingPlayer = {
@@ -742,7 +749,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
         const nextState = { ...state, pendingPlayers };
         setRoom(roomId, nextState);
         ack?.({ ok: true, status: 'pending' });
-        void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
+        void broadcastRoomPatchToRoom(io, roomId, nextState);
         return;
       }
       const players = new Map(state.players);
@@ -760,7 +767,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       socket.data.role = 'player';
       socket.data.playerId = resolvedPlayerId;
       ack?.({ roomId, playerId: socket.data.playerId, state: serializePlayerState(nextState) });
-      void broadcastStateToRoom(io, roomId, nextState, ['room:update']);
+      void broadcastRoomPatchToRoom(io, roomId, nextState);
     }
   );
 
@@ -806,7 +813,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
     const next: GameState = { ...state, players };
     setRoom(roomId, next);
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['room:update']);
+    void broadcastRoomPatchToRoom(io, roomId, next);
   });
 
   socket.on('player:leave', (_, ack) => {
@@ -830,7 +837,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
     socket.data.playerId = undefined;
     socket.data.role = undefined;
     ack?.({ ok: true });
-    void broadcastStateToRoom(io, roomId, next, ['room:update']);
+    void broadcastRoomPatchToRoom(io, roomId, next);
   });
 
   socket.on(
@@ -1032,7 +1039,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       const next = { ...state, submissions };
       setRoom(roomId, next);
       ack?.({ ok: true });
-      void broadcastStateToRoom(io, roomId, next, ['room:update', 'state:update']);
+      queueQuestionPatch(io, roomId, getRoom);
     }
   );
 }
@@ -1074,7 +1081,7 @@ function registerProjectorHandlers(ctx: SocketHandlerContext): void {
 }
 
 function registerDisconnectHandler(ctx: SocketHandlerContext): void {
-  const { io, socket, getRoom, setRoom, removePendingPlayerBySocketId, broadcastStateToRoom } = ctx;
+  const { io, socket, getRoom, setRoom, removePendingPlayerBySocketId, broadcastRoomPatchToRoom } = ctx;
 
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId;
@@ -1087,7 +1094,7 @@ function registerDisconnectHandler(ctx: SocketHandlerContext): void {
         if (p) {
           players.set(playerId, { ...p, socketId: undefined });
           setRoom(roomId, { ...state, players });
-          void broadcastStateToRoom(io, roomId, getRoom(roomId)!, ['room:update']);
+          void broadcastRoomPatchToRoom(io, roomId, getRoom(roomId)!);
         }
       }
     } else {
@@ -1095,7 +1102,7 @@ function registerDisconnectHandler(ctx: SocketHandlerContext): void {
       if (pendingRoomId) {
         const state = getRoom(pendingRoomId);
         if (state) {
-          void broadcastStateToRoom(io, pendingRoomId, state, ['room:update']);
+          void broadcastRoomPatchToRoom(io, pendingRoomId, state);
         }
       }
     }
@@ -1126,6 +1133,7 @@ export function createSocketHandlerContext(io: Server, socket: Socket): SocketHa
     serializePlayerState,
     serializeProjectorState,
     broadcastStateToRoom,
+    broadcastRoomPatchToRoom,
     saveHistory,
     logHostAuthFailure,
   };

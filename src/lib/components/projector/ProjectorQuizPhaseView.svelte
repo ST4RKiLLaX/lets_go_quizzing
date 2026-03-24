@@ -3,7 +3,7 @@
   import CountdownPie from '$lib/components/CountdownPie.svelte';
   import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import SliderDisplay from '$lib/components/SliderDisplay.svelte';
-  import type { SerializedState } from '$lib/types/game.js';
+  import type { SerializedQuestionPatch, SerializedState } from '$lib/types/game.js';
   import type { HotspotQuestion, Question } from '$lib/types/quiz.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -17,6 +17,7 @@
   /** `question` = live prompt; `reveal` = answers and counts */
   export let phase: 'question' | 'reveal';
   export let state: SerializedState;
+  export let questionPatch: SerializedQuestionPatch | null = null;
   export let currentQuestion: Question | null;
   export let optionLabelStyle: 'letters' | 'numbers';
   export let totalTimerSeconds: number;
@@ -26,13 +27,20 @@
 
   function getAnsweredInOrder(
     question: Question | null,
-    currentState: SerializedState | null | undefined
+    currentState: SerializedState | null | undefined,
+    currentPatch: SerializedQuestionPatch | null
   ): Array<{ emoji: string; name: string }> {
-    if (!question || !currentState?.submissions) return [];
-    const submitted = currentState.submissions.filter((s) => s.questionId === question.id);
+    if (!question || !currentState) return [];
     const players = currentState.players ?? [];
-    return submitted.map((s) => {
-      const p = players.find((x) => x.id === s.playerId);
+    if (currentPatch?.questionId === question.id) {
+      return currentPatch.answeredPlayerIds.map((playerId) => {
+        const player = players.find((entry) => entry.id === playerId);
+        return player ? { emoji: player.emoji, name: player.name } : { emoji: '?', name: 'Unknown' };
+      });
+    }
+    const submitted = currentState.submissions?.filter((submission) => submission.questionId === question.id) ?? [];
+    return submitted.map((submission) => {
+      const p = players.find((x) => x.id === submission.playerId);
       return p ? { emoji: p.emoji, name: p.name } : { emoji: '?', name: 'Unknown' };
     });
   }
@@ -78,17 +86,23 @@
     });
   }
 
-  $: answeredList = phase === 'question' ? getAnsweredInOrder(currentQuestion, state) : [];
+  $: answeredList = phase === 'question' ? getAnsweredInOrder(currentQuestion, state, questionPatch) : [];
   $: rankedCorrectList =
     phase === 'reveal' && (state.quiz?.meta?.scoring_mode ?? 'standard') === 'ranked'
       ? getCorrectAnswersInRankOrder(currentQuestion, state)
       : [];
+  $: currentQuestionPatch =
+    phase === 'question' && questionPatch?.questionId === currentQuestion?.id ? questionPatch : null;
+  $: questionSubmittedCount =
+    phase === 'question' && currentQuestionPatch
+      ? currentQuestionPatch.submittedCount
+      : (state.submissions?.filter((submission) => submission.questionId === currentQuestion?.id).length ?? 0);
 
   $: q = currentQuestion;
 </script>
 
 <div class="bg-pub-darker rounded-lg p-6" data-question-id={currentQuestion?.id ?? undefined}>
-  {#key `${state.currentRoundIndex}-${state.currentQuestionIndex}-${phase}-${phase === 'question' ? (state.submissions?.length ?? 0) : 'r'}-${currentQuestion?.id ?? 'none'}`}
+  {#key `${state.currentRoundIndex}-${state.currentQuestionIndex}-${phase}-${phase === 'question' ? questionSubmittedCount : 'r'}-${currentQuestion?.id ?? 'none'}`}
     {@const qq = q}
     {#if qq}
     <div class="flex items-start justify-between gap-6 mb-2">

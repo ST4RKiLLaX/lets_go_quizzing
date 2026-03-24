@@ -8,7 +8,7 @@
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import { hostSessionStore } from '$lib/stores/host-session.js';
   import { socketStore } from '$lib/stores/socket.js';
-  import type { SerializedState } from '$lib/types/game.js';
+  import type { SerializedQuestionPatch, SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
@@ -16,6 +16,7 @@
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
+  import { applyRoomPatch, isQuestionPatchForState } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import {
     QUESTION_MECHANIC_REMINDER,
@@ -31,6 +32,7 @@
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
+  let questionPatch: SerializedQuestionPatch | null = null;
   let copied = false;
   let joinError = '';
   let hostRejoinUsername = '';
@@ -122,6 +124,7 @@
     socket?.emit('host:join', { roomId, username, password }, (ack: { state?: SerializedState; error?: string }) => {
       if (ack?.state) {
         state = ack.state;
+        questionPatch = null;
         markHostSessionEstablished();
         hostRejoinPassword = '';
       }
@@ -149,23 +152,60 @@
     doHostJoin(username, pwd);
     const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
+      questionPatch = null;
       clearVisibilityPending();
       if (payload?.state) markHostSessionEstablished();
     };
-    const onRoomUpdate = (payload: { state: SerializedState }) => {
-      const incoming = payload?.state;
-      if (!incoming) return;
-      state = incoming;
+    const onRoomPatch = (payload: { patch?: SerializedRoomPatch }) => {
+      if (!payload?.patch) return;
+      state = applyRoomPatch(state, payload.patch);
       clearVisibilityPending();
       markHostSessionEstablished();
     };
+    const onQuestionPatch = (payload: { patch?: SerializedQuestionPatch }) => {
+      if (!payload?.patch || !isQuestionPatchForState(state, payload.patch)) return;
+      questionPatch = payload.patch;
+    };
     socket.on('state:update', onStateUpdate);
-    socket.on('room:update', onRoomUpdate);
+    socket.on('room:patch', onRoomPatch);
+    socket.on('question:patch', onQuestionPatch);
     return () => {
       socket?.off('state:update', onStateUpdate);
-      socket?.off('room:update', onRoomUpdate);
+      socket?.off('room:patch', onRoomPatch);
+      socket?.off('question:patch', onQuestionPatch);
     };
   });
+
+  function getLiveSubmittedCount(questionId: string | undefined): number {
+    if (!questionId) return 0;
+    if (state?.type === 'Question' && questionPatch?.questionId === questionId) {
+      return questionPatch.submittedCount;
+    }
+    return (state?.submissions ?? []).filter((submission) => submission.questionId === questionId).length;
+  }
+
+  function getLiveOptionCounts(questionId: string): Map<number, number> {
+    if (state?.type === 'Question' && questionPatch?.questionId === questionId && questionPatch.optionCounts) {
+      return new Map(
+        Object.entries(questionPatch.optionCounts).map(([index, count]) => [Number(index), count])
+      );
+    }
+    return getOptionCounts(state?.submissions ?? [], questionId);
+  }
+
+  function getLiveHotspotSubmissions(questionId: string) {
+    if (state?.type === 'Question' && questionPatch?.questionId === questionId && questionPatch.hotspotSubmissions) {
+      return questionPatch.hotspotSubmissions;
+    }
+    return (state?.submissions ?? []).filter(
+      (submission) =>
+        submission.questionId === questionId &&
+        submission.answerX != null &&
+        submission.answerY != null &&
+        submission.visibility !== 'blocked' &&
+        !submission.projectorHiddenByHost
+    );
+  }
 
   function next() {
     if (state?.type === 'QuestionPreview') {
@@ -436,14 +476,7 @@
             {@const ar = hq.imageAspectRatio ?? 1}
             {@const rY = hq.answer.radiusY ?? hq.answer.radius}
             {@const rot = hq.answer.rotation ?? 0}
-            {@const hotspotSubs = (state?.submissions ?? []).filter(
-              (s) =>
-                s.questionId === q.id &&
-                s.answerX != null &&
-                s.answerY != null &&
-                s.visibility !== 'blocked' &&
-                !s.projectorHiddenByHost
-            )}
+            {@const hotspotSubs = getLiveHotspotSubmissions(q.id)}
             {#if src}
               <div class="relative inline-block max-w-full my-4">
                 <img src={src} alt="" class="max-w-full rounded-lg block" />
@@ -500,7 +533,7 @@
               </ul>
             {/if}
           {:else if q.type === 'multi_select'}
-            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
+            {@const counts = getLiveOptionCounts(q.id)}
             {#if state?.type === 'RevealAnswer'}
               <RevealMultiSelectList
                 options={q.options}
@@ -579,7 +612,7 @@
               </div>
             </div>
           {:else if q.type === 'poll'}
-            {@const counts = getOptionCounts(state?.submissions ?? [], q.id)}
+            {@const counts = getLiveOptionCounts(q.id)}
             <PollOptionsList
               options={q.options}
               {optionLabelStyle}
@@ -633,9 +666,8 @@
         {/key}
 
         {#if state?.type === 'Question' && state.submissions}
-          {@const submitted = state.submissions.filter((s) => s.questionId === currentQuestion?.id)}
           <p class="text-pub-muted text-sm mt-4">
-            {submitted.length} of {(state.players ?? []).length} submitted
+            {getLiveSubmittedCount(currentQuestion?.id)} of {(state.players ?? []).length} submitted
           </p>
         {/if}
 

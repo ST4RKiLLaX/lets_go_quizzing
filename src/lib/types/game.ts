@@ -38,6 +38,7 @@ export interface SerializedWrongAnswer {
 
 export interface SerializedState {
   type: string;
+  roomId: string;
   quiz: Quiz;
   quizFilename?: string;
   serverNow?: number;
@@ -51,4 +52,31 @@ export interface SerializedState {
   timerEndsAt?: number;
   startedAt?: number;
   hiddenWordsByQuestion?: Record<string, string[]>;
+}
+
+export interface SerializedRoomPatch {
+  roomId: string;
+  type: string;
+  currentRoundIndex: number;
+  currentQuestionIndex: number;
+  players: SerializedPlayer[];
+  pendingPlayers?: SerializedPendingPlayer[];
+}
+
+export interface SerializedHotspotSubmissionPatch {
+  playerId: string;
+  answerX: number;
+  answerY: number;
+}
+
+export interface SerializedQuestionPatch {
+  roomId: string;
+  type: 'Question';
+  currentRoundIndex: number;
+  currentQuestionIndex: number;
+  questionId: string;
+  submittedCount: number;
+  answeredPlayerIds: string[];
+  optionCounts?: Record<string, number>;
+  hotspotSubmissions?: SerializedHotspotSubmissionPatch[];
 }

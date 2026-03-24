@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { io, type Socket } from 'socket.io-client';
-import type { SerializedState } from '../src/lib/types/game.js';
+import type { SerializedQuestionPatch, SerializedRoomPatch, SerializedState } from '../src/lib/types/game.js';
 
 type LoadTestOptions = {
   baseUrl: string;
@@ -38,6 +38,8 @@ type SocketTracker = {
   label: string;
   socket: Socket;
   latestState: SerializedState | null;
+  latestRoomPatch: SerializedRoomPatch | null;
+  latestQuestionPatch: SerializedQuestionPatch | null;
   disconnects: number;
   finalUpdateSeenAt: number | null;
 };
@@ -58,7 +60,7 @@ Options:
   --ack-timeout-ms <ms>          Ack timeout per event. Default: 10000
   --question-ready-timeout-ms <ms>
                                  Wait for Question state after host:start_question. Default: 10000
-  --final-state-timeout-ms <ms>  Wait for all clients to see final submissions count. Default: 15000
+  --final-state-timeout-ms <ms>  Wait for host question patch to reach final submission count. Default: 15000
   --help                         Show this message
 
 Notes:
@@ -239,15 +241,21 @@ function trackSocket(socket: Socket, label: string, errorBuckets: ErrorBuckets):
     label,
     socket,
     latestState: null,
+    latestRoomPatch: null,
+    latestQuestionPatch: null,
     disconnects: 0,
     finalUpdateSeenAt: null,
   };
 
   socket.on('state:update', (payload: { state: SerializedState }) => {
     tracker.latestState = payload?.state ?? null;
+    tracker.latestQuestionPatch = null;
   });
-  socket.on('room:update', (payload: { state: SerializedState }) => {
-    tracker.latestState = payload?.state ?? null;
+  socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
+    tracker.latestRoomPatch = payload?.patch ?? null;
+  });
+  socket.on('question:patch', (payload: { patch?: SerializedQuestionPatch }) => {
+    tracker.latestQuestionPatch = payload?.patch ?? null;
   });
   socket.on('disconnect', (reason) => {
     tracker.disconnects += 1;
@@ -429,6 +437,12 @@ async function main(): Promise<void> {
     const burstStartedAt = Date.now();
     const markFinalUpdateIfReady = (tracker: SocketTracker) => {
       if (tracker.finalUpdateSeenAt != null) return;
+      if (tracker.label === 'host') {
+        if ((tracker.latestQuestionPatch?.submittedCount ?? 0) >= expectedSubmissionCount) {
+          tracker.finalUpdateSeenAt = Date.now();
+        }
+        return;
+      }
       if ((tracker.latestState?.submissions.length ?? 0) >= expectedSubmissionCount) {
         tracker.finalUpdateSeenAt = Date.now();
       }
@@ -474,15 +488,12 @@ async function main(): Promise<void> {
       throw new Error('No answers were accepted');
     }
 
-    await waitForCondition('all clients to observe final submission count', options.finalStateTimeoutMs, () => {
+    await waitForCondition('host to observe final question patch', options.finalStateTimeoutMs, () => {
       markFinalUpdateIfReady(hostTracker);
-      for (const tracker of activePlayers) {
-        markFinalUpdateIfReady(tracker);
-      }
-      return [hostTracker, ...activePlayers].every((tracker) => tracker.finalUpdateSeenAt != null);
+      return hostTracker.finalUpdateSeenAt != null;
     });
 
-    const propagationLatencies = [hostTracker, ...activePlayers]
+    const propagationLatencies = [hostTracker]
       .map((tracker) => (tracker.finalUpdateSeenAt == null ? null : tracker.finalUpdateSeenAt - burstStartedAt))
       .filter((value): value is number => value != null);
 
@@ -504,7 +515,7 @@ async function main(): Promise<void> {
     console.table([
       { metric: 'joinAck', ...formatSummary(summarize(joinLatencies)) },
       { metric: 'answerAck', ...formatSummary(summarize(answerLatencies)) },
-      { metric: 'finalStateSeen', ...formatSummary(summarize(propagationLatencies)) },
+      { metric: 'hostQuestionPatchSeen', ...formatSummary(summarize(propagationLatencies)) },
     ]);
 
     if (errorBuckets.size > 0) {

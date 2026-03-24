@@ -118,7 +118,7 @@ Recommended usage:
 - Point `--base-url` at either the direct app URL or the Nginx-fronted URL to compare both paths.
 - If the benchmark deployment would otherwise hit the per-IP join limiter, temporarily set `LOAD_TEST_PLAYER_JOIN_MAX` higher on the app server.
 
-The first version prints a CLI summary with join latency, answer latency, disconnect counts, and final room-update propagation timing.
+The first version prints a CLI summary with join latency, answer latency, disconnect counts, and host question-patch propagation timing.
 
 ---
 

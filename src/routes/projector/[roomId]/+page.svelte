@@ -1,11 +1,12 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { createSocket } from '$lib/socket.js';
-  import type { SerializedState } from '$lib/types/game.js';
+  import type { SerializedQuestionPatch, SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import { useCountdown } from '$lib/timer.js';
+  import { applyRoomPatch, isQuestionPatchForState } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
   import SessionLeaderboardView from '$lib/components/shared/SessionLeaderboardView.svelte';
@@ -15,6 +16,7 @@
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
+  let questionPatch: SerializedQuestionPatch | null = null;
   let wakeManager: ReturnType<typeof createWakeManager> | null = null;
 
   $: joinUrl =
@@ -85,7 +87,10 @@
         }
         needsRoomPassword = false;
         joinError = '';
-        if (ack?.state) state = ack.state;
+        if (ack?.state) {
+          state = ack.state;
+          questionPatch = null;
+        }
         if (pwd) {
           try {
             sessionStorage.setItem(PROJECTOR_PASSWORD_KEY + roomId, pwd);
@@ -113,9 +118,15 @@
     joinRoom(initialPassword);
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
+      questionPatch = null;
     });
-    socket.on('room:update', (payload: { state: SerializedState }) => {
-      state = payload.state;
+    socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
+      if (!payload?.patch) return;
+      state = applyRoomPatch(state, payload.patch);
+    });
+    socket.on('question:patch', (payload: { patch?: SerializedQuestionPatch }) => {
+      if (!payload?.patch || !isQuestionPatchForState(state, payload.patch)) return;
+      questionPatch = payload.patch;
     });
   });
 </script>
@@ -151,6 +162,7 @@
       <ProjectorQuizPhaseView
         phase="question"
         {state}
+        {questionPatch}
         currentQuestion={currentQuestion}
         {optionLabelStyle}
         {totalTimerSeconds}
@@ -162,6 +174,7 @@
       <ProjectorQuizPhaseView
         phase="reveal"
         {state}
+        questionPatch={null}
         currentQuestion={currentQuestion}
         {optionLabelStyle}
         {totalTimerSeconds}

@@ -11,7 +11,7 @@
   import PlayerSettingsModal from '$lib/components/player/PlayerSettingsModal.svelte';
   import PlayerWakeModal from '$lib/components/player/PlayerWakeModal.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
-  import type { SerializedState } from '$lib/types/game.js';
+  import type { SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
@@ -19,6 +19,7 @@
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
+  import { applyRoomPatch } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
 
   const roomId = $page.params.roomId;
@@ -142,8 +143,9 @@
     socket.on('state:update', (payload: { state: SerializedState }) => {
       state = payload.state;
     });
-    socket.on('room:update', (payload: { state: SerializedState }) => {
-      state = payload.state;
+    socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
+      if (!payload?.patch) return;
+      state = applyRoomPatch(state, payload.patch);
     });
 
     if (!wasKickedFromRoom) {

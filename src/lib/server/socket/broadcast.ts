@@ -1,22 +1,62 @@
 import type { Server } from 'socket.io';
 import type { GameState } from '../game/state-machine.js';
-import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
+import {
+  serializeHostState,
+  serializePlayerState,
+  serializeProjectorState,
+  serializeQuestionPatch,
+  serializeRoomPatch,
+} from './serializers.js';
 
-export async function broadcastStateToRoom(
-  io: Server,
-  roomId: string,
-  state: GameState,
-  events: ('state:update' | 'room:update')[] = ['state:update', 'room:update']
-) {
+export async function broadcastStateToRoom(io: Server, roomId: string, state: GameState) {
   const sockets = await io.in(roomId).fetchSockets();
-  const hostState = serializeHostState(state);
-  const playerState = serializePlayerState(state);
-  const projectorState = serializeProjectorState(state);
+  let hostState: ReturnType<typeof serializeHostState> | null = null;
+  let playerState: ReturnType<typeof serializePlayerState> | null = null;
+  let projectorState: ReturnType<typeof serializeProjectorState> | null = null;
   for (const s of sockets) {
-    const st =
-      s.data.role === 'host' ? hostState : s.data.role === 'projector' ? projectorState : playerState;
-    for (const ev of events) {
-      s.emit(ev, { state: st });
+    if (s.data.role === 'host') {
+      hostState ??= serializeHostState(state);
+      s.emit('state:update', { state: hostState });
+      continue;
+    }
+    if (s.data.role === 'projector') {
+      projectorState ??= serializeProjectorState(state);
+      s.emit('state:update', { state: projectorState });
+      continue;
+    }
+    playerState ??= serializePlayerState(state);
+    s.emit('state:update', { state: playerState });
+  }
+}
+
+export async function broadcastRoomPatchToRoom(io: Server, roomId: string, state: GameState) {
+  const sockets = await io.in(roomId).fetchSockets();
+  let hostPatch: ReturnType<typeof serializeRoomPatch> | null = null;
+  let participantPatch: ReturnType<typeof serializeRoomPatch> | null = null;
+  for (const socket of sockets) {
+    if (socket.data.role === 'host') {
+      hostPatch ??= serializeRoomPatch(state, { forHost: true });
+      socket.emit('room:patch', { patch: hostPatch });
+      continue;
+    }
+    participantPatch ??= serializeRoomPatch(state, { forHost: false });
+    socket.emit('room:patch', { patch: participantPatch });
+  }
+}
+
+export async function broadcastQuestionPatchToRoom(io: Server, roomId: string, state: GameState) {
+  const sockets = await io.in(roomId).fetchSockets();
+  let hostPatch: ReturnType<typeof serializeQuestionPatch> | null = null;
+  let projectorPatch: ReturnType<typeof serializeQuestionPatch> | null = null;
+  for (const socket of sockets) {
+    if (socket.data.role === 'host') {
+      hostPatch ??= serializeQuestionPatch(state, 'host');
+      if (hostPatch) socket.emit('question:patch', { patch: hostPatch });
+      continue;
+    }
+    if (socket.data.role === 'projector') {
+      projectorPatch ??= serializeQuestionPatch(state, 'projector');
+      if (projectorPatch) socket.emit('question:patch', { patch: projectorPatch });
     }
   }
 }
