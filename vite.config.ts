@@ -2,8 +2,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 import { socketPlugin } from './vite-plugin-socket.js';
 
-export default defineConfig({
-  plugins: [sveltekit(), socketPlugin()],
+export default defineConfig(() => ({
+  plugins: [sveltekit(), ...(process.env.VITEST ? [] : [socketPlugin()])],
   build: {
     // Default 500 kB warns on apps with CodeMirror + large route bundles; gzip ~268 kB is acceptable.
     chunkSizeWarningLimit: 850,
@@ -36,4 +36,4 @@ export default defineConfig({
       exclude: ['node_modules/', '.svelte-kit/', 'tests/'],
     },
   },
-});
+}));

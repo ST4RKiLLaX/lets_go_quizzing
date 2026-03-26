@@ -34,8 +34,8 @@ function makeHotspotQuiz(): Quiz {
             id: 'hot-1',
             type: 'hotspot',
             text: 'Tap the right spot',
-            answerX: 50,
-            answerY: 50,
+            image: 'hotspot.png',
+            answer: { x: 0.5, y: 0.5, radius: 0.1 },
           },
         ],
       },
@@ -47,7 +47,6 @@ function makeState(overrides: Partial<GameState> & { quiz: Quiz }): GameState {
   return {
     type: 'Lobby',
     roomId: 'ROOM1',
-    quiz: overrides.quiz,
     quizFilename: 'test.yaml',
     hostSocketId: 'host-socket',
     players: new Map(),

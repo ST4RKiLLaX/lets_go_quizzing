@@ -1,4 +1,5 @@
 import type { Quiz } from './quiz.js';
+import type { RoomPrizeConfig } from './prizes.js';
 
 export interface SerializedPlayer {
   id: string;
@@ -44,7 +45,6 @@ export interface SerializedState {
   serverNow?: number;
   players: SerializedPlayer[];
   pendingPlayers?: SerializedPendingPlayer[];
-  waitingRoomEnabled?: boolean;
   currentRoundIndex: number;
   currentQuestionIndex: number;
   submissions: SerializedSubmission[];
@@ -52,6 +52,12 @@ export interface SerializedState {
   timerEndsAt?: number;
   startedAt?: number;
   hiddenWordsByQuestion?: Record<string, string[]>;
+  waitingRoomEnabled?: boolean;
+  allowLateJoin?: boolean;
+  autoAdmitBeforeGame?: boolean;
+  manualAdmitAfterGame?: boolean;
+  roomPrizeConfig?: RoomPrizeConfig;
+  prizeClaimToken?: string;
 }
 
 export interface SerializedRoomPatch {

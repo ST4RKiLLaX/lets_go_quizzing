@@ -11,7 +11,7 @@ import {
 export async function broadcastStateToRoom(io: Server, roomId: string, state: GameState) {
   const sockets = await io.in(roomId).fetchSockets();
   let hostState: ReturnType<typeof serializeHostState> | null = null;
-  let playerState: ReturnType<typeof serializePlayerState> | null = null;
+  const playerStates = new Map<string, ReturnType<typeof serializePlayerState>>();
   let projectorState: ReturnType<typeof serializeProjectorState> | null = null;
   for (const s of sockets) {
     if (s.data.role === 'host') {
@@ -24,7 +24,10 @@ export async function broadcastStateToRoom(io: Server, roomId: string, state: Ga
       s.emit('state:update', { state: projectorState });
       continue;
     }
-    playerState ??= serializePlayerState(state);
+    const playerId = String(s.data.playerId ?? '');
+    const cacheKey = playerId || s.id;
+    const playerState = playerStates.get(cacheKey) ?? serializePlayerState(state, playerId || undefined);
+    playerStates.set(cacheKey, playerState);
     s.emit('state:update', { state: playerState });
   }
 }

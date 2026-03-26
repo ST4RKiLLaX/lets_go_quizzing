@@ -12,6 +12,7 @@ import {
 import { createSession, getCurrentAuthEpoch } from '$lib/server/auth.js';
 import { resetCustomBlockCache } from '$lib/server/custom-block.js';
 import { jsonWithCookie } from '$lib/server/response.js';
+import { validateRoomPrizeDefaultConfig } from '$lib/server/prizes/service.js';
 
 const CUSTOM_BLOCK_MAX_TERMS = 100;
 const CUSTOM_BLOCK_MAX_TERM_LENGTH = 50;
@@ -45,6 +46,9 @@ export async function GET({ request }) {
     profanityFilterMode: cfg.profanityFilterMode ?? 'off',
     customKeywordFilterEnabled: cfg.customKeywordFilterEnabled ?? false,
     customBlockedTerms: cfg.customBlockedTerms ?? [],
+    prizesEnabled: cfg.prizesEnabled ?? false,
+    prizeEmailEnabled: cfg.prizeEmailEnabled ?? false,
+    defaultRoomPrizeConfig: cfg.defaultRoomPrizeConfig ?? null,
     effectiveOrigin: getEffectiveOrigin() ?? '',
     effectiveRoomIdLen: getEffectiveRoomIdLen(),
     envOverrides,
@@ -86,6 +90,16 @@ export async function PUT({ request }) {
           ? body.customBlockedTerms
           : undefined
         : undefined;
+    const prizesEnabled =
+      body?.prizesEnabled !== undefined ? (typeof body.prizesEnabled === 'boolean' ? body.prizesEnabled : undefined) : undefined;
+    const prizeEmailEnabled =
+      body?.prizeEmailEnabled !== undefined
+        ? typeof body.prizeEmailEnabled === 'boolean'
+          ? body.prizeEmailEnabled
+          : undefined
+        : undefined;
+    const defaultRoomPrizeConfig =
+      body?.defaultRoomPrizeConfig !== undefined ? validateRoomPrizeDefaultConfig(body.defaultRoomPrizeConfig) : undefined;
 
     const changingCredentials = newUsername !== undefined || newPassword !== undefined;
     if (changingCredentials && !verifyPassword(currentPassword, cfg.adminPasswordHash)) {
@@ -139,6 +153,11 @@ export async function PUT({ request }) {
     if (profanityFilterMode !== undefined) partial.profanityFilterMode = profanityFilterMode as ProfanityFilterMode;
     if (customKeywordFilterEnabled !== undefined) partial.customKeywordFilterEnabled = customKeywordFilterEnabled;
     if (customBlockedTerms !== undefined) partial.customBlockedTerms = customBlockedTerms;
+    if (prizesEnabled !== undefined) partial.prizesEnabled = prizesEnabled;
+    if (prizeEmailEnabled !== undefined) partial.prizeEmailEnabled = prizeEmailEnabled;
+    if (defaultRoomPrizeConfig !== undefined || body?.defaultRoomPrizeConfig === null) {
+      partial.defaultRoomPrizeConfig = body?.defaultRoomPrizeConfig === null ? undefined : defaultRoomPrizeConfig;
+    }
 
     if (changingCredentials) {
       partial.authEpoch = (cfg.authEpoch ?? 0) + 1;

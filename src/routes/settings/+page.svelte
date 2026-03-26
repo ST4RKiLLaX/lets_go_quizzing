@@ -2,9 +2,12 @@
   import { onMount } from 'svelte';
   import { invalidateAll } from '$app/navigation';
   import { get } from 'svelte/store';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
+  import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import type { PrizeDefinition, PrizeTier } from '$lib/types/prizes.js';
 
-  type Tab = 'account' | 'content_filters' | 'deployment';
+  type Tab = 'account' | 'content_filters' | 'deployment' | 'prizes';
   let activeTab: Tab = 'account';
   let username = '';
   let originalUsername = '';
@@ -17,10 +20,63 @@
   let newPassword = '';
   let newPasswordConfirm = '';
   let envOverrides: { origin: boolean; roomIdLen: boolean } = { origin: false, roomIdLen: false };
+  let prizesEnabled = false;
+  let prizeEmailEnabled = false;
+  let defaultRoomPrizeEnabled = false;
+  let defaultRoomPrizeTiers: PrizeTier[] = [];
+  let prizes: PrizeDefinition[] = [];
+  let newPrizeName = '';
+  let newPrizeUrl = '';
+  let newPrizeLimit = 1;
+  let newPrizeExpirationDate = '';
+  let newPrizeNotes = '';
+  let loadingPrizes = false;
+  let prizeError = '';
+  let showAddPrizeModal = false;
+  let editingPrizeIds: string[] = [];
   let error = '';
   let success = '';
   let loading = true;
   let saving = false;
+  let prizeToggleSaving = false;
+
+  function isPrizeSelectable(prize: PrizeDefinition): boolean {
+    return prize.active && new Date(`${prize.expirationDate}T23:59:59.999Z`).getTime() >= Date.now();
+  }
+
+  function formatCreatedAt(createdAt: number): string {
+    return new Date(createdAt).toLocaleString();
+  }
+
+  function togglePrizeEditing(prizeId: string) {
+    if (editingPrizeIds.includes(prizeId)) {
+      editingPrizeIds = editingPrizeIds.filter((id) => id !== prizeId);
+      return;
+    }
+    editingPrizeIds = [...editingPrizeIds, prizeId];
+  }
+
+  async function loadPrizes() {
+    if (!prizesEnabled) {
+      prizes = [];
+      return;
+    }
+    loadingPrizes = true;
+    prizeError = '';
+    try {
+      const res = await fetch('/api/prizes', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) {
+        prizeError = data.error ?? 'Failed to load prizes';
+        return;
+      }
+      prizes = data.prizes ?? [];
+    } catch {
+      prizeError = 'Failed to load prizes';
+    } finally {
+      loadingPrizes = false;
+    }
+  }
 
   async function loadSettings() {
     loading = true;
@@ -41,12 +97,30 @@
       customBlockedTermsText = Array.isArray(data.customBlockedTerms)
         ? data.customBlockedTerms.join('\n')
         : '';
+      prizesEnabled = data.prizesEnabled ?? false;
+      prizeEmailEnabled = data.prizeEmailEnabled ?? false;
+      defaultRoomPrizeEnabled = data.defaultRoomPrizeConfig?.enabledByDefault ?? false;
+      defaultRoomPrizeTiers = data.defaultRoomPrizeConfig?.tiers ?? [];
       envOverrides = data.envOverrides ?? { origin: false, roomIdLen: false };
+      await loadPrizes();
     } catch {
       error = 'Failed to load settings';
     } finally {
       loading = false;
     }
+  }
+
+  function buildPrizeSettingsPayload(): Record<string, unknown> {
+    return {
+      prizesEnabled,
+      prizeEmailEnabled: prizesEnabled ? prizeEmailEnabled : false,
+      defaultRoomPrizeConfig: prizesEnabled
+        ? {
+            enabledByDefault: defaultRoomPrizeEnabled,
+            tiers: defaultRoomPrizeTiers,
+          }
+        : null,
+    };
   }
 
   async function save() {
@@ -69,6 +143,7 @@
           .split('\n')
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
+        ...buildPrizeSettingsPayload(),
       };
       if (username.trim() !== originalUsername) {
         body.username = username.trim();
@@ -121,6 +196,126 @@
     }
     loadSettings();
   });
+
+  async function savePrizeFeatureToggle() {
+    prizeError = '';
+    success = '';
+    prizeToggleSaving = true;
+    const previousPrizesEnabled = !prizesEnabled;
+    const previousPrizeEmailEnabled = prizeEmailEnabled;
+    if (!prizesEnabled) {
+      prizeEmailEnabled = false;
+    }
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(buildPrizeSettingsPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        prizeError = data.error ?? 'Failed to save prize feature setting';
+        prizesEnabled = previousPrizesEnabled;
+        prizeEmailEnabled = previousPrizeEmailEnabled;
+        return;
+      }
+      success = 'Prize feature setting saved.';
+      await invalidateAll();
+      await loadPrizes();
+    } catch {
+      prizeError = 'Failed to save prize feature setting';
+      prizesEnabled = previousPrizesEnabled;
+      prizeEmailEnabled = previousPrizeEmailEnabled;
+    } finally {
+      prizeToggleSaving = false;
+    }
+  }
+
+  async function createPrize() {
+    prizeError = '';
+    if (!newPrizeExpirationDate) {
+      prizeError = 'Expiration date is required';
+      return;
+    }
+    try {
+      const res = await fetch('/api/prizes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newPrizeName,
+          url: newPrizeUrl,
+          limit: newPrizeLimit,
+          expirationDate: newPrizeExpirationDate,
+          notes: newPrizeNotes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        prizeError = data.error ?? 'Failed to create prize';
+        return;
+      }
+      newPrizeName = '';
+      newPrizeUrl = '';
+      newPrizeLimit = 1;
+      newPrizeExpirationDate = '';
+      newPrizeNotes = '';
+      showAddPrizeModal = false;
+      await loadPrizes();
+    } catch {
+      prizeError = 'Failed to create prize';
+    }
+  }
+
+  function openAddPrizeModal() {
+    prizeError = '';
+    showAddPrizeModal = true;
+  }
+
+  function closeAddPrizeModal() {
+    showAddPrizeModal = false;
+  }
+
+  async function savePrize(prize: PrizeDefinition) {
+    prizeError = '';
+    try {
+      const res = await fetch(`/api/prizes/${encodeURIComponent(prize.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(prize),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        prizeError = data.error ?? 'Failed to save prize';
+        return;
+      }
+      editingPrizeIds = editingPrizeIds.filter((id) => id !== prize.id);
+      await loadPrizes();
+    } catch {
+      prizeError = 'Failed to save prize';
+    }
+  }
+
+  async function deletePrize(prizeId: string) {
+    if (!confirm(`Delete prize ${prizeId}?`)) return;
+    prizeError = '';
+    try {
+      const res = await fetch(`/api/prizes/${encodeURIComponent(prizeId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        prizeError = data.error ?? 'Failed to delete prize';
+        return;
+      }
+      await loadPrizes();
+    } catch {
+      prizeError = 'Failed to delete prize';
+    }
+  }
 </script>
 
 <div class="max-w-2xl mx-auto p-6">
@@ -150,6 +345,13 @@
         onclick={() => (activeTab = 'deployment')}
       >
         Deployment
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg {activeTab === 'prizes' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
+        onclick={() => (activeTab = 'prizes')}
+      >
+        Prizes
       </button>
     </div>
 
@@ -307,9 +509,157 @@
       </div>
       {/if}
 
+      {#if activeTab === 'prizes'}
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold text-pub-gold mb-3">Prize feature</h2>
+          <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                bind:checked={prizesEnabled}
+                class="rounded"
+                disabled={prizeToggleSaving}
+                onchange={() => void savePrizeFeatureToggle()}
+              />
+              <span class="text-sm text-pub-muted">Enable prize feature</span>
+            </label>
+            {#if prizeToggleSaving}
+              <p class="text-xs text-pub-muted">Saving prize feature setting...</p>
+            {/if}
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" bind:checked={prizeEmailEnabled} class="rounded" disabled={!prizesEnabled} />
+              <span class="text-sm text-pub-muted">Enable one-time prize email delivery</span>
+            </label>
+            <p class="text-xs text-pub-muted">
+              When disabled, prize controls are hidden from room creation, host flow, and players.
+            </p>
+          </div>
+        </div>
+
+        {#if prizesEnabled}
+          <div class="rounded-lg border border-pub-muted bg-pub-darker p-4">
+            <PrizeTierEditor
+              bind:enabled={defaultRoomPrizeEnabled}
+              bind:tiers={defaultRoomPrizeTiers}
+              availablePrizes={prizes.filter((prize) => isPrizeSelectable(prize)).map((prize) => ({ id: prize.id, name: prize.name }))}
+              title="Default room prize setup"
+              subtitle="Preload these tiers in room creation. Hosts can still change them per room."
+              emptyMessage="No default prize tiers configured."
+            />
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h2 class="text-lg font-semibold text-pub-gold mb-3">Prize pool</h2>
+              <p class="text-sm text-pub-muted">Manage the prize links available for room prize tiers.</p>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                class="rounded-lg bg-pub-accent px-4 py-2 font-medium hover:opacity-90"
+                onclick={openAddPrizeModal}
+              >
+                Add prize
+              </button>
+            </div>
+
+            {#if loadingPrizes}
+              <p class="text-sm text-pub-muted">Loading prizes...</p>
+            {:else if prizes.length === 0}
+              <p class="text-sm text-pub-muted">No prizes yet.</p>
+            {:else}
+              <div class="space-y-4">
+                {#each prizes as prize, index}
+                  <div class="rounded-lg border p-4 space-y-3 {editingPrizeIds.includes(prize.id) ? 'border-amber-400 bg-pub-dark' : 'border-pub-muted bg-pub-darker'}">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-base font-semibold text-pub-gold truncate">{prize.name}</p>
+                        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-pub-muted">
+                          <span>Created: {formatCreatedAt(prize.createdAt)}</span>
+                          <span class="rounded-full border border-pub-muted px-2 py-0.5">
+                            Claimed: {prize.usage}
+                          </span>
+                          <span class="rounded-full border border-pub-muted px-2 py-0.5">
+                            {prize.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        {#if editingPrizeIds.includes(prize.id)}
+                          <span class="mt-2 inline-block text-xs font-medium text-amber-300">Editing</span>
+                        {/if}
+                      </div>
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center p-2 rounded-lg text-amber-400 hover:bg-pub-dark hover:text-amber-300 disabled:opacity-50"
+                        title={editingPrizeIds.includes(prize.id) ? 'Cancel editing' : 'Edit prize'}
+                        aria-label={editingPrizeIds.includes(prize.id) ? `Cancel editing ${prize.name}` : `Edit ${prize.name}`}
+                        onclick={() => togglePrizeEditing(prize.id)}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="grid gap-3 md:grid-cols-2">
+                      <label class="block text-sm md:col-span-2">
+                        <span class="mb-1 block text-pub-muted">Prize URL</span>
+                        <input bind:value={prizes[index].url} disabled={!editingPrizeIds.includes(prize.id)} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2 disabled:opacity-70 disabled:cursor-not-allowed" />
+                      </label>
+                      <label class="block text-sm">
+                        <span class="mb-1 block text-pub-muted">Quantity</span>
+                        <input bind:value={prizes[index].limit} type="number" min={1} disabled={!editingPrizeIds.includes(prize.id)} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2 disabled:opacity-70 disabled:cursor-not-allowed" />
+                      </label>
+                      <label class="block text-sm">
+                        <span class="mb-1 block text-pub-muted">Expiration date</span>
+                        <input bind:value={prizes[index].expirationDate} type="date" disabled={!editingPrizeIds.includes(prize.id)} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2 disabled:opacity-70 disabled:cursor-not-allowed" />
+                      </label>
+                      <label class="block text-sm md:col-span-2">
+                        <span class="mb-1 block text-pub-muted">Notes</span>
+                        <input bind:value={prizes[index].notes} disabled={!editingPrizeIds.includes(prize.id)} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2 disabled:opacity-70 disabled:cursor-not-allowed" placeholder="Notes" />
+                      </label>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label class="flex items-center gap-2 text-sm text-pub-muted">
+                        <input type="checkbox" bind:checked={prizes[index].active} class="rounded" disabled={!editingPrizeIds.includes(prize.id)} />
+                        Active
+                      </label>
+                      <div class="flex flex-wrap items-center gap-3">
+                        <button type="button" class="rounded-lg bg-pub-accent px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50" onclick={() => savePrize(prizes[index])} disabled={!editingPrizeIds.includes(prize.id)}>
+                          Save
+                        </button>
+                        <button type="button" class="rounded-lg border border-red-500/50 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10" onclick={() => deletePrize(prize.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+      {/if}
+
       <p class="text-xs text-pub-muted">Session auth is used for saving. Password required only when changing username or password.</p>
       {#if error}
         <p class="text-sm text-red-400">{error}</p>
+      {/if}
+      {#if prizeError}
+        <p class="text-sm text-red-400">{prizeError}</p>
       {/if}
       {#if success}
         <p class="text-sm text-green-400">{success}</p>
@@ -324,3 +674,42 @@
     </form>
   {/if}
 </div>
+
+<ConfirmModal
+  open={showAddPrizeModal}
+  title="Add prize"
+  titleId="add-prize-modal-title"
+  cancelLabel="Cancel"
+  confirmLabel="Create prize"
+  confirmButtonClass="bg-pub-accent text-white"
+  onClose={closeAddPrizeModal}
+  onConfirm={createPrize}
+>
+  <div class="mb-4 space-y-4">
+    <div class="grid gap-3 md:grid-cols-2">
+      <label class="block text-sm">
+        <span class="mb-1 block text-pub-muted">Prize name</span>
+        <input bind:value={newPrizeName} placeholder="Prize name" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+      </label>
+      <label class="block text-sm md:col-span-2">
+        <span class="mb-1 block text-pub-muted">Prize URL</span>
+        <input bind:value={newPrizeUrl} placeholder="https://example.com/course" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-pub-muted">Quantity</span>
+        <input bind:value={newPrizeLimit} type="number" min={1} placeholder="Quantity" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-pub-muted">Expiration date</span>
+        <input bind:value={newPrizeExpirationDate} type="date" required class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+      </label>
+      <label class="block text-sm md:col-span-2">
+        <span class="mb-1 block text-pub-muted">Notes</span>
+        <input bind:value={newPrizeNotes} placeholder="Notes (optional)" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+      </label>
+    </div>
+    {#if prizeError && showAddPrizeModal}
+      <p class="text-sm text-red-400">{prizeError}</p>
+    {/if}
+  </div>
+</ConfirmModal>

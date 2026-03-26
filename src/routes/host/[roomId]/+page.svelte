@@ -28,11 +28,21 @@
   import HostWrongAnswersStrip from '$lib/components/host/HostWrongAnswersStrip.svelte';
   import HostOpenEndedRevealModeration from '$lib/components/host/HostOpenEndedRevealModeration.svelte';
   import HostWordCloudRevealModeration from '$lib/components/host/HostWordCloudRevealModeration.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+  import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
 
   const roomId = $page.params.roomId;
 
   let state: SerializedState | null = null;
   let questionPatch: SerializedQuestionPatch | null = null;
+  let prizeFeatureEnabled = false;
+  let prizeOptions: PrizeOption[] = [];
+  let prizeDraftEnabled = false;
+  let prizeDraftTiers: PrizeTier[] = [];
+  let prizeConfigError = '';
+  let showPrizeConfigModal = false;
+  let lastSyncedPrizeConfig = '';
   let copied = false;
   let joinError = '';
   let hostRejoinUsername = '';
@@ -150,6 +160,7 @@
       /* ignore */
     }
     doHostJoin(username, pwd);
+    void loadPrizeOptions();
     const onStateUpdate = (payload: { state: SerializedState }) => {
       state = payload.state;
       questionPatch = null;
@@ -175,6 +186,67 @@
       socket?.off('question:patch', onQuestionPatch);
     };
   });
+
+  async function loadPrizeOptions() {
+    try {
+      const res = await fetch('/api/prizes/options');
+      const data = await res.json();
+      prizeFeatureEnabled = data.enabled === true;
+      prizeOptions = data.prizes ?? [];
+    } catch {
+      prizeFeatureEnabled = false;
+      prizeOptions = [];
+    }
+  }
+
+  $: {
+    const signature = JSON.stringify(state?.roomPrizeConfig ?? null);
+    if (signature !== lastSyncedPrizeConfig) {
+      lastSyncedPrizeConfig = signature;
+      prizeDraftEnabled = state?.roomPrizeConfig?.enabled ?? false;
+      prizeDraftTiers = state?.roomPrizeConfig?.tiers?.map((tier) => ({ ...tier })) ?? [];
+    }
+  }
+
+  function saveRoomPrizeConfig() {
+    prizeConfigError = '';
+    const tiers = prizeDraftTiers
+      .map((tier) => ({
+        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
+        prizeId: tier.prizeId,
+        label: tier.label?.trim() || undefined,
+      }))
+      .filter((tier) => tier.prizeId);
+
+    if (prizeDraftEnabled && tiers.length === 0) {
+      prizeConfigError = 'Add at least one prize tier or turn room prizes off.';
+      return;
+    }
+
+    socket?.emit(
+      'host:set_room_prize_config',
+      { enabled: prizeDraftEnabled, tiers },
+      (ack: { ok?: boolean; error?: string; state?: SerializedState }) => {
+        if (ack?.error) {
+          prizeConfigError = ack.error;
+          return;
+        }
+        if (ack?.state) {
+          state = ack.state;
+        }
+        showPrizeConfigModal = false;
+      }
+    );
+  }
+
+  function openPrizeConfigModal() {
+    prizeConfigError = '';
+    showPrizeConfigModal = true;
+  }
+
+  function closePrizeConfigModal() {
+    showPrizeConfigModal = false;
+  }
 
   function getLiveSubmittedCount(questionId: string | undefined): number {
     if (!questionId) return 0;
@@ -414,6 +486,24 @@
             Start Game
           </button>
         </div>
+        {#if prizeFeatureEnabled}
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              class="px-4 py-2 bg-pub-dark border border-pub-muted rounded-lg font-medium text-pub-gold hover:bg-pub-accent/20"
+              onclick={openPrizeConfigModal}
+            >
+              Room Prizes
+            </button>
+            {#if state?.roomPrizeConfig?.enabled}
+              <span class="text-sm text-pub-muted">
+                {state.roomPrizeConfig.tiers.length} tier{state.roomPrizeConfig.tiers.length === 1 ? '' : 's'} configured
+              </span>
+            {:else}
+              <span class="text-sm text-pub-muted">No room prize tiers configured.</span>
+            {/if}
+          </div>
+        {/if}
       </div>
     {:else if state?.type === 'QuestionPreview'}
       {#if currentQuestion}
@@ -750,3 +840,28 @@
   onClose={closeEndQuizModal}
   onConfirm={confirmEndQuiz}
 />
+
+<ConfirmModal
+  open={showPrizeConfigModal}
+  title="Room prizes"
+  titleId="host-room-prizes-modal-title"
+  cancelLabel="Close"
+  confirmLabel="Save Prize Config"
+  confirmButtonClass="bg-pub-accent text-white"
+  onClose={closePrizeConfigModal}
+  onConfirm={saveRoomPrizeConfig}
+>
+  <div class="mb-4 space-y-4">
+    <PrizeTierEditor
+      bind:enabled={prizeDraftEnabled}
+      bind:tiers={prizeDraftTiers}
+      availablePrizes={prizeOptions}
+      title="Room prizes"
+      subtitle="Optional score tiers for this room. You can edit these until the game starts."
+      emptyMessage="No room prize tiers configured."
+    />
+    {#if prizeConfigError}
+      <p class="text-sm text-red-400">{prizeConfigError}</p>
+    {/if}
+  </div>
+</ConfirmModal>

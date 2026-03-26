@@ -4,10 +4,12 @@
   import { get } from 'svelte/store';
   import { onDestroy, onMount } from 'svelte';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
+  import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
   import type { QuizListItem } from '$lib/types/quiz-list.js';
+  import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
 
   let mode: 'choose' | 'host' | 'play' = 'choose';
   let quizFilename = '';
@@ -20,6 +22,7 @@
   let autoAdmitBeforeGame = true;
   let manualAdmitAfterGame = true;
   let passwordError = '';
+  let prizeError = '';
   let creating = false;
   let hostAuthenticated = false;
   let showQuizMenu = false;
@@ -27,6 +30,14 @@
   let hostPasswordRequired = false;
   let highlightedQuizIndex = -1;
   let quizMenuRoot: HTMLDivElement | null = null;
+  let prizeFeatureEnabled = false;
+  let prizeOptions: PrizeOption[] = [];
+  let defaultRoomPrizeEnabled = false;
+  let defaultRoomPrizeTiers: PrizeTier[] = [];
+  let roomPrizeEnabled = false;
+  let roomPrizeTiers: PrizeTier[] = [];
+  let savePrizeSetupAsDefault = false;
+  let prizeOptionsLoaded = false;
 
   const quizSelectLabelId = 'quiz-select-label';
   const quizSelectListboxId = 'quiz-select-listbox';
@@ -78,6 +89,33 @@
   onDestroy(() => {
     closeQuizMenu();
   });
+
+  function applyDefaultPrizeConfig() {
+    roomPrizeEnabled = defaultRoomPrizeEnabled;
+    roomPrizeTiers = defaultRoomPrizeTiers.map((tier) => ({ ...tier }));
+    savePrizeSetupAsDefault = false;
+  }
+
+  async function loadPrizeOptions() {
+    try {
+      const res = await fetch('/api/prizes/options');
+      const data = await res.json();
+      prizeFeatureEnabled = data.enabled === true;
+      prizeOptions = Array.isArray(data.prizes) ? data.prizes : [];
+      defaultRoomPrizeEnabled = data.defaultRoomPrizeConfig?.enabledByDefault ?? false;
+      defaultRoomPrizeTiers = data.defaultRoomPrizeConfig?.tiers ?? [];
+      applyDefaultPrizeConfig();
+    } catch {
+      prizeFeatureEnabled = false;
+      prizeOptions = [];
+      defaultRoomPrizeEnabled = false;
+      defaultRoomPrizeTiers = [];
+      roomPrizeEnabled = false;
+      roomPrizeTiers = [];
+    } finally {
+      prizeOptionsLoaded = true;
+    }
+  }
 
   function openQuizMenu() {
     showQuizMenu = true;
@@ -173,6 +211,7 @@
   async function startAsHost() {
     mode = 'host';
     passwordError = '';
+    prizeError = '';
     if (hostPasswordRequired) {
       try {
         await refreshHostAuthState();
@@ -181,6 +220,11 @@
         passwordError = 'Unable to verify authentication. Please try again.';
       }
     }
+    await loadPrizeOptions();
+  }
+
+  $: if (mode === 'host' && !prizeOptionsLoaded) {
+    void loadPrizeOptions();
   }
 
   function startAsPlayer() {
@@ -190,6 +234,7 @@
   async function createRoom() {
     if (!quizFilename) return;
     passwordError = '';
+    prizeError = '';
     creating = true;
     try {
       if (hostPasswordRequired) {
@@ -224,7 +269,51 @@
       return;
     }
 
-    const payload: { quizFilename: string; username?: string; password?: string; playerJoinPassword?: string; waitingRoomEnabled?: boolean; allowLateJoin?: boolean; autoAdmitBeforeGame?: boolean; manualAdmitAfterGame?: boolean } = { quizFilename };
+    const sanitizedRoomPrizeTiers = roomPrizeTiers
+      .map((tier) => ({
+        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
+        prizeId: tier.prizeId,
+        label: tier.label?.trim() || undefined,
+      }))
+      .filter((tier) => tier.prizeId);
+
+    if (prizeFeatureEnabled && roomPrizeEnabled && sanitizedRoomPrizeTiers.length === 0) {
+      creating = false;
+      prizeError = 'Add at least one prize tier or turn room prizes off.';
+      return;
+    }
+
+    if (prizeFeatureEnabled && savePrizeSetupAsDefault) {
+      const saveDefaultRes = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          defaultRoomPrizeConfig: {
+            enabledByDefault: roomPrizeEnabled,
+            tiers: sanitizedRoomPrizeTiers,
+          },
+        }),
+      });
+      const saveDefaultData = await saveDefaultRes.json();
+      if (!saveDefaultRes.ok) {
+        creating = false;
+        prizeError = saveDefaultData.error ?? 'Failed to save default prize setup';
+        return;
+      }
+    }
+
+    const payload: {
+      quizFilename: string;
+      username?: string;
+      password?: string;
+      playerJoinPassword?: string;
+      waitingRoomEnabled?: boolean;
+      allowLateJoin?: boolean;
+      autoAdmitBeforeGame?: boolean;
+      manualAdmitAfterGame?: boolean;
+      roomPrizeConfig?: { enabled: boolean; tiers: PrizeTier[] };
+    } = { quizFilename };
     if (hostPasswordRequired) {
       payload.username = hostUsername.trim() || undefined;
       payload.password = resolveHostCreatePassword(hostPasswordRequired, hostPassword);
@@ -240,6 +329,9 @@
     }
     if (allowLateJoin) {
       payload.allowLateJoin = true;
+    }
+    if (prizeFeatureEnabled && roomPrizeEnabled) {
+      payload.roomPrizeConfig = { enabled: true, tiers: sanitizedRoomPrizeTiers };
     }
     const socket = createSocket();
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -498,6 +590,23 @@
             </div>
           {/if}
         </div>
+      {/if}
+      {#if prizeFeatureEnabled}
+        <div class="rounded-lg border border-pub-muted bg-pub-darker p-4">
+          <PrizeTierEditor
+            bind:enabled={roomPrizeEnabled}
+            bind:tiers={roomPrizeTiers}
+            bind:saveAsDefault={savePrizeSetupAsDefault}
+            availablePrizes={prizeOptions}
+            title="Room prizes"
+            subtitle="Optional score tiers for this game only."
+            showSaveDefault
+            emptyMessage="No room prize tiers configured."
+          />
+        </div>
+      {/if}
+      {#if prizeError}
+        <p class="text-sm text-red-400">{prizeError}</p>
       {/if}
       <button
         type="submit"

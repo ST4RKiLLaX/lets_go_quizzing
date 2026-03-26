@@ -7,6 +7,8 @@ import type {
   SerializedSubmission,
 } from '../../types/game.js';
 import type { Quiz } from '../../types/quiz.js';
+import { loadConfig } from '../config.js';
+import { createPrizeClaimToken, isPrizeFeatureEnabled } from '../prizes/service.js';
 
 const playersCache = new WeakMap<GameState['players'], SerializedPlayer[]>();
 const pendingPlayersCache = new WeakMap<GameState['pendingPlayers'], SerializedPendingPlayer[]>();
@@ -184,14 +186,28 @@ export function serializeHostState(state: GameState) {
     allowLateJoin: state.allowLateJoin,
     autoAdmitBeforeGame: state.autoAdmitBeforeGame,
     manualAdmitAfterGame: state.manualAdmitAfterGame,
+    roomPrizeConfig: state.roomPrizeConfig,
     hiddenWordsByQuestion: serializeHiddenWordsByQuestion(state.hiddenWordsByQuestion),
   };
 }
 
-export function serializePlayerState(state: GameState) {
+export function serializePlayerState(state: GameState, playerId?: string) {
   const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: false }));
   const quiz = serializePlayerQuizProjection(state);
-  return { ...base, quiz };
+  const player = playerId ? state.players.get(playerId) : undefined;
+  const config = loadConfig();
+  const prizeClaimToken =
+    state.type === 'End' && state.roomPrizeConfig?.enabled && player && isPrizeFeatureEnabled(config)
+      ? createPrizeClaimToken({
+          roomId: state.roomId,
+          playerId: player.id,
+          finalScore: player.score,
+          quizFilename: state.quizFilename,
+          startedAt: state.startedAt,
+          config,
+        })
+      : undefined;
+  return { ...base, quiz, prizeClaimToken };
 }
 
 export function serializeProjectorState(state: GameState) {

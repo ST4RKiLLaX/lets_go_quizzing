@@ -5,7 +5,7 @@ import { createRoom, getRoom, setRoom, roomExists, removePendingPlayerBySocketId
 import { transition } from '../game/state-machine.js';
 import { scoreSubmissions } from '../game/scoring.js';
 import { isAuthenticated, requireHostAuth, verifyWithEnvOrConfig, verifyPasswordConstantTime } from '../auth.js';
-import { getProfanityFilterMode, getCustomKeywordFilterEnabled } from '../config.js';
+import { getProfanityFilterMode, getCustomKeywordFilterEnabled, loadConfig } from '../config.js';
 import { containsProfanityAggressive } from '../profanity.js';
 import { containsCustomBlockedTerm } from '../custom-block.js';
 import { getClientAddressFromSocket } from '../address.js';
@@ -20,6 +20,8 @@ import { broadcastRoomPatchToRoom, broadcastStateToRoom } from './broadcast.js';
 import { saveHistory } from './history.js';
 import { normalizeWordCloudToken } from '../../utils/word-cloud.js';
 import { flushQueuedQuestionPatch, queueQuestionPatch } from './question-patch.js';
+import { createRoomPrizeConfig, isPrizeFeatureEnabled } from '../prizes/service.js';
+import type { PrizeTier } from '../../types/prizes.js';
 
 function logHostAuthFailure(
   event: 'host:create' | 'host:join',
@@ -70,6 +72,7 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
         allowLateJoin?: boolean;
         autoAdmitBeforeGame?: boolean;
         manualAdmitAfterGame?: boolean;
+        roomPrizeConfig?: { enabled?: boolean; tiers?: PrizeTier[] };
       },
       ack
     ) => {
@@ -82,6 +85,7 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
         allowLateJoin,
         autoAdmitBeforeGame,
         manualAdmitAfterGame,
+        roomPrizeConfig,
       } = payload ?? {};
       if (!quizFilename) {
         ack?.({ error: 'quizFilename required' });
@@ -103,6 +107,11 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
         return;
       }
       try {
+        const config = loadConfig();
+        const prizeConfig =
+          isPrizeFeatureEnabled(config) && roomPrizeConfig
+            ? createRoomPrizeConfig(roomPrizeConfig, (username ?? '').trim() || 'host')
+            : undefined;
         const roomId = createRoom(
           quizFilename,
           socket.id,
@@ -110,7 +119,8 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
           waitingRoomEnabled,
           allowLateJoin,
           autoAdmitBeforeGame,
-          manualAdmitAfterGame
+          manualAdmitAfterGame,
+          prizeConfig
         );
         socket.join(roomId);
         socket.data.role = 'host';
@@ -181,6 +191,32 @@ function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
 
 function registerHostGameHandlers(ctx: SocketHandlerContext): void {
   const { io, socket, getRoom, setRoom, transition, scoreSubmissions, broadcastStateToRoom, saveHistory } = ctx;
+
+  socket.on('host:set_room_prize_config', (payload: { enabled?: boolean; tiers?: PrizeTier[] }, ack) => {
+    const roomId = socket.data.roomId;
+    if (!roomId || socket.data.role !== 'host') {
+      ack?.({ error: 'Unauthorized' });
+      return;
+    }
+    if (!isPrizeFeatureEnabled(loadConfig())) {
+      ack?.({ error: 'Prize feature disabled' });
+      return;
+    }
+    const state = getRoom(roomId);
+    if (!state) {
+      ack?.({ error: 'Room not found' });
+      return;
+    }
+    if (state.type !== 'Lobby') {
+      ack?.({ error: 'Prize config can only be changed in the lobby' });
+      return;
+    }
+    const roomPrizeConfig = createRoomPrizeConfig(payload, 'host');
+    const next = { ...state, roomPrizeConfig };
+    setRoom(roomId, next);
+    ack?.({ ok: true, state: serializeHostState(next) });
+    void broadcastStateToRoom(io, roomId, next);
+  });
 
   socket.on('host:start', (_, ack) => {
     const roomId = socket.data.roomId;
@@ -511,7 +547,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
       targetSocket.data.roomId = roomId;
       targetSocket.data.role = 'player';
       targetSocket.data.playerId = playerId;
-      targetSocket.emit('player:admitted', { state: serializePlayerState(nextState) });
+        targetSocket.emit('player:admitted', { state: serializePlayerState(nextState, playerId) });
     }
     void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
@@ -733,7 +769,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           socket.data.roomId = roomId;
           socket.data.role = 'player';
           socket.data.playerId = resolvedPlayerId;
-          ack?.({ roomId, playerId: resolvedPlayerId, state: serializePlayerState(nextState) });
+          ack?.({ roomId, playerId: resolvedPlayerId, state: serializePlayerState(nextState, resolvedPlayerId) });
           void broadcastRoomPatchToRoom(io, roomId, nextState);
           return;
         }
@@ -766,7 +802,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       socket.data.roomId = roomId;
       socket.data.role = 'player';
       socket.data.playerId = resolvedPlayerId;
-      ack?.({ roomId, playerId: socket.data.playerId, state: serializePlayerState(nextState) });
+      ack?.({ roomId, playerId: socket.data.playerId, state: serializePlayerState(nextState, socket.data.playerId) });
       void broadcastRoomPatchToRoom(io, roomId, nextState);
     }
   );

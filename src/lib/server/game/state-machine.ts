@@ -1,4 +1,5 @@
 import type { Quiz } from '../storage/parser.js';
+import type { RoomPrizeConfig } from '../../types/prizes.js';
 
 export type GameStateType = 'Lobby' | 'QuestionPreview' | 'Question' | 'RevealAnswer' | 'Scoreboard' | 'End';
 
@@ -45,6 +46,7 @@ export interface GameState {
   allowLateJoin?: boolean;
   autoAdmitBeforeGame?: boolean;
   manualAdmitAfterGame?: boolean;
+  roomPrizeConfig?: RoomPrizeConfig;
   currentRoundIndex: number;
   currentQuestionIndex: number;
   submissions: AnswerSubmission[];
@@ -192,6 +194,7 @@ export function createInitialState(roomId: string, quiz: Quiz, quizFilename: str
     allowLateJoin: false,
     autoAdmitBeforeGame: true,
     manualAdmitAfterGame: true,
+    roomPrizeConfig: undefined,
     currentRoundIndex: 0,
     currentQuestionIndex: 0,
     submissions: [],

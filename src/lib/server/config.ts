@@ -12,6 +12,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import type { RoomPrizeDefaultConfig } from '../types/prizes.js';
+import { RoomPrizeDefaultConfigSchema } from './prizes/schema.js';
 
 const CONFIG_FILENAME = 'config.json';
 const DATA_DIR = 'data';
@@ -34,6 +36,9 @@ export interface AppConfig {
   profanityAllowlist?: string[];
   customKeywordFilterEnabled?: boolean;
   customBlockedTerms?: string[];
+  prizesEnabled?: boolean;
+  prizeEmailEnabled?: boolean;
+  defaultRoomPrizeConfig?: RoomPrizeDefaultConfig;
 }
 
 const REQUIRED_FIELDS = ['version', 'adminUsername', 'adminPasswordHash'] as const;
@@ -65,6 +70,14 @@ function validateConfig(raw: unknown): raw is AppConfig {
   if (typeof o.version !== 'number' || o.version < 1) return false;
   if (typeof o.adminUsername !== 'string' || o.adminUsername.length < 3) return false;
   if (typeof o.adminPasswordHash !== 'string' || !o.adminPasswordHash.includes(':')) return false;
+  if (o.prizesEnabled !== undefined && typeof o.prizesEnabled !== 'boolean') return false;
+  if (o.prizeEmailEnabled !== undefined && typeof o.prizeEmailEnabled !== 'boolean') return false;
+  if (
+    o.defaultRoomPrizeConfig !== undefined &&
+    !RoomPrizeDefaultConfigSchema.safeParse(o.defaultRoomPrizeConfig).success
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -144,6 +157,11 @@ export function saveConfig(partial: Partial<AppConfig>): void {
         : current?.customKeywordFilterEnabled,
     customBlockedTerms:
       partial.customBlockedTerms !== undefined ? partial.customBlockedTerms : current?.customBlockedTerms,
+    prizesEnabled: partial.prizesEnabled !== undefined ? partial.prizesEnabled : current?.prizesEnabled,
+    prizeEmailEnabled:
+      partial.prizeEmailEnabled !== undefined ? partial.prizeEmailEnabled : current?.prizeEmailEnabled,
+    defaultRoomPrizeConfig:
+      partial.defaultRoomPrizeConfig !== undefined ? partial.defaultRoomPrizeConfig : current?.defaultRoomPrizeConfig,
   };
   if (!next.adminUsername || !next.adminPasswordHash) {
     throw new Error('adminUsername and adminPasswordHash are required');
@@ -224,6 +242,15 @@ export function getCustomBlockedTerms(): string[] {
   const cfg = loadConfig();
   const terms = cfg?.customBlockedTerms;
   return Array.isArray(terms) ? terms : [];
+}
+
+export function getPrizesEnabled(): boolean {
+  return loadConfig()?.prizesEnabled === true;
+}
+
+export function getPrizeEmailEnabled(): boolean {
+  const cfg = loadConfig();
+  return cfg?.prizeEmailEnabled === true && cfg?.prizesEnabled === true;
 }
 
 export function getEffectiveRoomIdLen(): number {

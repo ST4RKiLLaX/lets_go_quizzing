@@ -2,13 +2,26 @@ import { customAlphabet } from 'nanoid';
 import type { GameState } from './state-machine.js';
 import { loadQuiz } from '../storage/parser.js';
 import { getEffectiveRoomIdLen } from '../config.js';
+import type { RoomPrizeConfig } from '../../types/prizes.js';
 
 function getNanoid() {
   const len = getEffectiveRoomIdLen();
   return customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', len);
 }
 
-const rooms = new Map<string, GameState>();
+const ROOMS_STORE_KEY = '__lgq_rooms_store__';
+
+type RoomsStoreGlobal = typeof globalThis & {
+  [ROOMS_STORE_KEY]?: Map<string, GameState>;
+};
+
+function getRoomsStore(): Map<string, GameState> {
+  const globalStore = globalThis as RoomsStoreGlobal;
+  globalStore[ROOMS_STORE_KEY] ??= new Map<string, GameState>();
+  return globalStore[ROOMS_STORE_KEY];
+}
+
+const rooms = getRoomsStore();
 
 export function createRoom(
   quizFilename: string,
@@ -17,7 +30,8 @@ export function createRoom(
   waitingRoomEnabled?: boolean,
   allowLateJoin?: boolean,
   autoAdmitBeforeGame?: boolean,
-  manualAdmitAfterGame?: boolean
+  manualAdmitAfterGame?: boolean,
+  roomPrizeConfig?: RoomPrizeConfig
 ): string {
   const roomId = getNanoid()();
   const quiz = loadQuiz(quizFilename);
@@ -35,6 +49,7 @@ export function createRoom(
     allowLateJoin: !!allowLateJoin,
     autoAdmitBeforeGame: autoAdmitBeforeGame ?? !!waitingRoomEnabled,
     manualAdmitAfterGame: manualAdmitAfterGame ?? true,
+    roomPrizeConfig,
     currentRoundIndex: 0,
     currentQuestionIndex: 0,
     submissions: [],
