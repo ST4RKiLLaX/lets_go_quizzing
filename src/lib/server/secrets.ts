@@ -1,17 +1,10 @@
 import {
   readFileSync,
-  writeFileSync,
-  renameSync,
   existsSync,
-  mkdirSync,
-  chmodSync,
-  unlinkSync,
 } from 'node:fs';
-import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { getDataFilePath, writeDataJsonFileAtomic } from './json-file-store.js';
 
 const SECRETS_FILENAME = 'secrets.json';
-const DATA_DIR = 'data';
 
 interface SecretStore {
   version: number;
@@ -22,18 +15,7 @@ let secretsCache: SecretStore | null = null;
 let secretsCacheValid = false;
 
 function getSecretsPath(): string {
-  return join(process.cwd(), DATA_DIR, SECRETS_FILENAME);
-}
-
-function getTempPath(): string {
-  return getSecretsPath() + '.tmp.' + randomBytes(8).toString('hex');
-}
-
-function ensureDataDir(): void {
-  const dir = join(process.cwd(), DATA_DIR);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  return getDataFilePath(SECRETS_FILENAME);
 }
 
 function validateSecretStore(raw: unknown): raw is SecretStore {
@@ -87,25 +69,7 @@ export function saveSecretStore(partial: Partial<SecretStore>): void {
   if (!validateSecretStore(next)) {
     throw new Error('Invalid secret store');
   }
-  ensureDataDir();
-  const finalPath = getSecretsPath();
-  const tempPath = getTempPath();
-  try {
-    writeFileSync(tempPath, JSON.stringify(next, null, 2), 'utf8');
-    renameSync(tempPath, finalPath);
-    try {
-      chmodSync(finalPath, 0o600);
-    } catch {
-      console.warn('[secrets] Could not set restrictive permissions on secrets file');
-    }
-  } catch (e) {
-    try {
-      unlinkSync(tempPath);
-    } catch {
-      /* ignore */
-    }
-    throw e;
-  }
+  writeDataJsonFileAtomic(SECRETS_FILENAME, next, 'secrets');
   invalidateCache();
 }
 

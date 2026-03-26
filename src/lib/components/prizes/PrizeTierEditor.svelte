@@ -10,6 +10,7 @@
   export let showSaveDefault = false;
   export let saveAsDefault = false;
   export let emptyMessage = 'No prize tiers configured.';
+  export let enabledLabel = 'Enable for this room';
 
   function addTier() {
     tiers = [...tiers, { minScore: 0, prizeId: availablePrizes[0]?.id ?? '', label: '' }];
@@ -40,7 +41,7 @@
     </div>
     <label class="inline-flex items-center gap-2 text-sm text-pub-muted md:shrink-0">
       <input type="checkbox" bind:checked={enabled} disabled={!editable} class="rounded" />
-      Enable for this room
+      {enabledLabel}
     </label>
   </div>
 

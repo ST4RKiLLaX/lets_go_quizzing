@@ -1,10 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { loadConfig } from '$lib/server/config.js';
 import { getRoom } from '$lib/server/game/rooms.js';
-import { claimPrizeForPlayer, isPrizeEmailEnabled, isPrizeFeatureEnabled, verifyPrizeClaimToken } from '$lib/server/prizes/service.js';
+import { claimPrizeForPlayer, getPrizeEmailPolicy, isPrizeFeatureEnabled, verifyPrizeClaimToken } from '$lib/server/prizes/service.js';
 
 export async function POST({ request }) {
   const config = loadConfig();
+  const emailPolicy = getPrizeEmailPolicy(config);
   if (!isPrizeFeatureEnabled(config)) {
     return json({ error: 'Prize feature disabled' }, { status: 404 });
   }
@@ -42,7 +43,8 @@ export async function POST({ request }) {
       redemptionId: redemption.redemptionId,
       prizeName: redemption.prizeNameSnapshot,
       prizeUrl: redemption.prizeUrlSnapshot,
-      emailEnabled: isPrizeEmailEnabled(config),
+      emailConfigured: emailPolicy.featureEnabled,
+      emailAvailableNow: emailPolicy.availableNow,
     });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });

@@ -67,6 +67,7 @@ test('settings GET returns readable SMTP config and masked password status only'
   expect(data.prizeEmailSmtpUsername).toBe('mailer@example.com');
   expect(data.prizeEmailFromEmail).toBe('noreply@example.com');
   expect(data.prizeEmailSmtpPasswordConfigured).toBe(true);
+  expect(data.prizeEmailAvailableNow).toBe(false);
   expect('prizeEmailSmtpPassword' in data).toBe(false);
 });
 
@@ -132,4 +133,30 @@ test('SMTP test endpoint verifies saved configuration without returning secrets'
       pass: 'smtp-secret',
     },
   });
+});
+
+test('settings GET reports email available now when feature and transport are both ready', async () => {
+  prepareTempDir();
+  setPrizeEmailSmtpPassword('smtp-secret');
+
+  await PUT({
+    request: new Request('http://localhost/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', cookie: makeCookie() },
+      body: JSON.stringify({
+        prizeEmailEnabled: true,
+      }),
+    }),
+  } as Parameters<typeof PUT>[0]);
+
+  const response = await GET({
+    request: new Request('http://localhost/api/settings', {
+      headers: { cookie: makeCookie() },
+    }),
+  } as Parameters<typeof GET>[0]);
+
+  const data = await response.json();
+
+  expect(response.ok).toBe(true);
+  expect(data.prizeEmailAvailableNow).toBe(true);
 });

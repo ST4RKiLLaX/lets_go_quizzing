@@ -16,15 +16,17 @@ import {
   hasPrizeEmailSmtpPassword,
   setPrizeEmailSmtpPassword,
 } from '$lib/server/secrets.js';
+import {
+  getPrizeEmailStatus,
+  getPrizeEmailTransportValidationError,
+  isValidEmailAddress,
+  isValidSmtpPort,
+} from '$lib/server/prizes/email.js';
 import { jsonWithCookie } from '$lib/server/response.js';
 import { validateRoomPrizeDefaultConfig } from '$lib/server/prizes/service.js';
 
 const CUSTOM_BLOCK_MAX_TERMS = 100;
 const CUSTOM_BLOCK_MAX_TERM_LENGTH = 50;
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
 
 function normalizeForDedupe(text: string): string {
   return text
@@ -48,6 +50,7 @@ export async function GET({ request }) {
     origin: !!process.env.ORIGIN,
     roomIdLen: process.env.ROOM_ID_LEN != null,
   };
+  const prizeEmailStatus = getPrizeEmailStatus(cfg);
   return json({
     username: cfg.adminUsername,
     origin: cfg.origin ?? '',
@@ -64,6 +67,7 @@ export async function GET({ request }) {
     prizeEmailFromEmail: cfg.prizeEmailFromEmail ?? '',
     prizeEmailFromName: cfg.prizeEmailFromName ?? '',
     prizeEmailSmtpPasswordConfigured: hasPrizeEmailSmtpPassword(),
+    prizeEmailAvailableNow: prizeEmailStatus.availableNow,
     defaultRoomPrizeConfig: cfg.defaultRoomPrizeConfig ?? null,
     effectiveOrigin: getEffectiveOrigin() ?? '',
     effectiveRoomIdLen: getEffectiveRoomIdLen(),
@@ -179,14 +183,14 @@ export async function PUT({ request }) {
     if (roomIdLen !== undefined && (roomIdLen < 4 || roomIdLen > 12 || !Number.isInteger(roomIdLen))) {
       return json({ error: 'Room ID length must be 4–12' }, { status: 400 });
     }
-    if (prizeEmailSmtpPort !== undefined && (!Number.isInteger(prizeEmailSmtpPort) || prizeEmailSmtpPort < 1 || prizeEmailSmtpPort > 65535)) {
+    if (prizeEmailSmtpPort !== undefined && !isValidSmtpPort(prizeEmailSmtpPort)) {
       return json({ error: 'SMTP port must be 1–65535' }, { status: 400 });
     }
     const validModes: ProfanityFilterMode[] = ['off', 'names', 'public_text', 'strict'];
     if (profanityFilterMode !== undefined && !validModes.includes(profanityFilterMode as ProfanityFilterMode)) {
       return json({ error: 'Invalid profanity filter mode' }, { status: 400 });
     }
-    if (prizeEmailFromEmail !== undefined && prizeEmailFromEmail && !isValidEmail(prizeEmailFromEmail)) {
+    if (prizeEmailFromEmail !== undefined && prizeEmailFromEmail && !isValidEmailAddress(prizeEmailFromEmail)) {
       return json({ error: 'Enter a valid SMTP from email address' }, { status: 400 });
     }
     if (clearPrizeEmailSmtpPasswordFlag && prizeEmailSmtpPassword && prizeEmailSmtpPassword.trim()) {
@@ -225,29 +229,19 @@ export async function PUT({ request }) {
       : prizeEmailSmtpPassword !== undefined
         ? prizeEmailSmtpPassword.trim().length > 0
         : hasPrizeEmailSmtpPassword();
-    const hasAnyPrizeEmailTransportConfig = !!(
-      nextPrizeEmailSmtpHost ||
-      nextPrizeEmailSmtpUsername ||
-      nextPrizeEmailFromEmail ||
-      nextPrizeEmailFromName ||
-      nextPrizeEmailSmtpPasswordConfigured
+    const prizeEmailValidationError = getPrizeEmailTransportValidationError(
+      {
+        host: nextPrizeEmailSmtpHost,
+        port: nextPrizeEmailSmtpPort,
+        username: nextPrizeEmailSmtpUsername,
+        fromEmail: nextPrizeEmailFromEmail,
+        fromName: nextPrizeEmailFromName,
+        passwordConfigured: nextPrizeEmailSmtpPasswordConfigured,
+      },
+      { requirePassword: nextPrizeEmailEnabled }
     );
-    if (hasAnyPrizeEmailTransportConfig || nextPrizeEmailEnabled) {
-      if (!nextPrizeEmailSmtpHost) {
-        return json({ error: 'SMTP host is required' }, { status: 400 });
-      }
-      if (!Number.isInteger(nextPrizeEmailSmtpPort) || nextPrizeEmailSmtpPort < 1 || nextPrizeEmailSmtpPort > 65535) {
-        return json({ error: 'SMTP port must be 1–65535' }, { status: 400 });
-      }
-      if (!nextPrizeEmailSmtpUsername) {
-        return json({ error: 'SMTP username is required' }, { status: 400 });
-      }
-      if (!nextPrizeEmailFromEmail || !isValidEmail(nextPrizeEmailFromEmail)) {
-        return json({ error: 'A valid SMTP from email is required' }, { status: 400 });
-      }
-      if (nextPrizeEmailEnabled && !nextPrizeEmailSmtpPasswordConfigured) {
-        return json({ error: 'SMTP password is required' }, { status: 400 });
-      }
+    if (prizeEmailValidationError) {
+      return json({ error: prizeEmailValidationError }, { status: 400 });
     }
 
     const partial: Parameters<typeof saveConfig>[0] = {};

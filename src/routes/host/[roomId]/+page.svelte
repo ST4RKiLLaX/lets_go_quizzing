@@ -28,6 +28,7 @@
   import HostWrongAnswersStrip from '$lib/components/host/HostWrongAnswersStrip.svelte';
   import HostOpenEndedRevealModeration from '$lib/components/host/HostOpenEndedRevealModeration.svelte';
   import HostWordCloudRevealModeration from '$lib/components/host/HostWordCloudRevealModeration.svelte';
+  import { normalizePrizeTiers } from '$lib/prizes/tiers.js';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
   import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
@@ -210,13 +211,7 @@
 
   function saveRoomPrizeConfig() {
     prizeConfigError = '';
-    const tiers = prizeDraftTiers
-      .map((tier) => ({
-        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
-        prizeId: tier.prizeId,
-        label: tier.label?.trim() || undefined,
-      }))
-      .filter((tier) => tier.prizeId);
+    const tiers = normalizePrizeTiers(prizeDraftTiers);
 
     if (prizeDraftEnabled && tiers.length === 0) {
       prizeConfigError = 'Add at least one prize tier or turn room prizes off.';

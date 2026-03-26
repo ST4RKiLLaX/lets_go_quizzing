@@ -1,8 +1,6 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
-import nodemailer from 'nodemailer';
 import { loadConfig, type AppConfig } from '../config.js';
 import type { GameState } from '../game/state-machine.js';
-import { getPrizeEmailSmtpPassword } from '../secrets.js';
 import type {
   PrizeDefinition,
   PrizeEligibility,
@@ -12,19 +10,16 @@ import type {
   RoomPrizeConfig,
   RoomPrizeDefaultConfig,
 } from '../../types/prizes.js';
+import { toPrizeOption } from '../../prizes/options.js';
+import { normalizePrizeTiers } from '../../prizes/tiers.js';
 import { RoomPrizeConfigSchema, RoomPrizeDefaultConfigSchema } from './schema.js';
 import { loadPrizeRedemptionStore, loadPrizeStore, savePrizeRedemptionStore, savePrizeStore, withPrizeMutationLock } from './store.js';
-
-function normalizeRoomPrizeTiers(tiers: PrizeTier[]): PrizeTier[] {
-  return tiers
-    .map((tier) => ({
-      minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
-      prizeId: tier.prizeId.trim(),
-      label: tier.label?.trim() || undefined,
-    }))
-    .filter((tier) => tier.prizeId.length > 0)
-    .sort((a, b) => b.minScore - a.minScore);
-}
+import {
+  buildPrizeEmailFrom,
+  createPrizeEmailTransporter,
+  getPrizeEmailStatus,
+  getPrizeEmailTransportConfig,
+} from './email.js';
 
 function normalizePrizeField(value: string): string {
   return value.trim();
@@ -65,70 +60,24 @@ function getPrizeTokenSecret(config: AppConfig | null | undefined): string | und
   return config?.adminPasswordHash || process.env.HOST_PASSWORD?.trim() || undefined;
 }
 
-interface PrizeEmailTransportConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  username: string;
-  password: string;
-  fromEmail: string;
-  fromName?: string;
-}
-
-function buildPrizeEmailFrom(config: PrizeEmailTransportConfig): string {
-  const fromName = config.fromName?.trim();
-  if (!fromName) return config.fromEmail;
-  return `${fromName} <${config.fromEmail}>`;
-}
-
-function getPrizeEmailTransportConfig(config: AppConfig | null | undefined): PrizeEmailTransportConfig | undefined {
-  const host = config?.prizeEmailSmtpHost?.trim();
-  const port = config?.prizeEmailSmtpPort;
-  const secure = config?.prizeEmailSmtpSecure === true;
-  const username = config?.prizeEmailSmtpUsername?.trim();
-  const password = getPrizeEmailSmtpPassword();
-  const fromEmail = config?.prizeEmailFromEmail?.trim();
-  const fromName = config?.prizeEmailFromName?.trim() || undefined;
-  if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535 || !username || !password || !fromEmail) {
-    return undefined;
-  }
-  return {
-    host,
-    port,
-    secure,
-    username,
-    password,
-    fromEmail,
-    fromName,
-  };
-}
-
 export function isPrizeFeatureEnabled(config: AppConfig | null | undefined): boolean {
   return config?.prizesEnabled === true;
 }
 
 export function isPrizeEmailEnabled(config: AppConfig | null | undefined): boolean {
-  return isPrizeFeatureEnabled(config) && config?.prizeEmailEnabled === true && isPrizeEmailTransportConfigured(config);
+  return getPrizeEmailStatus(config).availableNow;
 }
 
 export function isPrizeEmailTransportConfigured(config: AppConfig | null | undefined): boolean {
-  return !!getPrizeEmailTransportConfig(config);
+  return getPrizeEmailStatus(config).transportConfigured;
+}
+
+export function getPrizeEmailPolicy(config: AppConfig | null | undefined) {
+  return getPrizeEmailStatus(config);
 }
 
 export async function testPrizeEmailTransport(config: AppConfig | null | undefined): Promise<void> {
-  const transportConfig = getPrizeEmailTransportConfig(config);
-  if (!transportConfig) {
-    throw new Error('Prize email transport is not configured');
-  }
-  const transporter = nodemailer.createTransport({
-    host: transportConfig.host,
-    port: transportConfig.port,
-    secure: transportConfig.secure,
-    auth: {
-      user: transportConfig.username,
-      pass: transportConfig.password,
-    },
-  });
+  const transporter = createPrizeEmailTransporter(config);
   await transporter.verify();
 }
 
@@ -140,7 +89,7 @@ export function validateRoomPrizeDefaultConfig(raw: unknown): RoomPrizeDefaultCo
   }
   return {
     enabledByDefault: parsed.data.enabledByDefault,
-    tiers: normalizeRoomPrizeTiers(parsed.data.tiers),
+    tiers: normalizePrizeTiers(parsed.data.tiers),
   };
 }
 
@@ -200,7 +149,7 @@ export function createRoomPrizeConfig(
   configuredBy: string
 ): RoomPrizeConfig | undefined {
   if (!raw?.enabled) return undefined;
-  const tiers = normalizeRoomPrizeTiers(raw.tiers ?? []);
+  const tiers = normalizePrizeTiers(raw.tiers ?? []);
   if (tiers.length === 0) return undefined;
   return RoomPrizeConfigSchema.parse({
     enabled: true,
@@ -213,11 +162,7 @@ export function createRoomPrizeConfig(
 export function listPrizeOptions(): PrizeOption[] {
   return loadPrizeStore()
     .prizes.filter((prize) => prize.active && !isPrizeExpired(prize))
-    .map((prize) => ({
-      id: prize.id,
-      name: prize.name,
-      remainingQuantity: Math.max(0, prize.limit - prize.usage),
-    }))
+    .map(toPrizeOption)
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -318,7 +263,7 @@ export async function deletePrize(prizeId: string): Promise<void> {
 
 function getBestEligibleTier(config: RoomPrizeConfig | undefined, score: number): PrizeTier | undefined {
   if (!config?.enabled) return undefined;
-  return normalizeRoomPrizeTiers(config.tiers).find((tier) => score >= tier.minScore);
+  return normalizePrizeTiers(config.tiers).find((tier) => score >= tier.minScore);
 }
 
 export function getPrizeEligibility(state: GameState | undefined, playerId: string, config: AppConfig | null): PrizeEligibility {
@@ -460,15 +405,7 @@ export async function sendPrizeEmail(params: { redemptionId: string; email: stri
   if (!transportConfig) {
     throw new Error('Prize email transport is not configured');
   }
-  const transporter = nodemailer.createTransport({
-    host: transportConfig.host,
-    port: transportConfig.port,
-    secure: transportConfig.secure,
-    auth: {
-      user: transportConfig.username,
-      pass: transportConfig.password,
-    },
-  });
+  const transporter = createPrizeEmailTransporter(config);
 
   await transporter.sendMail({
     from: buildPrizeEmailFrom(transportConfig),

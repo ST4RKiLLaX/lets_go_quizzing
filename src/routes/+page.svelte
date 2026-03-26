@@ -6,6 +6,7 @@
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import { buildDefaultRoomPrizeConfig, normalizePrizeTiers } from '$lib/prizes/tiers.js';
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
@@ -39,6 +40,7 @@
   let roomPrizeTiers: PrizeTier[] = [];
   let savePrizeSetupAsDefault = false;
   let prizeOptionsLoaded = false;
+  let loadingPrizeOptions = false;
   let showInsufficientPrizeModal = false;
   let insufficientPrizeName = '';
 
@@ -100,6 +102,8 @@
   }
 
   async function loadPrizeOptions() {
+    if (loadingPrizeOptions) return;
+    loadingPrizeOptions = true;
     try {
       const res = await fetch('/api/prizes/options');
       const data = await res.json();
@@ -116,6 +120,7 @@
       roomPrizeEnabled = false;
       roomPrizeTiers = [];
     } finally {
+      loadingPrizeOptions = false;
       prizeOptionsLoaded = true;
     }
   }
@@ -223,7 +228,9 @@
         passwordError = 'Unable to verify authentication. Please try again.';
       }
     }
-    await loadPrizeOptions();
+    if (!prizeOptionsLoaded) {
+      await loadPrizeOptions();
+    }
   }
 
   $: if (mode === 'host' && !prizeOptionsLoaded) {
@@ -238,13 +245,7 @@
     if (!quizFilename) return;
     passwordError = '';
     prizeError = '';
-    const sanitizedRoomPrizeTiers = roomPrizeTiers
-      .map((tier) => ({
-        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
-        prizeId: tier.prizeId,
-        label: tier.label?.trim() || undefined,
-      }))
-      .filter((tier) => tier.prizeId);
+    const sanitizedRoomPrizeTiers = normalizePrizeTiers(roomPrizeTiers);
 
     if (prizeFeatureEnabled && roomPrizeEnabled && sanitizedRoomPrizeTiers.length === 0) {
       creating = false;
@@ -305,10 +306,7 @@
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          defaultRoomPrizeConfig: {
-            enabledByDefault: roomPrizeEnabled,
-            tiers: sanitizedRoomPrizeTiers,
-          },
+          defaultRoomPrizeConfig: buildDefaultRoomPrizeConfig(roomPrizeEnabled, sanitizedRoomPrizeTiers),
         }),
       });
       const saveDefaultData = await saveDefaultRes.json();

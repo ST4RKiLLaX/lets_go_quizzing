@@ -93,7 +93,7 @@
   let leavingQuiz = false;
   let wasKickedFromRoom: 'kicked' | 'banned' | null = null;
   let prizeFeatureEnabled = false;
-  let prizeEmailEnabled = false;
+  let prizeEmailAvailableNow = false;
   let prizeEligibilityCheckedKey = '';
   let prizeEligible = false;
   let prizeOption: PrizeOption | null = null;
@@ -107,6 +107,7 @@
   let prizeEmail = '';
   let prizeEmailSending = false;
   let prizeEmailMessage = '';
+  let prizeEmailMessageStatus: 'idle' | 'success' | 'error' = 'idle';
 
   import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
 
@@ -937,7 +938,7 @@
       );
       const data = await res.json();
       prizeFeatureEnabled = data.enabled === true;
-      prizeEmailEnabled = data.emailEnabled === true;
+      prizeEmailAvailableNow = data.emailAvailableNow === true;
       prizeEligibilityCheckedKey = prizeEligibilityKey;
       prizeEligible = data.eligible === true;
       prizeOption = data.prize ?? null;
@@ -961,6 +962,7 @@
     prizeClaiming = true;
     prizeClaimError = '';
     prizeEmailMessage = '';
+    prizeEmailMessageStatus = 'idle';
     try {
       const res = await fetch('/api/prizes/claim', {
         method: 'POST',
@@ -975,7 +977,7 @@
       claimedPrizeName = data.prizeName ?? '';
       claimedPrizeUrl = data.prizeUrl ?? '';
       claimedRedemptionId = data.redemptionId ?? '';
-      prizeEmailEnabled = data.emailEnabled === true;
+      prizeEmailAvailableNow = data.emailAvailableNow === true;
       prizeEligible = false;
       prizeStatusMessage = '';
     } catch {
@@ -989,6 +991,7 @@
     if (!claimedRedemptionId || !prizeEmail.trim()) return;
     prizeEmailSending = true;
     prizeEmailMessage = '';
+    prizeEmailMessageStatus = 'idle';
     try {
       const res = await fetch('/api/prizes/send-email', {
         method: 'POST',
@@ -997,8 +1000,10 @@
       });
       const data = await res.json();
       prizeEmailMessage = res.ok ? 'Prize email sent.' : (data.error ?? 'Unable to send prize email');
+      prizeEmailMessageStatus = res.ok ? 'success' : 'error';
     } catch {
       prizeEmailMessage = 'Unable to send prize email';
+      prizeEmailMessageStatus = 'error';
     } finally {
       prizeEmailSending = false;
     }
@@ -1174,7 +1179,7 @@
               >
                 {claimedPrizeUrl}
               </a>
-              {#if prizeEmailEnabled}
+              {#if prizeEmailAvailableNow}
                 <div class="space-y-2">
                   <label class="block text-sm text-pub-muted" for="prize-email">Email this link now (optional)</label>
                   <div class="flex flex-col sm:flex-row gap-2">
@@ -1198,7 +1203,7 @@
                     We use your email address only to send the prize link. We do not retain it after the code is sent.
                   </div>
                   {#if prizeEmailMessage}
-                    <p class="text-sm {prizeEmailMessage === 'Prize email sent.' ? 'text-green-400' : 'text-red-400'}">
+                    <p class="text-sm {prizeEmailMessageStatus === 'success' ? 'text-green-400' : 'text-red-400'}">
                       {prizeEmailMessage}
                     </p>
                   {/if}

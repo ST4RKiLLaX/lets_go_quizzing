@@ -4,13 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AppConfig } from '../src/lib/server/config.js';
 import type { GameState } from '../src/lib/server/game/state-machine.js';
+import { normalizePrizeTiers } from '../src/lib/prizes/tiers.js';
 import {
   claimPrizeForPlayer,
   createRoomPrizeConfig,
   generatePrizeId,
+  getPrizeEmailPolicy,
   getPrizeEligibility,
   listPrizeOptions,
 } from '../src/lib/server/prizes/service.js';
+import { setPrizeEmailSmtpPassword } from '../src/lib/server/secrets.js';
 import { savePrizeRedemptionStore, savePrizeStore } from '../src/lib/server/prizes/store.js';
 import type { Quiz } from '../src/lib/server/storage/parser.js';
 
@@ -111,9 +114,49 @@ afterEach(() => {
 test('listPrizeOptions only returns active prize labels', () => {
   prepareTempData();
   expect(listPrizeOptions()).toEqual([
-    { id: 'course-basic', name: 'Basic Course' },
-    { id: 'course-pro', name: 'Pro Course' },
+    { id: 'course-basic', name: 'Basic Course', remainingQuantity: 5 },
+    { id: 'course-pro', name: 'Pro Course', remainingQuantity: 1 },
   ]);
+});
+
+test('normalizePrizeTiers deterministically trims, filters, and sorts tiers', () => {
+  expect(
+    normalizePrizeTiers([
+      { minScore: 5.9, prizeId: ' low ', label: '  Bronze  ' },
+      { minScore: 20, prizeId: 'high', label: ' Gold ' },
+      { minScore: -5, prizeId: '   ', label: 'ignored' },
+    ])
+  ).toEqual([
+    { minScore: 20, prizeId: 'high', label: 'Gold' },
+    { minScore: 5, prizeId: 'low', label: 'Bronze' },
+  ]);
+});
+
+test('getPrizeEmailPolicy preserves feature intent separately from availability', () => {
+  prepareTempData();
+  const config: AppConfig = {
+    ...makeConfig(),
+    prizeEmailEnabled: true,
+    prizeEmailSmtpHost: 'smtp.example.com',
+    prizeEmailSmtpPort: 587,
+    prizeEmailSmtpSecure: false,
+    prizeEmailSmtpUsername: 'mailer@example.com',
+    prizeEmailFromEmail: 'noreply@example.com',
+  };
+
+  expect(getPrizeEmailPolicy(config)).toEqual({
+    featureEnabled: true,
+    transportConfigured: false,
+    availableNow: false,
+  });
+
+  setPrizeEmailSmtpPassword('smtp-secret');
+
+  expect(getPrizeEmailPolicy(config)).toEqual({
+    featureEnabled: true,
+    transportConfigured: true,
+    availableNow: true,
+  });
 });
 
 test('generatePrizeId is deterministic from prize identity fields', () => {

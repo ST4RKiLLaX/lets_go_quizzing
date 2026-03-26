@@ -1,12 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { loadConfig } from '$lib/server/config.js';
 import { getRoom } from '$lib/server/game/rooms.js';
-import { getPrizeEligibility, isPrizeFeatureEnabled, verifyPrizeClaimToken } from '$lib/server/prizes/service.js';
+import { getPrizeEligibility, getPrizeEmailPolicy, isPrizeFeatureEnabled, verifyPrizeClaimToken } from '$lib/server/prizes/service.js';
 
 export async function GET({ url }) {
   const config = loadConfig();
+  const emailPolicy = getPrizeEmailPolicy(config);
   if (!isPrizeFeatureEnabled(config)) {
-    return json({ enabled: false, eligible: false });
+    return json({ enabled: false, eligible: false, emailConfigured: false, emailAvailableNow: false });
   }
 
   const roomId = url.searchParams.get('roomId')?.trim();
@@ -30,13 +31,20 @@ export async function GET({ url }) {
       config,
     })
   ) {
-    return json({ enabled: true, eligible: false, reason: 'not_eligible', emailEnabled: false });
+    return json({
+      enabled: true,
+      eligible: false,
+      reason: 'not_eligible',
+      emailConfigured: emailPolicy.featureEnabled,
+      emailAvailableNow: emailPolicy.availableNow,
+    });
   }
 
   const eligibility = getPrizeEligibility(state, playerId, config);
   return json({
     enabled: true,
     ...eligibility,
-    emailEnabled: config?.prizeEmailEnabled === true,
+    emailConfigured: emailPolicy.featureEnabled,
+    emailAvailableNow: emailPolicy.availableNow,
   });
 }

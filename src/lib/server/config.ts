@@ -1,22 +1,18 @@
 import {
   readFileSync,
-  writeFileSync,
-  renameSync,
   existsSync,
-  mkdirSync,
   chmodSync,
-  unlinkSync,
   openSync,
   writeSync,
   closeSync,
 } from 'node:fs';
-import { join } from 'node:path';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { RoomPrizeDefaultConfig } from '../types/prizes.js';
+import { ensureDataDir, getDataFilePath, writeDataJsonFileAtomic } from './json-file-store.js';
+import { isValidEmailAddress, isValidSmtpPort } from './prizes/email.js';
 import { RoomPrizeDefaultConfigSchema } from './prizes/schema.js';
 
 const CONFIG_FILENAME = 'config.json';
-const DATA_DIR = 'data';
 const _SCRYPT_N = 16384;
 const _SCRYPT_R = 8;
 const _SCRYPT_P = 1;
@@ -53,18 +49,7 @@ let configCache: AppConfig | null = null;
 let configCacheValid = false;
 
 function getConfigPath(): string {
-  return join(process.cwd(), DATA_DIR, CONFIG_FILENAME);
-}
-
-function getTempPath(): string {
-  return getConfigPath() + '.tmp.' + randomBytes(8).toString('hex');
-}
-
-function ensureDataDir(): void {
-  const dir = join(process.cwd(), DATA_DIR);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  return getDataFilePath(CONFIG_FILENAME);
 }
 
 function validateConfig(raw: unknown): raw is AppConfig {
@@ -79,12 +64,17 @@ function validateConfig(raw: unknown): raw is AppConfig {
   if (o.prizesEnabled !== undefined && typeof o.prizesEnabled !== 'boolean') return false;
   if (o.prizeEmailEnabled !== undefined && typeof o.prizeEmailEnabled !== 'boolean') return false;
   if (o.prizeEmailSmtpHost !== undefined && typeof o.prizeEmailSmtpHost !== 'string') return false;
-  if (o.prizeEmailSmtpPort !== undefined && (!Number.isInteger(o.prizeEmailSmtpPort) || o.prizeEmailSmtpPort < 1)) {
+  if (o.prizeEmailSmtpPort !== undefined && !isValidSmtpPort(o.prizeEmailSmtpPort)) {
     return false;
   }
   if (o.prizeEmailSmtpSecure !== undefined && typeof o.prizeEmailSmtpSecure !== 'boolean') return false;
   if (o.prizeEmailSmtpUsername !== undefined && typeof o.prizeEmailSmtpUsername !== 'string') return false;
-  if (o.prizeEmailFromEmail !== undefined && typeof o.prizeEmailFromEmail !== 'string') return false;
+  if (
+    o.prizeEmailFromEmail !== undefined &&
+    (typeof o.prizeEmailFromEmail !== 'string' || !isValidEmailAddress(o.prizeEmailFromEmail))
+  ) {
+    return false;
+  }
   if (o.prizeEmailFromName !== undefined && typeof o.prizeEmailFromName !== 'string') return false;
   if (
     o.defaultRoomPrizeConfig !== undefined &&
@@ -192,25 +182,7 @@ export function saveConfig(partial: Partial<AppConfig>): void {
   if (!next.adminUsername || !next.adminPasswordHash) {
     throw new Error('adminUsername and adminPasswordHash are required');
   }
-  ensureDataDir();
-  const finalPath = getConfigPath();
-  const tempPath = getTempPath();
-  try {
-    writeFileSync(tempPath, JSON.stringify(next, null, 2), 'utf8');
-    renameSync(tempPath, finalPath);
-    try {
-      chmodSync(finalPath, 0o600);
-    } catch {
-      console.warn('[config] Could not set restrictive permissions on config file');
-    }
-  } catch (e) {
-    try {
-      unlinkSync(tempPath);
-    } catch {
-      /* ignore */
-    }
-    throw e;
-  }
+  writeDataJsonFileAtomic(CONFIG_FILENAME, next, 'config');
   invalidateCache();
 }
 

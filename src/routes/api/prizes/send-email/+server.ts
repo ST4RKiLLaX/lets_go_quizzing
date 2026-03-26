@@ -1,14 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { loadConfig } from '$lib/server/config.js';
-import { isPrizeEmailEnabled, sendPrizeEmail } from '$lib/server/prizes/service.js';
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+import { isValidEmailAddress } from '$lib/server/prizes/email.js';
+import { getPrizeEmailPolicy, sendPrizeEmail } from '$lib/server/prizes/service.js';
 
 export async function POST({ request }) {
   const config = loadConfig();
-  if (!isPrizeEmailEnabled(config)) {
+  if (!getPrizeEmailPolicy(config).availableNow) {
     return json({ error: 'Prize email is disabled' }, { status: 404 });
   }
 
@@ -19,7 +16,7 @@ export async function POST({ request }) {
     if (!redemptionId || !email) {
       return json({ error: 'redemptionId and email are required' }, { status: 400 });
     }
-    if (!isValidEmail(email)) {
+    if (!isValidEmailAddress(email)) {
       return json({ error: 'Enter a valid email address' }, { status: 400 });
     }
     await sendPrizeEmail({ redemptionId, email });

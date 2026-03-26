@@ -5,6 +5,8 @@
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import { toPrizeOption } from '$lib/prizes/options.js';
+  import { buildDefaultRoomPrizeConfig } from '$lib/prizes/tiers.js';
   import type { PrizeDefinition, PrizeTier } from '$lib/types/prizes.js';
 
   type Tab = 'account' | 'content_filters' | 'deployment' | 'email' | 'prizes';
@@ -30,9 +32,11 @@
   let prizeEmailFromName = '';
   let prizeEmailSmtpPassword = '';
   let prizeEmailSmtpPasswordConfigured = false;
+  let prizeEmailAvailableNow = false;
   let clearPrizeEmailSmtpPassword = false;
   let testingPrizeEmailConnection = false;
   let prizeEmailTestMessage = '';
+  let prizeEmailTestStatus: 'idle' | 'success' | 'error' = 'idle';
   let defaultRoomPrizeEnabled = false;
   let defaultRoomPrizeTiers: PrizeTier[] = [];
   let prizes: PrizeDefinition[] = [];
@@ -85,6 +89,10 @@
     prizeEmailSmtpUsername.trim().length > 0 &&
     prizeEmailFromEmail.trim().length > 0 &&
     (clearPrizeEmailSmtpPassword ? false : (prizeEmailSmtpPassword.trim().length > 0 || prizeEmailSmtpPasswordConfigured));
+
+  function getPrizeEmailFeatureRequested(): boolean {
+    return prizesEnabled && prizeEmailEnabled;
+  }
 
   function togglePrizeEditing(prizeId: string) {
     if (editingPrizeIds.includes(prizeId)) {
@@ -145,8 +153,10 @@
       prizeEmailFromName = data.prizeEmailFromName ?? '';
       prizeEmailSmtpPassword = '';
       prizeEmailSmtpPasswordConfigured = data.prizeEmailSmtpPasswordConfigured === true;
+      prizeEmailAvailableNow = data.prizeEmailAvailableNow === true;
       clearPrizeEmailSmtpPassword = false;
       prizeEmailTestMessage = '';
+      prizeEmailTestStatus = 'idle';
       defaultRoomPrizeEnabled = data.defaultRoomPrizeConfig?.enabledByDefault ?? false;
       defaultRoomPrizeTiers = data.defaultRoomPrizeConfig?.tiers ?? [];
       envOverrides = data.envOverrides ?? { origin: false, roomIdLen: false };
@@ -161,19 +171,14 @@
   function buildPrizeSettingsPayload(): Record<string, unknown> {
     return {
       prizesEnabled,
-      prizeEmailEnabled: prizesEnabled ? prizeEmailEnabled : false,
+      prizeEmailEnabled: getPrizeEmailFeatureRequested(),
       prizeEmailSmtpHost: prizeEmailSmtpHost.trim(),
       prizeEmailSmtpPort: Number(prizeEmailSmtpPort) || 587,
       prizeEmailSmtpSecure,
       prizeEmailSmtpUsername: prizeEmailSmtpUsername.trim(),
       prizeEmailFromEmail: prizeEmailFromEmail.trim(),
       prizeEmailFromName: prizeEmailFromName.trim(),
-      defaultRoomPrizeConfig: prizesEnabled
-        ? {
-            enabledByDefault: defaultRoomPrizeEnabled,
-            tiers: defaultRoomPrizeTiers,
-          }
-        : null,
+      defaultRoomPrizeConfig: prizesEnabled ? buildDefaultRoomPrizeConfig(defaultRoomPrizeEnabled, defaultRoomPrizeTiers) : null,
     };
   }
 
@@ -232,6 +237,7 @@
       } else if (prizeEmailSmtpPassword.trim()) {
         prizeEmailSmtpPasswordConfigured = true;
       }
+      prizeEmailAvailableNow = getPrizeEmailFeatureRequested() && smtpTransportReady;
       prizeEmailSmtpPassword = '';
       clearPrizeEmailSmtpPassword = false;
       if (changingCredentials) {
@@ -256,6 +262,7 @@
 
   async function testPrizeEmailConnection() {
     prizeEmailTestMessage = '';
+    prizeEmailTestStatus = 'idle';
     testingPrizeEmailConnection = true;
     try {
       const res = await fetch('/api/settings/prize-email-test', {
@@ -264,8 +271,10 @@
       });
       const data = await res.json();
       prizeEmailTestMessage = res.ok ? 'SMTP connection verified.' : (data.error ?? 'SMTP test failed');
+      prizeEmailTestStatus = res.ok ? 'success' : 'error';
     } catch {
       prizeEmailTestMessage = 'SMTP test failed';
+      prizeEmailTestStatus = 'error';
     } finally {
       testingPrizeEmailConnection = false;
     }
@@ -304,6 +313,7 @@
         return;
       }
       success = 'Prize feature setting saved.';
+      prizeEmailAvailableNow = getPrizeEmailFeatureRequested() && smtpTransportReady;
       await invalidateAll();
       await loadPrizes();
     } catch {
@@ -613,8 +623,10 @@
               </p>
             </div>
             <span class="inline-flex items-center rounded-full border border-pub-muted px-3 py-1 text-xs text-pub-muted">
-              {#if smtpTransportReady}
-                Ready
+              {#if prizeEmailAvailableNow}
+                Available now
+              {:else if smtpTransportReady}
+                Config saved, feature off
               {:else}
                 Incomplete
               {/if}
@@ -696,7 +708,7 @@
             </button>
           </div>
           {#if prizeEmailTestMessage}
-            <p class="text-sm {prizeEmailTestMessage === 'SMTP connection verified.' ? 'text-green-400' : 'text-red-400'}">
+            <p class="text-sm {prizeEmailTestStatus === 'success' ? 'text-green-400' : 'text-red-400'}">
               {prizeEmailTestMessage}
             </p>
           {/if}
@@ -737,10 +749,11 @@
             <PrizeTierEditor
               bind:enabled={defaultRoomPrizeEnabled}
               bind:tiers={defaultRoomPrizeTiers}
-              availablePrizes={prizes.filter((prize) => isPrizeSelectable(prize)).map((prize) => ({ id: prize.id, name: prize.name }))}
+              availablePrizes={prizes.filter((prize) => isPrizeSelectable(prize)).map(toPrizeOption)}
               title="Default room prize setup"
               subtitle="Preload these tiers in room creation. Hosts can still change them per room."
               emptyMessage="No default prize tiers configured."
+              enabledLabel="Enable by default"
             />
           </div>
 
