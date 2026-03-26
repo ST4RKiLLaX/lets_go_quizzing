@@ -11,11 +11,20 @@ import {
 } from '$lib/server/config.js';
 import { createSession, getCurrentAuthEpoch } from '$lib/server/auth.js';
 import { resetCustomBlockCache } from '$lib/server/custom-block.js';
+import {
+  clearPrizeEmailSmtpPassword,
+  hasPrizeEmailSmtpPassword,
+  setPrizeEmailSmtpPassword,
+} from '$lib/server/secrets.js';
 import { jsonWithCookie } from '$lib/server/response.js';
 import { validateRoomPrizeDefaultConfig } from '$lib/server/prizes/service.js';
 
 const CUSTOM_BLOCK_MAX_TERMS = 100;
 const CUSTOM_BLOCK_MAX_TERM_LENGTH = 50;
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
 function normalizeForDedupe(text: string): string {
   return text
@@ -48,6 +57,13 @@ export async function GET({ request }) {
     customBlockedTerms: cfg.customBlockedTerms ?? [],
     prizesEnabled: cfg.prizesEnabled ?? false,
     prizeEmailEnabled: cfg.prizeEmailEnabled ?? false,
+    prizeEmailSmtpHost: cfg.prizeEmailSmtpHost ?? '',
+    prizeEmailSmtpPort: cfg.prizeEmailSmtpPort ?? 587,
+    prizeEmailSmtpSecure: cfg.prizeEmailSmtpSecure ?? false,
+    prizeEmailSmtpUsername: cfg.prizeEmailSmtpUsername ?? '',
+    prizeEmailFromEmail: cfg.prizeEmailFromEmail ?? '',
+    prizeEmailFromName: cfg.prizeEmailFromName ?? '',
+    prizeEmailSmtpPasswordConfigured: hasPrizeEmailSmtpPassword(),
     defaultRoomPrizeConfig: cfg.defaultRoomPrizeConfig ?? null,
     effectiveOrigin: getEffectiveOrigin() ?? '',
     effectiveRoomIdLen: getEffectiveRoomIdLen(),
@@ -98,6 +114,47 @@ export async function PUT({ request }) {
           ? body.prizeEmailEnabled
           : undefined
         : undefined;
+    const prizeEmailSmtpHost =
+      body?.prizeEmailSmtpHost !== undefined
+        ? typeof body.prizeEmailSmtpHost === 'string'
+          ? body.prizeEmailSmtpHost.trim()
+          : undefined
+        : undefined;
+    const prizeEmailSmtpPort = body?.prizeEmailSmtpPort !== undefined ? Number(body.prizeEmailSmtpPort) : undefined;
+    const prizeEmailSmtpSecure =
+      body?.prizeEmailSmtpSecure !== undefined
+        ? typeof body.prizeEmailSmtpSecure === 'boolean'
+          ? body.prizeEmailSmtpSecure
+          : undefined
+        : undefined;
+    const prizeEmailSmtpUsername =
+      body?.prizeEmailSmtpUsername !== undefined
+        ? typeof body.prizeEmailSmtpUsername === 'string'
+          ? body.prizeEmailSmtpUsername.trim()
+          : undefined
+        : undefined;
+    const prizeEmailFromEmail =
+      body?.prizeEmailFromEmail !== undefined
+        ? typeof body.prizeEmailFromEmail === 'string'
+          ? body.prizeEmailFromEmail.trim()
+          : undefined
+        : undefined;
+    const prizeEmailFromName =
+      body?.prizeEmailFromName !== undefined
+        ? typeof body.prizeEmailFromName === 'string'
+          ? body.prizeEmailFromName.trim()
+          : undefined
+        : undefined;
+    const prizeEmailSmtpPassword =
+      body?.prizeEmailSmtpPassword !== undefined
+        ? typeof body.prizeEmailSmtpPassword === 'string'
+          ? body.prizeEmailSmtpPassword
+          : undefined
+        : undefined;
+    const clearPrizeEmailSmtpPasswordFlag =
+      body?.clearPrizeEmailSmtpPassword !== undefined
+        ? body.clearPrizeEmailSmtpPassword === true
+        : false;
     const defaultRoomPrizeConfig =
       body?.defaultRoomPrizeConfig !== undefined ? validateRoomPrizeDefaultConfig(body.defaultRoomPrizeConfig) : undefined;
 
@@ -122,9 +179,18 @@ export async function PUT({ request }) {
     if (roomIdLen !== undefined && (roomIdLen < 4 || roomIdLen > 12 || !Number.isInteger(roomIdLen))) {
       return json({ error: 'Room ID length must be 4–12' }, { status: 400 });
     }
+    if (prizeEmailSmtpPort !== undefined && (!Number.isInteger(prizeEmailSmtpPort) || prizeEmailSmtpPort < 1 || prizeEmailSmtpPort > 65535)) {
+      return json({ error: 'SMTP port must be 1–65535' }, { status: 400 });
+    }
     const validModes: ProfanityFilterMode[] = ['off', 'names', 'public_text', 'strict'];
     if (profanityFilterMode !== undefined && !validModes.includes(profanityFilterMode as ProfanityFilterMode)) {
       return json({ error: 'Invalid profanity filter mode' }, { status: 400 });
+    }
+    if (prizeEmailFromEmail !== undefined && prizeEmailFromEmail && !isValidEmail(prizeEmailFromEmail)) {
+      return json({ error: 'Enter a valid SMTP from email address' }, { status: 400 });
+    }
+    if (clearPrizeEmailSmtpPasswordFlag && prizeEmailSmtpPassword && prizeEmailSmtpPassword.trim()) {
+      return json({ error: 'Choose either replace password or clear password' }, { status: 400 });
     }
 
     let customBlockedTerms: string[] | undefined;
@@ -145,6 +211,45 @@ export async function PUT({ request }) {
       customBlockedTerms = deduped.slice(0, CUSTOM_BLOCK_MAX_TERMS);
     }
 
+    const nextPrizeEmailSmtpHost = prizeEmailSmtpHost !== undefined ? prizeEmailSmtpHost : (cfg.prizeEmailSmtpHost ?? '');
+    const nextPrizeEmailSmtpPort = prizeEmailSmtpPort !== undefined ? prizeEmailSmtpPort : (cfg.prizeEmailSmtpPort ?? 587);
+    const nextPrizeEmailSmtpSecure =
+      prizeEmailSmtpSecure !== undefined ? prizeEmailSmtpSecure : (cfg.prizeEmailSmtpSecure ?? false);
+    const nextPrizeEmailSmtpUsername =
+      prizeEmailSmtpUsername !== undefined ? prizeEmailSmtpUsername : (cfg.prizeEmailSmtpUsername ?? '');
+    const nextPrizeEmailFromEmail = prizeEmailFromEmail !== undefined ? prizeEmailFromEmail : (cfg.prizeEmailFromEmail ?? '');
+    const nextPrizeEmailFromName = prizeEmailFromName !== undefined ? prizeEmailFromName : (cfg.prizeEmailFromName ?? '');
+    const nextPrizeEmailEnabled = prizeEmailEnabled !== undefined ? prizeEmailEnabled : (cfg.prizeEmailEnabled ?? false);
+    const nextPrizeEmailSmtpPasswordConfigured = clearPrizeEmailSmtpPasswordFlag
+      ? false
+      : prizeEmailSmtpPassword !== undefined
+        ? prizeEmailSmtpPassword.trim().length > 0
+        : hasPrizeEmailSmtpPassword();
+    const hasAnyPrizeEmailTransportConfig = !!(
+      nextPrizeEmailSmtpHost ||
+      nextPrizeEmailSmtpUsername ||
+      nextPrizeEmailFromEmail ||
+      nextPrizeEmailFromName ||
+      nextPrizeEmailSmtpPasswordConfigured
+    );
+    if (hasAnyPrizeEmailTransportConfig || nextPrizeEmailEnabled) {
+      if (!nextPrizeEmailSmtpHost) {
+        return json({ error: 'SMTP host is required' }, { status: 400 });
+      }
+      if (!Number.isInteger(nextPrizeEmailSmtpPort) || nextPrizeEmailSmtpPort < 1 || nextPrizeEmailSmtpPort > 65535) {
+        return json({ error: 'SMTP port must be 1–65535' }, { status: 400 });
+      }
+      if (!nextPrizeEmailSmtpUsername) {
+        return json({ error: 'SMTP username is required' }, { status: 400 });
+      }
+      if (!nextPrizeEmailFromEmail || !isValidEmail(nextPrizeEmailFromEmail)) {
+        return json({ error: 'A valid SMTP from email is required' }, { status: 400 });
+      }
+      if (nextPrizeEmailEnabled && !nextPrizeEmailSmtpPasswordConfigured) {
+        return json({ error: 'SMTP password is required' }, { status: 400 });
+      }
+    }
+
     const partial: Parameters<typeof saveConfig>[0] = {};
     if (newUsername !== undefined) partial.adminUsername = newUsername;
     if (newPassword !== undefined) partial.adminPasswordHash = hashPassword(newPassword);
@@ -155,6 +260,12 @@ export async function PUT({ request }) {
     if (customBlockedTerms !== undefined) partial.customBlockedTerms = customBlockedTerms;
     if (prizesEnabled !== undefined) partial.prizesEnabled = prizesEnabled;
     if (prizeEmailEnabled !== undefined) partial.prizeEmailEnabled = prizeEmailEnabled;
+    if (prizeEmailSmtpHost !== undefined) partial.prizeEmailSmtpHost = prizeEmailSmtpHost || undefined;
+    if (prizeEmailSmtpPort !== undefined) partial.prizeEmailSmtpPort = prizeEmailSmtpPort;
+    if (prizeEmailSmtpSecure !== undefined) partial.prizeEmailSmtpSecure = prizeEmailSmtpSecure;
+    if (prizeEmailSmtpUsername !== undefined) partial.prizeEmailSmtpUsername = prizeEmailSmtpUsername || undefined;
+    if (prizeEmailFromEmail !== undefined) partial.prizeEmailFromEmail = prizeEmailFromEmail || undefined;
+    if (prizeEmailFromName !== undefined) partial.prizeEmailFromName = prizeEmailFromName || undefined;
     if (defaultRoomPrizeConfig !== undefined || body?.defaultRoomPrizeConfig === null) {
       partial.defaultRoomPrizeConfig = body?.defaultRoomPrizeConfig === null ? undefined : defaultRoomPrizeConfig;
     }
@@ -168,6 +279,11 @@ export async function PUT({ request }) {
       if (partial.customKeywordFilterEnabled !== undefined || partial.customBlockedTerms !== undefined) {
         resetCustomBlockCache();
       }
+    }
+    if (clearPrizeEmailSmtpPasswordFlag) {
+      clearPrizeEmailSmtpPassword();
+    } else if (prizeEmailSmtpPassword !== undefined && prizeEmailSmtpPassword.trim()) {
+      setPrizeEmailSmtpPassword(prizeEmailSmtpPassword);
     }
 
     if (changingCredentials) {

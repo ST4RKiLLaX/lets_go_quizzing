@@ -38,6 +38,12 @@ export interface AppConfig {
   customBlockedTerms?: string[];
   prizesEnabled?: boolean;
   prizeEmailEnabled?: boolean;
+  prizeEmailSmtpHost?: string;
+  prizeEmailSmtpPort?: number;
+  prizeEmailSmtpSecure?: boolean;
+  prizeEmailSmtpUsername?: string;
+  prizeEmailFromEmail?: string;
+  prizeEmailFromName?: string;
   defaultRoomPrizeConfig?: RoomPrizeDefaultConfig;
 }
 
@@ -72,6 +78,14 @@ function validateConfig(raw: unknown): raw is AppConfig {
   if (typeof o.adminPasswordHash !== 'string' || !o.adminPasswordHash.includes(':')) return false;
   if (o.prizesEnabled !== undefined && typeof o.prizesEnabled !== 'boolean') return false;
   if (o.prizeEmailEnabled !== undefined && typeof o.prizeEmailEnabled !== 'boolean') return false;
+  if (o.prizeEmailSmtpHost !== undefined && typeof o.prizeEmailSmtpHost !== 'string') return false;
+  if (o.prizeEmailSmtpPort !== undefined && (!Number.isInteger(o.prizeEmailSmtpPort) || o.prizeEmailSmtpPort < 1)) {
+    return false;
+  }
+  if (o.prizeEmailSmtpSecure !== undefined && typeof o.prizeEmailSmtpSecure !== 'boolean') return false;
+  if (o.prizeEmailSmtpUsername !== undefined && typeof o.prizeEmailSmtpUsername !== 'string') return false;
+  if (o.prizeEmailFromEmail !== undefined && typeof o.prizeEmailFromEmail !== 'string') return false;
+  if (o.prizeEmailFromName !== undefined && typeof o.prizeEmailFromName !== 'string') return false;
   if (
     o.defaultRoomPrizeConfig !== undefined &&
     !RoomPrizeDefaultConfigSchema.safeParse(o.defaultRoomPrizeConfig).success
@@ -160,6 +174,18 @@ export function saveConfig(partial: Partial<AppConfig>): void {
     prizesEnabled: partial.prizesEnabled !== undefined ? partial.prizesEnabled : current?.prizesEnabled,
     prizeEmailEnabled:
       partial.prizeEmailEnabled !== undefined ? partial.prizeEmailEnabled : current?.prizeEmailEnabled,
+    prizeEmailSmtpHost:
+      partial.prizeEmailSmtpHost !== undefined ? partial.prizeEmailSmtpHost : current?.prizeEmailSmtpHost,
+    prizeEmailSmtpPort:
+      partial.prizeEmailSmtpPort !== undefined ? partial.prizeEmailSmtpPort : current?.prizeEmailSmtpPort,
+    prizeEmailSmtpSecure:
+      partial.prizeEmailSmtpSecure !== undefined ? partial.prizeEmailSmtpSecure : current?.prizeEmailSmtpSecure,
+    prizeEmailSmtpUsername:
+      partial.prizeEmailSmtpUsername !== undefined ? partial.prizeEmailSmtpUsername : current?.prizeEmailSmtpUsername,
+    prizeEmailFromEmail:
+      partial.prizeEmailFromEmail !== undefined ? partial.prizeEmailFromEmail : current?.prizeEmailFromEmail,
+    prizeEmailFromName:
+      partial.prizeEmailFromName !== undefined ? partial.prizeEmailFromName : current?.prizeEmailFromName,
     defaultRoomPrizeConfig:
       partial.defaultRoomPrizeConfig !== undefined ? partial.defaultRoomPrizeConfig : current?.defaultRoomPrizeConfig,
   };

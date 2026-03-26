@@ -61,6 +61,12 @@ App-level gating lives in config:
 
 - `prizesEnabled?: boolean`
 - `prizeEmailEnabled?: boolean`
+- `prizeEmailSmtpHost?: string`
+- `prizeEmailSmtpPort?: number`
+- `prizeEmailSmtpSecure?: boolean`
+- `prizeEmailSmtpUsername?: string`
+- `prizeEmailFromEmail?: string`
+- `prizeEmailFromName?: string`
 - `defaultRoomPrizeConfig?: RoomPrizeDefaultConfig`
 
 Relevant files:
@@ -159,6 +165,7 @@ Files:
 
 - `data/prizes.json`
 - `data/prize-redemptions.json`
+- `data/secrets.json`
 
 Implementation:
 
@@ -172,6 +179,20 @@ Characteristics:
 
 This keeps the subsystem self-contained while matching the app’s existing
 file-based architecture.
+
+### SMTP Config Split
+
+Prize email SMTP configuration is split across two files:
+
+- `data/config.json`
+  - readable SMTP fields such as host, port, secure mode, username,
+    from email, and from name
+- `data/secrets.json`
+  - SMTP password only
+
+The admin UI can round-trip readable SMTP settings, but it never reads
+back the stored SMTP password. The browser only receives configured/not
+configured status for that secret.
 
 ---
 
@@ -377,11 +398,20 @@ the visible timer.
 
 - No database.
 - No stored email recovery flow.
+- Prize email SMTP runtime uses UI-managed file-backed config, not `.env`.
 - No post-start host edits to prize config.
 - Prize assignment is per room/game, not per quiz file.
 - Email delivery is send-only and optional.
 - Prize visibility after claim remains client-side; losing it later is not
   recoverable by design.
+
+## Operational Handling
+
+- `data/secrets.json` must stay ignored by git.
+- Secret values must not be returned by Settings reads.
+- Secret values must not appear in logs, diagnostics, or support tooling.
+- Backups that restore prize email capability must include both
+  `data/config.json` and `data/secrets.json`.
 
 ---
 

@@ -80,7 +80,9 @@ You'll be redirected to setup automatically when you open the app.
 
 ### Setup and Config File
 
-On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). Via the **Settings** page (gear icon in the host nav), you can change username, password, ORIGIN, room code length, and content filters (profanity filter toggle and custom keyword block list).
+On first run, you're redirected to the setup page to create an admin account. Credentials are stored in `data/config.json` (in the mounted volume). Via the **Settings** page (gear icon in the host nav), you can change username, password, ORIGIN, room code length, content filters (profanity filter toggle and custom keyword block list), and prize email SMTP settings.
+
+Prize email SMTP is UI-managed. Readable transport fields are stored in `data/config.json`, while the SMTP password is stored separately in `data/secrets.json` with restrictive file permissions.
 
 ### Environment Variables (Optional Overrides)
 

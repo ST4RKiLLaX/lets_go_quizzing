@@ -1,7 +1,8 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import nodemailer from 'nodemailer';
-import type { AppConfig } from '../config.js';
+import { loadConfig, type AppConfig } from '../config.js';
 import type { GameState } from '../game/state-machine.js';
+import { getPrizeEmailSmtpPassword } from '../secrets.js';
 import type {
   PrizeDefinition,
   PrizeEligibility,
@@ -64,20 +65,71 @@ function getPrizeTokenSecret(config: AppConfig | null | undefined): string | und
   return config?.adminPasswordHash || process.env.HOST_PASSWORD?.trim() || undefined;
 }
 
+interface PrizeEmailTransportConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  password: string;
+  fromEmail: string;
+  fromName?: string;
+}
+
+function buildPrizeEmailFrom(config: PrizeEmailTransportConfig): string {
+  const fromName = config.fromName?.trim();
+  if (!fromName) return config.fromEmail;
+  return `${fromName} <${config.fromEmail}>`;
+}
+
+function getPrizeEmailTransportConfig(config: AppConfig | null | undefined): PrizeEmailTransportConfig | undefined {
+  const host = config?.prizeEmailSmtpHost?.trim();
+  const port = config?.prizeEmailSmtpPort;
+  const secure = config?.prizeEmailSmtpSecure === true;
+  const username = config?.prizeEmailSmtpUsername?.trim();
+  const password = getPrizeEmailSmtpPassword();
+  const fromEmail = config?.prizeEmailFromEmail?.trim();
+  const fromName = config?.prizeEmailFromName?.trim() || undefined;
+  if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535 || !username || !password || !fromEmail) {
+    return undefined;
+  }
+  return {
+    host,
+    port,
+    secure,
+    username,
+    password,
+    fromEmail,
+    fromName,
+  };
+}
+
 export function isPrizeFeatureEnabled(config: AppConfig | null | undefined): boolean {
   return config?.prizesEnabled === true;
 }
 
 export function isPrizeEmailEnabled(config: AppConfig | null | undefined): boolean {
-  return isPrizeFeatureEnabled(config) && config?.prizeEmailEnabled === true && isPrizeEmailTransportConfigured();
+  return isPrizeFeatureEnabled(config) && config?.prizeEmailEnabled === true && isPrizeEmailTransportConfigured(config);
 }
 
-export function isPrizeEmailTransportConfigured(): boolean {
-  return !!(
-    process.env.PRIZE_SMTP_HOST?.trim() &&
-    process.env.PRIZE_SMTP_PORT?.trim() &&
-    process.env.PRIZE_EMAIL_FROM?.trim()
-  );
+export function isPrizeEmailTransportConfigured(config: AppConfig | null | undefined): boolean {
+  return !!getPrizeEmailTransportConfig(config);
+}
+
+export async function testPrizeEmailTransport(config: AppConfig | null | undefined): Promise<void> {
+  const transportConfig = getPrizeEmailTransportConfig(config);
+  if (!transportConfig) {
+    throw new Error('Prize email transport is not configured');
+  }
+  const transporter = nodemailer.createTransport({
+    host: transportConfig.host,
+    port: transportConfig.port,
+    secure: transportConfig.secure,
+    auth: {
+      user: transportConfig.username,
+      pass: transportConfig.password,
+    },
+  });
+  await transporter.verify();
 }
 
 export function validateRoomPrizeDefaultConfig(raw: unknown): RoomPrizeDefaultConfig | undefined {
@@ -399,26 +451,23 @@ export async function sendPrizeEmail(params: { redemptionId: string; email: stri
   if (!redemption) {
     throw new Error('Redemption not found');
   }
-  if (!isPrizeEmailTransportConfigured()) {
+  const config = loadConfig();
+  const transportConfig = getPrizeEmailTransportConfig(config);
+  if (!transportConfig) {
     throw new Error('Prize email transport is not configured');
   }
-
-  const port = Number(process.env.PRIZE_SMTP_PORT);
-  const secure = process.env.PRIZE_SMTP_SECURE === 'true' || port === 465;
   const transporter = nodemailer.createTransport({
-    host: process.env.PRIZE_SMTP_HOST,
-    port,
-    secure,
-    auth: process.env.PRIZE_SMTP_USER
-      ? {
-          user: process.env.PRIZE_SMTP_USER,
-          pass: process.env.PRIZE_SMTP_PASS,
-        }
-      : undefined,
+    host: transportConfig.host,
+    port: transportConfig.port,
+    secure: transportConfig.secure,
+    auth: {
+      user: transportConfig.username,
+      pass: transportConfig.password,
+    },
   });
 
   await transporter.sendMail({
-    from: process.env.PRIZE_EMAIL_FROM,
+    from: buildPrizeEmailFrom(transportConfig),
     to: params.email,
     subject: `Your prize: ${redemption.prizeNameSnapshot}`,
     text: `Here is your prize link for ${redemption.prizeNameSnapshot}:\n\n${redemption.prizeUrlSnapshot}\n`,

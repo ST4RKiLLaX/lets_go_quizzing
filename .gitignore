@@ -28,6 +28,7 @@ npm-debug.log*
 
 # Admin config (credentials, sensitive)
 data/config.json
+data/secrets.json
 
 # Game history (keep folder, ignore results)
 data/history/*.json

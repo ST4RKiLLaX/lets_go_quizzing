@@ -7,7 +7,7 @@
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
   import type { PrizeDefinition, PrizeTier } from '$lib/types/prizes.js';
 
-  type Tab = 'account' | 'content_filters' | 'deployment' | 'prizes';
+  type Tab = 'account' | 'content_filters' | 'deployment' | 'email' | 'prizes';
   let activeTab: Tab = 'account';
   let username = '';
   let originalUsername = '';
@@ -22,6 +22,17 @@
   let envOverrides: { origin: boolean; roomIdLen: boolean } = { origin: false, roomIdLen: false };
   let prizesEnabled = false;
   let prizeEmailEnabled = false;
+  let prizeEmailSmtpHost = '';
+  let prizeEmailSmtpPort = 587;
+  let prizeEmailSmtpSecure = false;
+  let prizeEmailSmtpUsername = '';
+  let prizeEmailFromEmail = '';
+  let prizeEmailFromName = '';
+  let prizeEmailSmtpPassword = '';
+  let prizeEmailSmtpPasswordConfigured = false;
+  let clearPrizeEmailSmtpPassword = false;
+  let testingPrizeEmailConnection = false;
+  let prizeEmailTestMessage = '';
   let defaultRoomPrizeEnabled = false;
   let defaultRoomPrizeTiers: PrizeTier[] = [];
   let prizes: PrizeDefinition[] = [];
@@ -47,6 +58,15 @@
   function formatCreatedAt(createdAt: number): string {
     return new Date(createdAt).toLocaleString();
   }
+
+  $: smtpTransportReady =
+    prizeEmailSmtpHost.trim().length > 0 &&
+    Number.isInteger(Number(prizeEmailSmtpPort)) &&
+    Number(prizeEmailSmtpPort) >= 1 &&
+    Number(prizeEmailSmtpPort) <= 65535 &&
+    prizeEmailSmtpUsername.trim().length > 0 &&
+    prizeEmailFromEmail.trim().length > 0 &&
+    (clearPrizeEmailSmtpPassword ? false : (prizeEmailSmtpPassword.trim().length > 0 || prizeEmailSmtpPasswordConfigured));
 
   function togglePrizeEditing(prizeId: string) {
     if (editingPrizeIds.includes(prizeId)) {
@@ -99,6 +119,16 @@
         : '';
       prizesEnabled = data.prizesEnabled ?? false;
       prizeEmailEnabled = data.prizeEmailEnabled ?? false;
+      prizeEmailSmtpHost = data.prizeEmailSmtpHost ?? '';
+      prizeEmailSmtpPort = data.prizeEmailSmtpPort ?? 587;
+      prizeEmailSmtpSecure = data.prizeEmailSmtpSecure ?? false;
+      prizeEmailSmtpUsername = data.prizeEmailSmtpUsername ?? '';
+      prizeEmailFromEmail = data.prizeEmailFromEmail ?? '';
+      prizeEmailFromName = data.prizeEmailFromName ?? '';
+      prizeEmailSmtpPassword = '';
+      prizeEmailSmtpPasswordConfigured = data.prizeEmailSmtpPasswordConfigured === true;
+      clearPrizeEmailSmtpPassword = false;
+      prizeEmailTestMessage = '';
       defaultRoomPrizeEnabled = data.defaultRoomPrizeConfig?.enabledByDefault ?? false;
       defaultRoomPrizeTiers = data.defaultRoomPrizeConfig?.tiers ?? [];
       envOverrides = data.envOverrides ?? { origin: false, roomIdLen: false };
@@ -114,6 +144,12 @@
     return {
       prizesEnabled,
       prizeEmailEnabled: prizesEnabled ? prizeEmailEnabled : false,
+      prizeEmailSmtpHost: prizeEmailSmtpHost.trim(),
+      prizeEmailSmtpPort: Number(prizeEmailSmtpPort) || 587,
+      prizeEmailSmtpSecure,
+      prizeEmailSmtpUsername: prizeEmailSmtpUsername.trim(),
+      prizeEmailFromEmail: prizeEmailFromEmail.trim(),
+      prizeEmailFromName: prizeEmailFromName.trim(),
       defaultRoomPrizeConfig: prizesEnabled
         ? {
             enabledByDefault: defaultRoomPrizeEnabled,
@@ -145,6 +181,11 @@
           .filter((t) => t.length > 0),
         ...buildPrizeSettingsPayload(),
       };
+      if (clearPrizeEmailSmtpPassword) {
+        body.clearPrizeEmailSmtpPassword = true;
+      } else if (prizeEmailSmtpPassword.trim()) {
+        body.prizeEmailSmtpPassword = prizeEmailSmtpPassword;
+      }
       if (username.trim() !== originalUsername) {
         body.username = username.trim();
       }
@@ -168,6 +209,13 @@
         return;
       }
       success = 'Settings saved.';
+      if (clearPrizeEmailSmtpPassword) {
+        prizeEmailSmtpPasswordConfigured = false;
+      } else if (prizeEmailSmtpPassword.trim()) {
+        prizeEmailSmtpPasswordConfigured = true;
+      }
+      prizeEmailSmtpPassword = '';
+      clearPrizeEmailSmtpPassword = false;
       if (changingCredentials) {
         success += ' Other sessions have been invalidated.';
         currentPassword = '';
@@ -185,6 +233,23 @@
       error = 'Update failed';
     } finally {
       saving = false;
+    }
+  }
+
+  async function testPrizeEmailConnection() {
+    prizeEmailTestMessage = '';
+    testingPrizeEmailConnection = true;
+    try {
+      const res = await fetch('/api/settings/prize-email-test', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      prizeEmailTestMessage = res.ok ? 'SMTP connection verified.' : (data.error ?? 'SMTP test failed');
+    } catch {
+      prizeEmailTestMessage = 'SMTP test failed';
+    } finally {
+      testingPrizeEmailConnection = false;
     }
   }
 
@@ -348,6 +413,13 @@
       </button>
       <button
         type="button"
+        class="px-4 py-2 rounded-lg {activeTab === 'email' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
+        onclick={() => (activeTab = 'email')}
+      >
+        Email
+      </button>
+      <button
+        type="button"
         class="px-4 py-2 rounded-lg {activeTab === 'prizes' ? 'bg-pub-gold text-pub-darker font-semibold' : 'bg-pub-dark text-pub-muted hover:text-pub-gold'}"
         onclick={() => (activeTab = 'prizes')}
       >
@@ -505,6 +577,111 @@
               <p class="mt-1 text-xs text-amber-500">Locked – overridden by ROOM_ID_LEN env var</p>
             {/if}
           </div>
+        </div>
+      </div>
+      {/if}
+
+      {#if activeTab === 'email'}
+      <div class="space-y-6">
+        <div class="rounded-lg border border-pub-muted bg-pub-darker p-4 space-y-4">
+          <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-pub-gold">SMTP</h2>
+              <p class="text-sm text-pub-muted">
+                Configure the shared outgoing email account used by the app.
+              </p>
+              <p class="text-sm text-pub-muted">
+                Readable transport settings are stored in app config. The SMTP password is stored separately and never shown again.
+              </p>
+            </div>
+            <span class="inline-flex items-center rounded-full border border-pub-muted px-3 py-1 text-xs text-pub-muted">
+              {#if smtpTransportReady}
+                Ready
+              {:else}
+                Incomplete
+              {/if}
+            </span>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">SMTP host</span>
+              <input bind:value={prizeEmailSmtpHost} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" placeholder="smtp.example.com" />
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">SMTP port</span>
+              <input bind:value={prizeEmailSmtpPort} type="number" min={1} max={65535} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">SMTP username</span>
+              <input bind:value={prizeEmailSmtpUsername} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" placeholder="mailer@example.com" />
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">From email</span>
+              <input bind:value={prizeEmailFromEmail} type="email" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" placeholder="noreply@example.com" />
+            </label>
+            <label class="block text-sm md:col-span-2">
+              <span class="mb-1 block text-pub-muted">From name</span>
+              <input bind:value={prizeEmailFromName} class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" placeholder="Let's Go Quizzing" />
+            </label>
+            <label class="flex items-center gap-2 text-sm text-pub-muted">
+              <input type="checkbox" bind:checked={prizeEmailSmtpSecure} class="rounded" />
+              Use secure SMTP / TLS
+            </label>
+          </div>
+
+          <div class="rounded-lg border border-pub-muted/50 bg-pub-dark p-4 space-y-3">
+            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p class="text-sm font-medium text-pub-gold">SMTP password</p>
+                <p class="text-xs text-pub-muted">
+                  Status:
+                  {#if clearPrizeEmailSmtpPassword}
+                    will be cleared on save
+                  {:else if prizeEmailSmtpPassword.trim()}
+                    replacement ready
+                  {:else if prizeEmailSmtpPasswordConfigured}
+                    configured
+                  {:else}
+                    not configured
+                  {/if}
+                </p>
+              </div>
+            </div>
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">Replace password</span>
+              <input
+                bind:value={prizeEmailSmtpPassword}
+                type="password"
+                class="w-full rounded-lg border border-pub-muted bg-pub-darker px-3 py-2"
+                placeholder={prizeEmailSmtpPasswordConfigured ? 'Leave blank to keep current password' : 'Enter SMTP password'}
+                disabled={clearPrizeEmailSmtpPassword}
+              />
+            </label>
+            <label class="flex items-center gap-2 text-sm text-pub-muted">
+              <input type="checkbox" bind:checked={clearPrizeEmailSmtpPassword} class="rounded" disabled={prizeEmailSmtpPassword.trim().length > 0} />
+              Clear stored password on next save
+            </label>
+          </div>
+
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p class="text-xs text-pub-muted">
+              Save first, then run a connection test. The test verifies SMTP connect/auth and does not send a real email.
+            </p>
+            <button
+              type="button"
+              class="rounded-lg border border-pub-muted px-4 py-2 text-sm hover:bg-pub-dark disabled:opacity-50"
+              onclick={testPrizeEmailConnection}
+              disabled={testingPrizeEmailConnection || !smtpTransportReady}
+            >
+              {testingPrizeEmailConnection ? 'Testing...' : 'Test connection'}
+            </button>
+          </div>
+          {#if prizeEmailTestMessage}
+            <p class="text-sm {prizeEmailTestMessage === 'SMTP connection verified.' ? 'text-green-400' : 'text-red-400'}">
+              {prizeEmailTestMessage}
+            </p>
+          {/if}
         </div>
       </div>
       {/if}
