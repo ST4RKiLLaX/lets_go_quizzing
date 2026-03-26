@@ -45,11 +45,17 @@
   let confettiRunId = 0;
   let previousStateType: SerializedState['type'] | null = null;
   const celebratedRevealKeys = new Set<string>();
+  let clockOffsetMs = 0;
+
+  function syncClockOffset(nextState: SerializedState | null | undefined) {
+    if (nextState?.serverNow != null) {
+      clockOffsetMs = nextState.serverNow - Date.now();
+    }
+  }
 
   $: timerEndsAt =
     state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
   $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
-  $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);
@@ -145,6 +151,7 @@
     });
     socket.on('player:admitted', (payload: { state?: SerializedState }) => {
       if (payload?.state) {
+        syncClockOffset(payload.state);
         state = payload.state;
         registered = true;
         waitingForApproval = false;
@@ -157,6 +164,7 @@
       if (payload?.message) joinError = payload.message;
     });
     socket.on('state:update', (payload: { state: SerializedState }) => {
+      syncClockOffset(payload.state);
       state = payload.state;
     });
     socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
@@ -272,7 +280,10 @@
         needsRoomPassword = false;
         needsRequestForm = false;
         joinError = '';
-        if (ack?.state) state = ack.state;
+        if (ack?.state) {
+          syncClockOffset(ack.state);
+          state = ack.state;
+        }
       }
     );
   }
