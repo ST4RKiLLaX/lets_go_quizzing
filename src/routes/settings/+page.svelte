@@ -59,6 +59,24 @@
     return new Date(createdAt).toLocaleString();
   }
 
+  function getClaimedBadgeClass(prize: PrizeDefinition): string {
+    const limit = Math.max(1, Number(prize.limit) || 1);
+    const remainingRatio = Math.max(0, limit - (Number(prize.usage) || 0)) / limit;
+    if (remainingRatio < 0.1) {
+      return 'border-red-500/50 text-red-300 bg-red-500/10';
+    }
+    if (remainingRatio < 0.5) {
+      return 'border-amber-500/50 text-amber-300 bg-amber-500/10';
+    }
+    return 'border-green-500/50 text-green-300 bg-green-500/10';
+  }
+
+  function getActiveBadgeClass(prize: PrizeDefinition): string {
+    return prize.active
+      ? 'border-green-500/50 text-green-300 bg-green-500/10'
+      : 'border-red-500/50 text-red-300 bg-red-500/10';
+  }
+
   $: smtpTransportReady =
     prizeEmailSmtpHost.trim().length > 0 &&
     Number.isInteger(Number(prizeEmailSmtpPort)) &&
@@ -755,10 +773,10 @@
                         <p class="text-base font-semibold text-pub-gold truncate">{prize.name}</p>
                         <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-pub-muted">
                           <span>Created: {formatCreatedAt(prize.createdAt)}</span>
-                          <span class="rounded-full border border-pub-muted px-2 py-0.5">
+                          <span class={`rounded-full border px-2 py-0.5 ${getClaimedBadgeClass(prize)}`}>
                             Claimed: {prize.usage}
                           </span>
-                          <span class="rounded-full border border-pub-muted px-2 py-0.5">
+                          <span class={`rounded-full border px-2 py-0.5 ${getActiveBadgeClass(prize)}`}>
                             {prize.active ? 'Active' : 'Inactive'}
                           </span>
                         </div>

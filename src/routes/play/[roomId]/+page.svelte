@@ -1194,6 +1194,9 @@
                       {prizeEmailSending ? 'Sending...' : 'Send email'}
                     </button>
                   </div>
+                  <div class="rounded-lg border border-pub-muted/50 bg-pub-dark px-3 py-2 text-xs text-pub-muted">
+                    We use your email address only to send the prize link. We do not retain it after the code is sent.
+                  </div>
                   {#if prizeEmailMessage}
                     <p class="text-sm {prizeEmailMessage === 'Prize email sent.' ? 'text-green-400' : 'text-red-400'}">
                       {prizeEmailMessage}
