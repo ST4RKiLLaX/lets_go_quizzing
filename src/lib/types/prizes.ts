@@ -19,6 +19,7 @@ export interface RoomPrizeDefaultConfig {
 export interface PrizeOption {
   id: string;
   name: string;
+  remainingQuantity?: number;
 }
 
 export interface PrizeDefinition extends PrizeOption {

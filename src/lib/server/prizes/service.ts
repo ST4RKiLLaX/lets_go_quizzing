@@ -213,7 +213,11 @@ export function createRoomPrizeConfig(
 export function listPrizeOptions(): PrizeOption[] {
   return loadPrizeStore()
     .prizes.filter((prize) => prize.active && !isPrizeExpired(prize))
-    .map((prize) => ({ id: prize.id, name: prize.name }))
+    .map((prize) => ({
+      id: prize.id,
+      name: prize.name,
+      remainingQuantity: Math.max(0, prize.limit - prize.usage),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

@@ -24,6 +24,10 @@
   function removeTier(index: number) {
     tiers = tiers.filter((_, currentIndex) => currentIndex !== index);
   }
+
+  function getPrizeOptionLabel(prize: PrizeOption): string {
+    return prize.remainingQuantity != null ? `${prize.remainingQuantity} remain : ${prize.name}` : prize.name;
+  }
 </script>
 
 <div class="space-y-4">
@@ -48,7 +52,7 @@
 
       {#each tiers as tier, index}
         <div class="rounded-xl border border-pub-muted bg-pub-dark p-4">
-          <div class="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)]">
+          <div class="grid gap-3 md:grid-cols-[72px_minmax(0,1.6fr)_minmax(0,1fr)_auto] md:items-end">
             <label class="block text-sm">
               <span class="mb-1 block text-pub-muted">Min score</span>
               <input
@@ -71,7 +75,7 @@
               >
                 <option value="" disabled selected={!tier.prizeId}>Select a prize</option>
                 {#each availablePrizes as prize}
-                  <option value={prize.id}>{prize.name}</option>
+                  <option value={prize.id}>{getPrizeOptionLabel(prize)}</option>
                 {/each}
               </select>
             </label>
@@ -86,19 +90,38 @@
                 oninput={(event) => updateTier(index, { label: (event.currentTarget as HTMLInputElement).value })}
               />
             </label>
-          </div>
 
-          {#if editable}
-            <div class="mt-3 flex justify-end">
-              <button
-                type="button"
-                class="rounded-lg border border-red-500/50 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10"
-                onclick={() => removeTier(index)}
-              >
-                Remove tier
-              </button>
-            </div>
-          {/if}
+            {#if editable}
+              <div class="flex md:justify-end md:pb-0.5">
+                <button
+                  type="button"
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-red-500/50 text-red-300 hover:bg-red-500/10"
+                  onclick={() => removeTier(index)}
+                  aria-label="Remove tier"
+                  title="Remove tier"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
+                </button>
+              </div>
+            {/if}
+          </div>
         </div>
       {/each}
 

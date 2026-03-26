@@ -4,6 +4,7 @@
   import { get } from 'svelte/store';
   import { onDestroy, onMount } from 'svelte';
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
@@ -38,6 +39,8 @@
   let roomPrizeTiers: PrizeTier[] = [];
   let savePrizeSetupAsDefault = false;
   let prizeOptionsLoaded = false;
+  let showInsufficientPrizeModal = false;
+  let insufficientPrizeName = '';
 
   const quizSelectLabelId = 'quiz-select-label';
   const quizSelectListboxId = 'quiz-select-listbox';
@@ -235,6 +238,33 @@
     if (!quizFilename) return;
     passwordError = '';
     prizeError = '';
+    const sanitizedRoomPrizeTiers = roomPrizeTiers
+      .map((tier) => ({
+        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
+        prizeId: tier.prizeId,
+        label: tier.label?.trim() || undefined,
+      }))
+      .filter((tier) => tier.prizeId);
+
+    if (prizeFeatureEnabled && roomPrizeEnabled && sanitizedRoomPrizeTiers.length === 0) {
+      creating = false;
+      prizeError = 'Add at least one prize tier or turn room prizes off.';
+      return;
+    }
+
+    if (prizeFeatureEnabled && roomPrizeEnabled) {
+      const insufficientPrize = sanitizedRoomPrizeTiers.find((tier) => {
+        const prize = prizeOptions.find((option) => option.id === tier.prizeId);
+        return prize?.remainingQuantity === 0;
+      });
+      if (insufficientPrize) {
+        insufficientPrizeName =
+          prizeOptions.find((option) => option.id === insufficientPrize.prizeId)?.name ?? 'Selected prize';
+        showInsufficientPrizeModal = true;
+        return;
+      }
+    }
+
     creating = true;
     try {
       if (hostPasswordRequired) {
@@ -266,20 +296,6 @@
     } catch {
       creating = false;
       passwordError = 'Unable to create room. Please try again.';
-      return;
-    }
-
-    const sanitizedRoomPrizeTiers = roomPrizeTiers
-      .map((tier) => ({
-        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
-        prizeId: tier.prizeId,
-        label: tier.label?.trim() || undefined,
-      }))
-      .filter((tier) => tier.prizeId);
-
-    if (prizeFeatureEnabled && roomPrizeEnabled && sanitizedRoomPrizeTiers.length === 0) {
-      creating = false;
-      prizeError = 'Add at least one prize tier or turn room prizes off.';
       return;
     }
 
@@ -452,12 +468,11 @@
       {/if}
     </div>
   {:else if mode === 'host'}
-    <form
-      class="w-full max-w-md space-y-4"
-      on:submit|preventDefault={createRoom}
-    >
-      <p id={quizSelectLabelId} class="block text-sm text-pub-muted">Select Quiz</p>
-      <div class="relative" bind:this={quizMenuRoot}>
+    <form class="w-full max-w-3xl space-y-4" on:submit|preventDefault={createRoom}>
+      <div class="rounded-xl border border-pub-muted bg-pub-darker p-4 sm:p-5 space-y-4">
+        <div>
+          <p id={quizSelectLabelId} class="block text-sm text-pub-muted">Select Quiz</p>
+          <div class="relative mt-1" bind:this={quizMenuRoot}>
         <button
           type="button"
           class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 text-left hover:opacity-90"
@@ -475,122 +490,125 @@
             <span class="block text-pub-muted">Select a quiz</span>
           {/if}
         </button>
-        {#if showQuizMenu}
-          <div
-            id={quizSelectListboxId}
-            role="listbox"
-            tabindex="-1"
-            aria-labelledby={quizSelectLabelId}
-            class="absolute z-20 mt-2 w-full bg-pub-darker border border-pub-muted rounded-lg shadow-lg max-h-64 overflow-auto"
-            on:keydown={onQuizListKeydown}
-          >
-            {#each quizzes as q, i}
-              <button
-                type="button"
-                role="option"
-                aria-selected={q.filename === quizFilename}
-                class="w-full text-left px-4 py-2 hover:bg-pub-dark border-b border-pub-muted/40 last:border-b-0 {i === highlightedQuizIndex ? 'bg-pub-dark' : ''}"
-                on:mouseenter={() => (highlightedQuizIndex = i)}
-                on:click={() => {
-                  selectQuizByIndex(i);
-                }}
-              >
-                <span class="block">{q.title}</span>
-                <span class="block text-xs text-pub-muted mt-0.5">{q.filename}</span>
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
-      {#if hostPasswordRequired && !hostAuthenticated}
-        <div>
-          <label for="host-username" class="block text-sm text-pub-muted mb-1">Username</label>
-          <input
-            id="host-username"
-            type="text"
-            bind:value={hostUsername}
-            placeholder="Admin username"
-            class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-          />
-        </div>
-        <div>
-          <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
-          <input
-            id="host-password"
-            type="password"
-            bind:value={hostPassword}
-            placeholder="Enter host password"
-            class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-          />
-          {#if passwordError}
-            <p class="mt-1 text-sm text-red-400">{passwordError}</p>
+          {#if showQuizMenu}
+            <div
+              id={quizSelectListboxId}
+              role="listbox"
+              tabindex="-1"
+              aria-labelledby={quizSelectLabelId}
+              class="absolute z-20 mt-2 w-full bg-pub-darker border border-pub-muted rounded-lg shadow-lg max-h-64 overflow-auto"
+              on:keydown={onQuizListKeydown}
+            >
+              {#each quizzes as q, i}
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={q.filename === quizFilename}
+                  class="w-full text-left px-4 py-2 hover:bg-pub-dark border-b border-pub-muted/40 last:border-b-0 {i === highlightedQuizIndex ? 'bg-pub-dark' : ''}"
+                  on:mouseenter={() => (highlightedQuizIndex = i)}
+                  on:click={() => {
+                    selectQuizByIndex(i);
+                  }}
+                >
+                  <span class="block">{q.title}</span>
+                  <span class="block text-xs text-pub-muted mt-0.5">{q.filename}</span>
+                </button>
+              {/each}
+            </div>
           {/if}
+          </div>
+        </div>
+
+      {#if hostPasswordRequired && !hostAuthenticated}
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label for="host-username" class="block text-sm text-pub-muted mb-1">Username</label>
+            <input
+              id="host-username"
+              type="text"
+              bind:value={hostUsername}
+              placeholder="Admin username"
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+          </div>
+          <div>
+            <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
+            <input
+              id="host-password"
+              type="password"
+              bind:value={hostPassword}
+              placeholder="Enter host password"
+              class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+            />
+            {#if passwordError}
+              <p class="mt-1 text-sm text-red-400">{passwordError}</p>
+            {/if}
+          </div>
         </div>
       {:else if hostAuthenticated}
         <p class="text-sm text-green-400">Authenticated (session active)</p>
       {/if}
-      <div>
-        <label for="player-join-password" class="block text-sm text-pub-muted mb-1">
-          Player join password (optional)
-        </label>
-        <input
-          id="player-join-password"
-          type="password"
-          bind:value={playerJoinPassword}
-          placeholder="Require password for players joining this room"
-          class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <input
-          id="waiting-room-enabled"
-          type="checkbox"
-          bind:checked={waitingRoomEnabled}
-          class="rounded border-pub-muted bg-pub-dark"
-        />
-        <label for="waiting-room-enabled" class="text-sm text-pub-muted">
-          Waiting room (host approves players before they join)
-        </label>
-      </div>
-      {#if waitingRoomEnabled}
-        <div class="space-y-2 pl-4 border-l-2 border-pub-muted">
-          <div class="flex items-center gap-2">
+
+        <div>
+          <label for="player-join-password" class="block text-sm text-pub-muted mb-1">
+            Player join password (optional)
+          </label>
+          <input
+            id="player-join-password"
+            type="password"
+            bind:value={playerJoinPassword}
+            placeholder="Require password for players joining this room"
+            class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
+          />
+        </div>
+
+        <div class="rounded-lg border border-pub-muted/60 bg-pub-dark p-4 space-y-3">
+          <label class="flex items-start gap-2">
             <input
-              id="auto-admit-before-game"
+              id="waiting-room-enabled"
               type="checkbox"
-              bind:checked={autoAdmitBeforeGame}
-              class="rounded border-pub-muted bg-pub-dark"
+              bind:checked={waitingRoomEnabled}
+              class="mt-0.5 rounded border-pub-muted bg-pub-dark"
             />
-            <label for="auto-admit-before-game" class="text-sm text-pub-muted">
-              Auto-admit before game starts
-            </label>
-          </div>
-          <div class="flex items-center gap-2">
-            <input
-              id="allow-late-join"
-              type="checkbox"
-              bind:checked={allowLateJoin}
-              class="rounded border-pub-muted bg-pub-dark"
-            />
-            <label for="allow-late-join" class="text-sm text-pub-muted">
-              Allow late join (after game starts)
-            </label>
-          </div>
-          {#if allowLateJoin}
-            <div class="flex items-center gap-2">
-              <input
-                id="manual-admit-after-game"
-                type="checkbox"
-                bind:checked={manualAdmitAfterGame}
-                class="rounded border-pub-muted bg-pub-dark"
-              />
-              <label for="manual-admit-after-game" class="text-sm text-pub-muted">
-                Manual admit after game starts
+            <span class="text-sm text-pub-muted">
+              Waiting room (host approves players before they join)
+            </span>
+          </label>
+          {#if waitingRoomEnabled}
+            <div class="space-y-3 pl-6">
+              <label class="flex items-start gap-2">
+                <input
+                  id="auto-admit-before-game"
+                  type="checkbox"
+                  bind:checked={autoAdmitBeforeGame}
+                  class="mt-0.5 rounded border-pub-muted bg-pub-dark"
+                />
+                <span class="text-sm text-pub-muted">Auto-admit before game starts</span>
               </label>
+              <label class="flex items-start gap-2">
+                <input
+                  id="allow-late-join"
+                  type="checkbox"
+                  bind:checked={allowLateJoin}
+                  class="mt-0.5 rounded border-pub-muted bg-pub-dark"
+                />
+                <span class="text-sm text-pub-muted">Allow late join (after game starts)</span>
+              </label>
+              {#if allowLateJoin}
+                <label class="flex items-start gap-2">
+                  <input
+                    id="manual-admit-after-game"
+                    type="checkbox"
+                    bind:checked={manualAdmitAfterGame}
+                    class="mt-0.5 rounded border-pub-muted bg-pub-dark"
+                  />
+                  <span class="text-sm text-pub-muted">Manual admit after game starts</span>
+                </label>
+              {/if}
             </div>
           {/if}
         </div>
-      {/if}
+      </div>
       {#if prizeFeatureEnabled}
         <div class="rounded-lg border border-pub-muted bg-pub-darker p-4">
           <PrizeTierEditor
@@ -653,3 +671,22 @@
     </form>
   {/if}
 </div>
+
+<ConfirmModal
+  open={showInsufficientPrizeModal}
+  title="Insufficient prize quantity"
+  titleId="insufficient-prize-modal-title"
+  cancelLabel="Close"
+  confirmLabel="OK"
+  confirmButtonClass="bg-pub-accent text-white"
+  onClose={() => {
+    showInsufficientPrizeModal = false;
+  }}
+  onConfirm={() => {
+    showInsufficientPrizeModal = false;
+  }}
+>
+  <p class="text-sm text-pub-muted">
+    {insufficientPrizeName} is insufficient to start. Either change or remove the prize or disable prizes for the room.
+  </p>
+</ConfirmModal>
