@@ -100,6 +100,7 @@ These override config file values when set. Useful for Kubernetes, CI, or deploy
 | `ROOM_ID_LEN`               | Length of generated room codes. Default is `6`.                                                                                             | `config.roomIdLen` |
 | `HOST_PASSWORD`             | Legacy: enables hosting when no config exists. Used for migration from env-only setups.                                                     | —                  |
 | `ADDRESS_HEADER`            | Set to `x-forwarded-for` if behind a proxy so rate limits use real client IPs.                                                              | —                  |
+| `BODY_SIZE_LIMIT`           | Maximum request body size accepted by the Node app (for example `50M`). Increase this if quiz ZIP imports or image uploads fail on deploy. | —                  |
 | `LOAD_TEST_PLAYER_JOIN_MAX` | Test-only override for benchmark deployments. Raises the player/projector join limit without changing normal defaults.                      | —                  |
 
 > **Local development:** The dev server runs at `http://localhost:5173`. If Socket.io rejects connections, set `ORIGIN=http://localhost:5173` in your config or `.env`.
