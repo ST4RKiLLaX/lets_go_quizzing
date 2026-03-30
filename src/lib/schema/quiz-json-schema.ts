@@ -97,6 +97,11 @@ export const QUIZ_JSON_SCHEMA = {
                   minimum: 0.01,
                   description: 'Points multiplier for this question (e.g. 2 = double, 3 = triple). Default 1.',
                 },
+                shuffle_options: {
+                  type: 'boolean',
+                  description:
+                    'Whether to shuffle displayed options for supported question types. Existing matching and reorder questions stay shuffled when this is omitted.',
+                },
                 options: {
                   type: 'array',
                   items: { type: 'string' },

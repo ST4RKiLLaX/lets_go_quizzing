@@ -50,6 +50,19 @@
   const ri = roundIndex;
   const qi = questionIndex;
 
+  $: supportsShuffleOptions =
+    question.type === 'choice' ||
+    question.type === 'poll' ||
+    question.type === 'multi_select' ||
+    question.type === 'reorder' ||
+    question.type === 'matching';
+  $: shuffleOptionsEnabled =
+    question.type === 'choice' || question.type === 'poll' || question.type === 'multi_select'
+      ? question.shuffle_options === true
+      : question.type === 'reorder' || question.type === 'matching'
+        ? question.shuffle_options !== false
+        : false;
+
   $: canUploadFile = !!quizFilename?.trim();
   $: isUploadingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'upload';
   $: isImportingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'import';
@@ -205,6 +218,20 @@
           onPatch({ points: v === '' ? undefined : Number(v) });
         }}
       />
+    </div>
+  {/if}
+  {#if supportsShuffleOptions}
+    <div class="mb-3">
+      <label class="inline-flex items-center gap-2 text-sm text-pub-muted">
+        <input
+          type="checkbox"
+          class="rounded border-pub-muted bg-pub-darker"
+          checked={shuffleOptionsEnabled}
+          on:change={(e) =>
+            onPatch({ shuffle_options: (e.currentTarget as HTMLInputElement).checked })}
+        />
+        <span>Shuffle options</span>
+      </label>
     </div>
   {/if}
   <div class="mb-3">

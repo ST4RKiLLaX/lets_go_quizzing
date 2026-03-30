@@ -17,6 +17,7 @@
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
+  import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
 
   export let question: Question | null = null;
@@ -25,6 +26,7 @@
   export let currentRoundQuestionTotal: number;
   export let totalTimerSeconds: number;
   export let countdown: Readable<number> | null = null;
+  export let roomId: string;
   export let quizFilename: string | undefined = undefined;
   export let optionLabelStyle: 'letters' | 'numbers';
   export let revealData: RevealData = {};
@@ -77,10 +79,11 @@
     {#if q.type === 'choice' || q.type === 'true_false'}
       {@const options = getQuestionOptions(q)}
       {@const correctIndex = q.type === 'choice' ? q.answer : (q.answer ? 0 : 1)}
+      {@const optionIndices = q.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(q, roomId)}
       <ul class="space-y-2">
-        {#each options as opt, i}
-          {@const isChosen = revealData.submittedAnswerIndex === i}
-          <li class="px-4 py-2 bg-pub-dark rounded {correctIndex === i ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
+        {#each optionIndices as optIndex, i}
+          {@const isChosen = revealData.submittedAnswerIndex === optIndex}
+          <li class="px-4 py-2 bg-pub-dark rounded {correctIndex === optIndex ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
             <div class="flex items-center gap-2">
               <span class="w-4 text-pub-gold" aria-hidden="true">
                 {#if isChosen}
@@ -91,17 +94,18 @@
                 {formatOptionLabel(i, optionLabelStyle)}
               </span>
               <span class="flex-1 break-words">
-                {opt} {#if correctIndex === i}(correct){/if}
+                {options[optIndex]} {#if correctIndex === optIndex}(correct){/if}
               </span>
             </div>
           </li>
         {/each}
       </ul>
     {:else if q.type === 'multi_select'}
+      {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
       <ul class="space-y-2">
-        {#each q.options as opt, i}
-          {@const isCorrect = q.answer.includes(i)}
-          {@const isChosen = (revealData.submittedAnswerIndexes ?? []).includes(i)}
+        {#each optionIndices as optIndex, i}
+          {@const isCorrect = q.answer.includes(optIndex)}
+          {@const isChosen = (revealData.submittedAnswerIndexes ?? []).includes(optIndex)}
           <li class="px-4 py-2 bg-pub-dark rounded {isCorrect ? 'ring-2 ring-green-500' : `opacity-60 ${isChosen ? 'ring-2 ring-pub-gold' : ''}`}">
             <div class="flex items-center gap-2">
               <span class="w-4 text-pub-gold" aria-hidden="true">
@@ -113,7 +117,7 @@
                 {formatOptionLabel(i, optionLabelStyle)}
               </span>
               <span class="flex-1 break-words">
-                {opt} {#if isCorrect}(correct){/if}
+                {q.options[optIndex]} {#if isCorrect}(correct){/if}
               </span>
             </div>
           </li>
@@ -187,9 +191,10 @@
     {:else if q.type === 'poll'}
       {@const options = getQuestionOptions(q)}
       {@const counts = revealData.optionCounts ?? {}}
+      {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
       <ul class="space-y-2">
-        {#each options as opt, i}
-          {@const isChosen = revealData.submittedAnswerIndex === i}
+        {#each optionIndices as optIndex, i}
+          {@const isChosen = revealData.submittedAnswerIndex === optIndex}
           <li class="px-4 py-2 bg-pub-dark rounded {isChosen ? 'ring-2 ring-pub-gold' : 'opacity-60'}">
             <div class="flex items-center gap-2">
               <span class="w-4 text-pub-gold" aria-hidden="true">
@@ -200,8 +205,8 @@
               <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
                 {formatOptionLabel(i, optionLabelStyle)}
               </span>
-              <span class="flex-1 break-words">{opt}</span>
-              <span class="text-pub-gold font-semibold">{counts[i] ?? 0}</span>
+              <span class="flex-1 break-words">{options[optIndex]}</span>
+              <span class="text-pub-gold font-semibold">{counts[optIndex] ?? 0}</span>
             </div>
           </li>
         {/each}

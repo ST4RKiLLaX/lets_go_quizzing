@@ -153,6 +153,10 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 
 Scored question types support an optional `points` multiplier (e.g. `points: 2` = double points, `points: 3` = triple). Default is 1. Works in both Standard and Ranked modes.
 
+Option-based question types also support `shuffle_options`:
+- `choice`, `poll`, `multi_select`: set `shuffle_options: true` to shuffle the displayed options per room
+- `matching`, `reorder`: current quizzes already shuffle by default per room; set `shuffle_options: false` if you want to keep the authored order
+
 ### Examples by Type
 
 **choice** — Single correct option (0-based index):

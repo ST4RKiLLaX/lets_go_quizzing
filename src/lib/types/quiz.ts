@@ -16,6 +16,7 @@ export interface ChoiceQuestion {
   explanation?: string;
   image?: string;
   points?: number;
+  shuffle_options?: boolean;
   options: string[];
   answer: number;
 }
@@ -37,6 +38,7 @@ export interface PollQuestion {
   explanation?: string;
   image?: string;
   points?: number;
+  shuffle_options?: boolean;
   options: string[];
 }
 
@@ -47,6 +49,7 @@ export interface MultiSelectQuestion {
   explanation?: string;
   image?: string;
   points?: number;
+  shuffle_options?: boolean;
   options: string[];
   answer: number[];
 }
@@ -99,6 +102,7 @@ export interface ReorderQuestion {
   explanation?: string;
   image?: string;
   points?: number;
+  shuffle_options?: boolean;
   options: string[];
   answer: number[];
 }
@@ -121,6 +125,7 @@ export interface MatchingQuestion {
   explanation?: string;
   image?: string;
   points?: number;
+  shuffle_options?: boolean;
   items: string[];
   options: string[];
   answer: number[];
@@ -161,6 +166,7 @@ export function createEmptyChoiceQuestion(id: string): ChoiceQuestion {
     id,
     type: 'choice',
     text: '',
+    shuffle_options: false,
     options: ['', ''],
     answer: 0,
   };
@@ -180,6 +186,7 @@ export function createEmptyPollQuestion(id: string): PollQuestion {
     id,
     type: 'poll',
     text: '',
+    shuffle_options: false,
     options: ['', ''],
   };
 }
@@ -189,6 +196,7 @@ export function createEmptyMultiSelectQuestion(id: string): MultiSelectQuestion 
     id,
     type: 'multi_select',
     text: '',
+    shuffle_options: false,
     options: ['', ''],
     answer: [0],
   };
@@ -236,6 +244,7 @@ export function createEmptyReorderQuestion(id: string): ReorderQuestion {
     id,
     type: 'reorder',
     text: '',
+    shuffle_options: true,
     options: ['', ''],
     answer: [0, 1],
   };
@@ -256,6 +265,7 @@ export function createEmptyMatchingQuestion(id: string): MatchingQuestion {
     id,
     type: 'matching',
     text: '',
+    shuffle_options: true,
     items: ['', ''],
     options: ['', '', '', ''],
     answer: [0, 1],

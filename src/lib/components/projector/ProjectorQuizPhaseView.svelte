@@ -7,7 +7,7 @@
   import type { HotspotQuestion, Question } from '$lib/types/quiz.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
-  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
+  import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
   import { getWordCloudTokens } from '$lib/utils/word-cloud.js';
   import RevealChoiceTrueFalseList from '$lib/components/shared/question-display/RevealChoiceTrueFalseList.svelte';
@@ -194,8 +194,9 @@
     {#if phase === 'question'}
       {#if qq.type === 'choice' || qq.type === 'true_false'}
         {@const options = getQuestionOptions(qq)}
+        {@const optionIndices = qq.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(qq, state?.roomId)}
         <ul class="space-y-2">
-          {#each options as opt, i}
+          {#each optionIndices as optIndex, i}
             <li class="px-4 py-2 bg-pub-dark rounded-lg">
               <div class="flex items-center gap-2">
                 <span
@@ -203,16 +204,22 @@
                 >
                   {formatOptionLabel(i, optionLabelStyle)}
                 </span>
-                <span class="flex-1 break-words">{opt}</span>
+                <span class="flex-1 break-words">{options[optIndex]}</span>
               </div>
             </li>
           {/each}
         </ul>
       {:else if qq.type === 'poll'}
-        <PollOptionsList options={qq.options} {optionLabelStyle} showCounts={false} />
+        <PollOptionsList
+          options={qq.options}
+          {optionLabelStyle}
+          showCounts={false}
+          optionIndices={getQuestionDisplayOptionIndices(qq, state?.roomId)}
+        />
       {:else if qq.type === 'multi_select'}
+        {@const optionIndices = getQuestionDisplayOptionIndices(qq, state?.roomId)}
         <ul class="space-y-2">
-          {#each qq.options as opt, i}
+          {#each optionIndices as optIndex, i}
             <li class="px-4 py-2 bg-pub-dark rounded-lg">
               <div class="flex items-center gap-2">
                 <span
@@ -220,14 +227,14 @@
                 >
                   {formatOptionLabel(i, optionLabelStyle)}
                 </span>
-                <span class="flex-1 break-words">{opt}</span>
+                <span class="flex-1 break-words">{qq.options[optIndex]}</span>
               </div>
             </li>
           {/each}
         </ul>
       {:else if qq.type === 'reorder'}
         <ul class="space-y-2">
-          {#each getShuffledReorderIndices(qq.id, qq.options.length) as optIndex, i}
+          {#each getQuestionDisplayOptionIndices(qq, state?.roomId) as optIndex, i}
             <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
               <div class="flex items-center gap-2">
                 <span
@@ -256,7 +263,7 @@
           <div class="flex-1">
             <p class="text-sm font-medium text-pub-muted mb-2">Options</p>
             <ul class="space-y-2">
-              {#each getShuffledReorderIndices(qq.id + ':options', qq.options.length) as optIndex}
+              {#each getQuestionDisplayOptionIndices(qq, state?.roomId) as optIndex}
                 <li class="px-4 py-2 bg-pub-dark rounded-lg opacity-80">
                   <span class="break-words">{qq.options[optIndex]}</span>
                 </li>
@@ -278,7 +285,8 @@
       {#if qq.type === 'choice' || qq.type === 'true_false'}
         {@const options = getQuestionOptions(qq)}
         {@const correctIndex = qq.type === 'choice' ? qq.answer : qq.answer ? 0 : 1}
-        <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} />
+        {@const optionIndices = qq.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(qq, state?.roomId)}
+        <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} {optionIndices} />
       {:else if qq.type === 'multi_select'}
         {@const counts = getOptionCounts(state?.submissions ?? [], qq.id)}
         <RevealMultiSelectList
@@ -286,6 +294,7 @@
           correctIndices={qq.answer}
           {counts}
           {optionLabelStyle}
+          optionIndices={getQuestionDisplayOptionIndices(qq, state?.roomId)}
         />
       {:else if qq.type === 'reorder'}
         <div class="space-y-2">
@@ -319,7 +328,13 @@
         </div>
       {:else if qq.type === 'poll'}
         {@const counts = getOptionCounts(state?.submissions ?? [], qq.id)}
-        <PollOptionsList options={qq.options} {optionLabelStyle} showCounts={true} {counts} />
+        <PollOptionsList
+          options={qq.options}
+          {optionLabelStyle}
+          showCounts={true}
+          {counts}
+          optionIndices={getQuestionDisplayOptionIndices(qq, state?.roomId)}
+        />
       {:else if qq.type === 'slider'}
         {@const sliderSubs = (state.submissions ?? []).filter(
           (s) =>

@@ -112,16 +112,24 @@ export function setQuestionType(
     explanation: q.explanation,
     image: q.image,
     points: (q as { points?: number }).points,
+    shuffle_options:
+      q.type === 'choice' ||
+      q.type === 'poll' ||
+      q.type === 'multi_select' ||
+      q.type === 'reorder' ||
+      q.type === 'matching'
+        ? q.shuffle_options
+        : undefined,
   };
   const newQ: Question =
     type === 'choice'
-      ? { ...base, type: 'choice', options: ['', ''], answer: 0 }
+      ? { ...base, type: 'choice', shuffle_options: base.shuffle_options ?? false, options: ['', ''], answer: 0 }
       : type === 'true_false'
         ? { ...base, type: 'true_false', answer: true }
         : type === 'poll'
-          ? { ...base, type: 'poll', options: ['', ''] }
+          ? { ...base, type: 'poll', shuffle_options: base.shuffle_options ?? false, options: ['', ''] }
           : type === 'multi_select'
-            ? { ...base, type: 'multi_select', options: ['', ''], answer: [0] }
+            ? { ...base, type: 'multi_select', shuffle_options: base.shuffle_options ?? false, options: ['', ''], answer: [0] }
             : type === 'slider'
               ? { ...base, type: 'slider', min: 0, max: 10, step: 1, answer: 5 }
               : type === 'input'
@@ -131,9 +139,16 @@ export function setQuestionType(
                   : type === 'word_cloud'
                     ? { ...base, type: 'word_cloud' }
                     : type === 'reorder'
-                      ? { ...base, type: 'reorder', options: ['', ''], answer: [0, 1] }
+                      ? { ...base, type: 'reorder', shuffle_options: base.shuffle_options ?? true, options: ['', ''], answer: [0, 1] }
                       : type === 'matching'
-                        ? { ...base, type: 'matching', items: ['', ''], options: ['', '', '', ''], answer: [0, 1] }
+                        ? {
+                            ...base,
+                            type: 'matching',
+                            shuffle_options: base.shuffle_options ?? true,
+                            items: ['', ''],
+                            options: ['', '', '', ''],
+                            answer: [0, 1],
+                          }
                         : {
                             ...base,
                             type: 'hotspot',

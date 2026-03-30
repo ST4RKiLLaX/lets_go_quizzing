@@ -16,7 +16,7 @@
   import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
-  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
+  import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
@@ -714,7 +714,7 @@
   }
 
   $: if (currentQuestion?.type === 'reorder' && reorderDraft.length === 0) {
-    reorderDraft = getShuffledReorderIndices(currentQuestion.id, currentQuestion.options.length);
+    reorderDraft = getQuestionDisplayOptionIndices(currentQuestion, roomId ?? undefined);
   }
 
   $: if (currentQuestion?.type === 'matching' && matchingDraft.length === 0) {
@@ -1098,6 +1098,7 @@
       <PlayerQuestionForm
         question={currentQuestion}
         roundName={state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+        roomId={roomId ?? ''}
         {currentQuestionNumber}
         {currentRoundQuestionTotal}
         {totalTimerSeconds}
@@ -1146,6 +1147,7 @@
       <PlayerRevealView
         question={currentQuestion}
         roundName={state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
+        roomId={roomId ?? ''}
         currentQuestionNumber={currentQuestionNumber}
         currentRoundQuestionTotal={currentRoundQuestionTotal}
         countdown={countdown}

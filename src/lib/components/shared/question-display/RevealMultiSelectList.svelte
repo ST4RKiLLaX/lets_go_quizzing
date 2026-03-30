@@ -7,12 +7,13 @@
   export let counts: Map<number, number>;
   export let optionLabelStyle: 'letters' | 'numbers';
   export let itemRoundedClass = 'rounded-lg';
+  export let optionIndices: number[] = options.map((_, i) => i);
 </script>
 
 <ul class="space-y-2">
-  {#each options as opt, i}
+  {#each optionIndices as optionIndex, i}
     <li
-      class="px-4 py-2 bg-pub-dark {itemRoundedClass} {correctIndices.includes(i)
+      class="px-4 py-2 bg-pub-dark {itemRoundedClass} {correctIndices.includes(optionIndex)
         ? 'ring-2 ring-green-500'
         : 'opacity-60'}"
     >
@@ -23,9 +24,9 @@
           {formatOptionLabel(i, optionLabelStyle)}
         </span>
         <span class="flex-1 break-words">
-          {opt} {#if correctIndices.includes(i)}(correct){/if}
+          {options[optionIndex]} {#if correctIndices.includes(optionIndex)}(correct){/if}
         </span>
-        <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+        <span class="text-pub-gold font-semibold">{counts.get(optionIndex) ?? 0}</span>
       </div>
     </li>
   {/each}

@@ -12,7 +12,7 @@
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
-  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
+  import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
@@ -602,15 +602,16 @@
           {/if}
           {#if q.type === 'choice' || q.type === 'true_false'}
             {@const options = getQuestionOptions(q)}
+            {@const optionIndices = q.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(q, roomId)}
             {#if state?.type === 'RevealAnswer'}
               {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
-              <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} />
+              <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} {optionIndices} />
             {:else}
               <ul class="space-y-2">
-                {#each options as opt, i}
+                {#each optionIndices as optIndex, i}
                   {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
                   <li
-                    class="px-4 py-2 bg-pub-dark rounded {correctIndex === i
+                    class="px-4 py-2 bg-pub-dark rounded {correctIndex === optIndex
                       ? 'ring-2 ring-green-500'
                       : ''}"
                   >
@@ -620,7 +621,7 @@
                       >
                         {formatOptionLabel(i, optionLabelStyle)}
                       </span>
-                      <span class="flex-1 break-words">{opt}</span>
+                      <span class="flex-1 break-words">{options[optIndex]}</span>
                     </div>
                   </li>
                 {/each}
@@ -628,16 +629,18 @@
             {/if}
           {:else if q.type === 'multi_select'}
             {@const counts = getLiveOptionCounts(q.id)}
+            {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
             {#if state?.type === 'RevealAnswer'}
               <RevealMultiSelectList
                 options={q.options}
                 correctIndices={q.answer}
                 {counts}
                 {optionLabelStyle}
+                {optionIndices}
               />
             {:else}
               <ul class="space-y-2">
-                {#each q.options as opt, i}
+                {#each optionIndices as optIndex, i}
                   <li class="px-4 py-2 bg-pub-dark rounded">
                     <div class="flex items-center gap-2">
                       <span
@@ -645,8 +648,8 @@
                       >
                         {formatOptionLabel(i, optionLabelStyle)}
                       </span>
-                      <span class="flex-1 break-words">{opt}</span>
-                      <span class="text-pub-gold font-semibold">{counts.get(i) ?? 0}</span>
+                      <span class="flex-1 break-words">{q.options[optIndex]}</span>
+                      <span class="text-pub-gold font-semibold">{counts.get(optIndex) ?? 0}</span>
                     </div>
                   </li>
                 {/each}
@@ -659,7 +662,7 @@
                   <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Order:</h3>
                 {/if}
                 <ul class="space-y-2 {state?.type !== 'RevealAnswer' ? 'opacity-60' : ''}">
-                  {#each (state?.type === 'RevealAnswer' ? q.answer : getShuffledReorderIndices(q.id, q.options.length)) as optIndex, i}
+                  {#each (state?.type === 'RevealAnswer' ? q.answer : getQuestionDisplayOptionIndices(q, roomId)) as optIndex, i}
                     <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
                       <div class="flex items-center gap-2">
                         <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
@@ -695,7 +698,7 @@
                   <div class="flex-1">
                     <p class="text-sm font-medium text-pub-muted mb-2">Options</p>
                     <ul class="space-y-2 opacity-60">
-                      {#each getShuffledReorderIndices(q.id + ':options', q.options.length) as optIndex}
+                      {#each getQuestionDisplayOptionIndices(q, roomId) as optIndex}
                         <li class="px-4 py-2 bg-pub-dark rounded">
                           <span class="break-words">{q.options[optIndex]}</span>
                         </li>
@@ -712,6 +715,7 @@
               {optionLabelStyle}
               showCounts={state?.type === 'RevealAnswer'}
               {counts}
+              optionIndices={getQuestionDisplayOptionIndices(q, roomId)}
               itemRoundedClass="rounded"
             />
           {:else if q.type === 'slider'}

@@ -56,6 +56,7 @@ const ChoiceQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: imageSchema,
   points: z.number().positive().optional(),
+  shuffle_options: z.boolean().optional(),
   options: z.array(z.string()),
   answer: z.number().int().min(0),
 });
@@ -77,6 +78,7 @@ const PollQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: imageSchema,
   points: z.number().positive().optional(),
+  shuffle_options: z.boolean().optional(),
   options: z.array(z.string()).min(2),
 });
 
@@ -87,6 +89,7 @@ const MultiSelectQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: imageSchema,
   points: z.number().positive().optional(),
+  shuffle_options: z.boolean().optional(),
   options: z.array(z.string()).min(2),
   answer: z.array(z.number().int().min(0)).min(1),
 });
@@ -139,6 +142,7 @@ const ReorderQuestionSchema = z.object({
   explanation: z.string().optional(),
   image: imageSchema,
   points: z.number().positive().optional(),
+  shuffle_options: z.boolean().optional(),
   options: z.array(z.string()).min(2),
   answer: z.array(z.number().int().min(0)).min(2),
 });
@@ -172,6 +176,7 @@ const MatchingQuestionSchema = z
     explanation: z.string().optional(),
     image: imageSchema,
     points: z.number().positive().optional(),
+    shuffle_options: z.boolean().optional(),
     items: z.array(z.string()).min(2),
     options: z.array(z.string()).min(2),
     answer: z.array(z.number().int().min(0)).min(2),

@@ -7,12 +7,13 @@
   export let optionLabelStyle: 'letters' | 'numbers';
   /** Unify with projector (`rounded-lg`) */
   export let itemRoundedClass = 'rounded-lg';
+  export let optionIndices: number[] = options.map((_, i) => i);
 </script>
 
 <ul class="space-y-2">
-  {#each options as opt, i}
+  {#each optionIndices as optionIndex, i}
     <li
-      class="px-4 py-2 bg-pub-dark {itemRoundedClass} {correctIndex === i
+      class="px-4 py-2 bg-pub-dark {itemRoundedClass} {correctIndex === optionIndex
         ? 'ring-2 ring-green-500'
         : 'opacity-60'}"
     >
@@ -23,7 +24,7 @@
           {formatOptionLabel(i, optionLabelStyle)}
         </span>
         <span class="flex-1 break-words">
-          {opt} {#if correctIndex === i}(correct){/if}
+          {options[optionIndex]} {#if correctIndex === optionIndex}(correct){/if}
         </span>
       </div>
     </li>

@@ -1,3 +1,5 @@
+import type { Question } from '$lib/types/quiz.js';
+
 /**
  * Simple seeded PRNG (mulberry32) for deterministic shuffle.
  */
@@ -44,4 +46,47 @@ export function seededShuffle<T>(array: T[], seed: number): T[] {
 export function getShuffledReorderIndices(questionId: string, optionCount: number): number[] {
   const indices = Array.from({ length: optionCount }, (_, i) => i);
   return seededShuffle(indices, hashString(questionId));
+}
+
+function getOrderedIndices(optionCount: number): number[] {
+  return Array.from({ length: optionCount }, (_, i) => i);
+}
+
+export function shouldShuffleQuestionOptions(question: Question): boolean {
+  switch (question.type) {
+    case 'choice':
+    case 'poll':
+    case 'multi_select':
+      return question.shuffle_options === true;
+    case 'reorder':
+    case 'matching':
+      return question.shuffle_options !== false;
+    default:
+      return false;
+  }
+}
+
+function getQuestionShuffleSeed(roomId: string | undefined, questionId: string, suffix = ''): string {
+  return roomId ? `${roomId}:${questionId}${suffix}` : `${questionId}${suffix}`;
+}
+
+export function getQuestionDisplayOptionIndices(question: Question, roomId?: string): number[] {
+  switch (question.type) {
+    case 'choice':
+    case 'poll':
+    case 'multi_select':
+      return shouldShuffleQuestionOptions(question)
+        ? getShuffledReorderIndices(getQuestionShuffleSeed(roomId, question.id), question.options.length)
+        : getOrderedIndices(question.options.length);
+    case 'reorder':
+      return shouldShuffleQuestionOptions(question)
+        ? getShuffledReorderIndices(getQuestionShuffleSeed(roomId, question.id), question.options.length)
+        : getOrderedIndices(question.options.length);
+    case 'matching':
+      return shouldShuffleQuestionOptions(question)
+        ? getShuffledReorderIndices(getQuestionShuffleSeed(roomId, question.id, ':options'), question.options.length)
+        : getOrderedIndices(question.options.length);
+    default:
+      return [];
+  }
 }

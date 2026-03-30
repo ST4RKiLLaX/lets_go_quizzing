@@ -7,7 +7,7 @@
   import { formatOptionLabel } from '$lib/utils/option-label.js';
   import { PLAYER_QUESTION_HINTS } from '$lib/constants/question-copy.js';
   import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
-  import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
+  import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
 
   export let question: Question;
   export let roundName: string;
@@ -15,6 +15,7 @@
   export let currentRoundQuestionTotal: number;
   export let totalTimerSeconds: number;
   export let countdown: Readable<number> | null = null;
+  export let roomId: string;
   export let quizFilename: string | undefined = undefined;
   export let optionLabelStyle: 'letters' | 'numbers';
   export let questionTimeExpired: boolean;
@@ -177,13 +178,16 @@
     {/if}
     {#if q.type === 'choice' || q.type === 'true_false' || q.type === 'poll'}
       {@const options = getQuestionOptions(q)}
+      {@const optionIndices = q.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(q, roomId)}
       <div class="space-y-2">
-        {#each options as opt, i}
-          {@const isChosen = (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === i) || (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === i)}
+        {#each optionIndices as optIndex, i}
+          {@const isChosen =
+            (hasSubmitted(q.id) && getSubmittedAnswerIndex(q.id) === optIndex) ||
+            (selectedAnswer?.questionId === q.id && selectedAnswer?.answerIndex === optIndex)}
           <button
             class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
             disabled={hasSubmitted(q.id) || selectedAnswer?.questionId === q.id || questionTimeExpired}
-            onclick={() => submitChoice(q.id, i)}
+            onclick={() => submitChoice(q.id, optIndex)}
           >
             <span class="w-4 text-pub-gold" aria-hidden="true">
               {#if isChosen}
@@ -193,18 +197,23 @@
             <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
               {formatOptionLabel(i, optionLabelStyle)}
             </span>
-            <span class="flex-1 break-words">{opt}</span>
+            <span class="flex-1 break-words">{options[optIndex]}</span>
           </button>
         {/each}
       </div>
     {:else if q.type === 'multi_select'}
+      {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
       <div class="space-y-2">
-        {#each q.options as opt, i}
-          {@const isChosen = getSubmittedAnswerIndexes(q.id).includes(i) || (selectedMultiSelect?.questionId === q.id ? selectedMultiSelect.answerIndexes.includes(i) : multiSelectDraft.includes(i))}
+        {#each optionIndices as optIndex, i}
+          {@const isChosen =
+            getSubmittedAnswerIndexes(q.id).includes(optIndex) ||
+            (selectedMultiSelect?.questionId === q.id
+              ? selectedMultiSelect.answerIndexes.includes(optIndex)
+              : multiSelectDraft.includes(optIndex))}
           <button
             class="w-full px-4 py-3 bg-pub-dark rounded-lg text-left hover:bg-pub-accent/20 disabled:opacity-50 flex items-center gap-2 {isChosen ? 'ring-2 ring-pub-gold' : ''} {questionTimeExpired ? 'opacity-60' : ''}"
             disabled={isMultiSelectSubmitted(q.id) || questionTimeExpired}
-            onclick={() => toggleMultiSelectDraft(i)}
+            onclick={() => toggleMultiSelectDraft(optIndex)}
           >
             <span class="w-4 text-pub-gold" aria-hidden="true">
               {#if isChosen}
@@ -214,7 +223,7 @@
             <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
               {formatOptionLabel(i, optionLabelStyle)}
             </span>
-            <span class="flex-1 break-words">{opt}</span>
+            <span class="flex-1 break-words">{q.options[optIndex]}</span>
           </button>
         {/each}
         <button
@@ -281,7 +290,7 @@
       </div>
     {:else if q.type === 'matching'}
       {@const mq = q as MatchingQuestion}
-      {@const shuffledOptIndices = getShuffledReorderIndices(q.id + ':options', mq.options.length)}
+      {@const shuffledOptIndices = getQuestionDisplayOptionIndices(q, roomId)}
       {@const draft = mq.items.map((_, i) => matchingDraft[i] ?? -1)}
       {@const allMatched = draft.length === mq.items.length && draft.every((v) => v >= 0)}
       <div class="flex gap-4 flex-col sm:flex-row">
