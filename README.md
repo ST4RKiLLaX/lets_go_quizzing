@@ -147,6 +147,7 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 | `open_ended`   | Long text response; not scored               | —       |
 | `word_cloud`   | Short text aggregated into a visual cloud    | —       |
 | `reorder`      | Arrange options in the correct order         | ✓       |
+| `matching`     | Match left-side items to right-side options  | ✓       |
 | `hotspot`      | Tap a region on an image (e.g. map, diagram) | ✓       |
 
 Scored question types support an optional `points` multiplier (e.g. `points: 2` = double points, `points: 3` = triple). Default is 1. Works in both Standard and Ranked modes.
@@ -246,10 +247,22 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
   explanation: 1776, 1789, 1969.
 ```
 
-**hotspot** — Tap a region on an image. Requires `image`, `answer` with `x`, `y` (0–1, center), and `radius` (tolerance as fraction, e.g. 0.1 = 10%). Use the Form editor to click the image to set the target:
+**matching** — `items` are the prompts, `options` are the answer pool, and `answer[i]` is the correct option index for `items[i]`:
 
 ```yaml
 - id: q10
+  type: matching
+  text: Match each country to its capital.
+  items: [France, Japan, Canada]
+  options: [Tokyo, Ottawa, Paris]
+  answer: [2, 0, 1]
+  explanation: Paris is in France, Tokyo is in Japan, and Ottawa is in Canada.
+```
+
+**hotspot** — Tap a region on an image. Requires `image`, `answer` with `x`, `y` (0–1, center), and `radius` (tolerance as fraction, e.g. `0.1` = 10%). The schema also supports optional `radiusY` and `rotation` for elliptical targets. Use the Form editor to click the image to set the target:
+
+```yaml
+- id: q11
   type: hotspot
   text: Where is the Eiffel Tower on this map?
   image: https://example.com/europe-map.png
@@ -263,7 +276,7 @@ Scored question types support an optional `points` multiplier (e.g. `points: 2` 
 
 ### Full Example Quiz
 
-The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` includes all of the above types. A complete example:
+The tracked sample quiz at `data/quizzes/quiz_reference_sample.yml` includes the core shipped types and can be used as a starting point. A complete example:
 
 ```yaml
 meta:
