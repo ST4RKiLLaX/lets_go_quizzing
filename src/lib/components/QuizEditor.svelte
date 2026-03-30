@@ -56,8 +56,9 @@
   let yamlStr = '';
   $: if (mode === 'yaml' && quiz) yamlStr = quizToYaml(quiz);
   let saving = false;
-  /** Tracks in-flight image upload by stable question id (indices can change if user reorders). */
-  let uploadingFor: { questionId: string } | null = null;
+  /** Tracks in-flight image import/upload by stable question id (indices can change if user reorders). */
+  let imageActionPending: { questionId: string; mode: 'upload' | 'import' } | null = null;
+  let imageImportUrlDrafts: Record<string, string> = {};
   let error = '';
   let questionPendingRemove: { ri: number; qi: number } | null = null;
   /** Question id that was reordered (for brief highlight + clearer UX) */
@@ -153,6 +154,31 @@
     return null;
   }
 
+  function updateQuestionImage(questionId: string, filename: string) {
+    const slot = findQuestionSlotByQuestionId(quiz, questionId);
+    if (!slot) throw new Error('Question was removed during image update');
+    quiz = actUpdateQuestionField(quiz, slot.ri, slot.qi, { image: filename });
+  }
+
+  async function parseImageActionResponse(res: Response, actionLabel: 'Upload' | 'Import') {
+    const raw = await res.text();
+    let data: { error?: string; filename?: string };
+    try {
+      data = JSON.parse(raw) as { error?: string; filename?: string };
+    } catch {
+      throw new Error(
+        res.ok ? 'Invalid server response' : `${actionLabel} failed (${res.status}): ${raw.slice(0, 120)}`
+      );
+    }
+    if (!res.ok) throw new Error(data.error ?? `${actionLabel} failed (${res.status})`);
+    if (!data.filename) throw new Error(`${actionLabel} succeeded but no filename returned`);
+    return data.filename;
+  }
+
+  function setImageImportUrlDraft(questionId: string, value: string) {
+    imageImportUrlDrafts = { ...imageImportUrlDrafts, [questionId]: value };
+  }
+
   async function handleImageUploadForQuestion(questionId: string, file: File) {
     if (!quizFilename?.trim()) {
       error =
@@ -163,7 +189,7 @@
       error = 'Cannot upload: question ID is missing. Try reloading the page.';
       return;
     }
-    uploadingFor = { questionId };
+    imageActionPending = { questionId, mode: 'upload' };
     error = '';
     try {
       const formData = new FormData();
@@ -175,24 +201,48 @@
         body: formData,
         credentials: 'include',
       });
-      const raw = await res.text();
-      let data: { error?: string; filename?: string };
-      try {
-        data = JSON.parse(raw) as { error?: string; filename?: string };
-      } catch {
-        throw new Error(
-          res.ok ? 'Invalid server response' : `Upload failed (${res.status}): ${raw.slice(0, 120)}`
-        );
-      }
-      const slot = findQuestionSlotByQuestionId(quiz, questionId);
-      if (!res.ok) throw new Error(data.error ?? `Upload failed (${res.status})`);
-      if (!data.filename) throw new Error('Upload succeeded but no filename returned');
-      if (!slot) throw new Error('Question was removed during upload');
-      quiz = actUpdateQuestionField(quiz, slot.ri, slot.qi, { image: data.filename });
+      const filename = await parseImageActionResponse(res, 'Upload');
+      updateQuestionImage(questionId, filename);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
-      uploadingFor = null;
+      imageActionPending = null;
+    }
+  }
+
+  async function handleImageImportForQuestion(questionId: string, url: string) {
+    if (!quizFilename?.trim()) {
+      error =
+        'Cannot import: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).';
+      return;
+    }
+    if (!questionId?.trim()) {
+      error = 'Cannot import: question ID is missing. Try reloading the page.';
+      return;
+    }
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
+      error = 'Cannot import: image URL is required.';
+      return;
+    }
+    imageActionPending = { questionId, mode: 'import' };
+    error = '';
+    try {
+      const res = await fetch('/api/quizzes/images/import-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizFilename, questionId, url: trimmedUrl }),
+        credentials: 'include',
+      });
+      const filename = await parseImageActionResponse(res, 'Import');
+      updateQuestionImage(questionId, filename);
+      const nextDrafts = { ...imageImportUrlDrafts };
+      delete nextDrafts[questionId];
+      imageImportUrlDrafts = nextDrafts;
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    } finally {
+      imageActionPending = null;
     }
   }
 
@@ -405,10 +455,12 @@
           onMoveDown={() => moveQuestionInRound(ri, qi, 1)}
           recentlyReordered={reorderHighlightId === question.id}
           {quizFilename}
-          {uploadingFor}
+          imageActionPending={imageActionPending}
+          imageImportUrlDraft={imageImportUrlDrafts[question.id] ?? ''}
           onPatch={(patch) => {
             quiz = actUpdateQuestionField(quiz, ri, qi, patch);
           }}
+          onImageImportUrlChange={(value) => setImageImportUrlDraft(question.id, value)}
           onTransform={(fn) => {
             quiz = actUpdateQuestion(quiz, ri, qi, fn);
           }}
@@ -452,6 +504,7 @@
             quiz = actSetHotspotImageAspectRatio(quiz, ri, qi, ar);
           }}
           onImageUpload={(file) => handleImageUploadForQuestion(question.id, file)}
+          onImageImport={(url) => handleImageImportForQuestion(question.id, url)}
           onClearImage={() => clearImage(ri, qi)}
           onSetQuestionType={(type) => setQuestionType(ri, qi, type)}
           onRemoveQuestion={() => openRemoveQuestionModal(ri, qi)}

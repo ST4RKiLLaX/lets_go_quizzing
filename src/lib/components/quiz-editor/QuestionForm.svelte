@@ -8,8 +8,10 @@
   export let roundIndex: number;
   export let questionIndex: number;
   export let quizFilename: string | undefined = undefined;
-  export let uploadingFor: { questionId: string } | null = null;
+  export let imageActionPending: { questionId: string; mode: 'upload' | 'import' } | null = null;
+  export let imageImportUrlDraft = '';
   export let onPatch: (patch: Partial<Question>) => void;
+  export let onImageImportUrlChange: (value: string) => void;
   export let onTransform: (fn: (q: Question) => Question) => void;
   export let onAddOption: () => void;
   export let onRemoveOption: (oi: number) => void;
@@ -25,6 +27,7 @@
   export let onUpdateHotspotAnswer: (patch: Partial<HotspotQuestion['answer']>) => void;
   export let onSetHotspotImageAspectRatio: (ar: number) => void;
   export let onImageUpload: (file: File) => void;
+  export let onImageImport: (url: string) => void;
   export let onClearImage: () => void;
   export let onSetQuestionType: (type: Question['type']) => void;
   export let onRemoveQuestion: () => void;
@@ -43,6 +46,9 @@
   const qi = questionIndex;
 
   $: canUploadFile = !!quizFilename?.trim();
+  $: isUploadingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'upload';
+  $: isImportingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'import';
+  $: imageActionDisabled = isUploadingImage || isImportingImage;
 
   /** Avoid <label for> focusing the hidden input — browsers scroll it into view and break <main> scroll. */
   let imageFileInput: HTMLInputElement | undefined;
@@ -180,7 +186,7 @@
   {/if}
   <div class="mb-3">
     <label for="img-{ri}-{qi}" class="block text-sm text-pub-muted mb-1">
-      {question.type === 'hotspot' ? 'Image (required)' : 'Image (optional)'}
+      {question.type === 'hotspot' ? 'Current image (required)' : 'Current image (optional)'}
     </label>
     <input
       id="img-{ri}-{qi}"
@@ -189,11 +195,14 @@
       on:input={(e) => onPatch({ image: (e.currentTarget as HTMLInputElement).value || undefined })}
       placeholder={quizFilename?.trim()
         ? question.type === 'hotspot'
-          ? 'https://... or choose file below'
-          : 'https://... or choose file below'
-        : 'https://... (paste URL — save quiz first to upload a file)'}
+          ? 'stored filename or https://...'
+          : 'stored filename or https://...'
+        : 'stored filename or https://... (save quiz first to import or upload)'}
       class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2 mb-2"
     />
+    <p class="mb-2 text-xs text-pub-muted">
+      Prefer local images. Upload a file or import a URL so the quiz serves the image from this app.
+    </p>
     <div class="flex flex-wrap items-center gap-2">
       <input
         bind:this={imageFileInput}
@@ -208,30 +217,55 @@
           if (file) onImageUpload(file);
           e.currentTarget.value = '';
         }}
-        disabled={!canUploadFile || uploadingFor?.questionId === question.id}
+        disabled={!canUploadFile || imageActionDisabled}
       />
       <button
         type="button"
         class="inline-flex items-center px-3 py-1.5 text-sm rounded-lg border border-pub-muted bg-pub-dark text-pub-gold select-none"
-        class:opacity-40={!canUploadFile || uploadingFor?.questionId === question.id}
-        class:cursor-pointer={canUploadFile && uploadingFor?.questionId !== question.id}
-        class:hover:bg-pub-darker={canUploadFile && uploadingFor?.questionId !== question.id}
-        disabled={!canUploadFile || uploadingFor?.questionId === question.id}
+        class:opacity-40={!canUploadFile || imageActionDisabled}
+        class:cursor-pointer={canUploadFile && !imageActionDisabled}
+        class:hover:bg-pub-darker={canUploadFile && !imageActionDisabled}
+        disabled={!canUploadFile || imageActionDisabled}
         title={!canUploadFile
-          ? 'Open this quiz from the creator list or save a new quiz first, then upload.'
+          ? 'Open this quiz from the creator list or save a new quiz first, then import or upload.'
           : undefined}
         on:click={triggerImageFilePicker}
       >
         Choose image file
       </button>
-      {#if uploadingFor?.questionId === question.id}
+      {#if isUploadingImage}
         <span class="text-sm text-pub-muted">Uploading…</span>
       {:else if !canUploadFile}
         <span class="text-xs text-pub-muted max-w-sm">
-          Save the quiz (or open it from your list) to enable uploads.
+          Save the quiz (or open it from your list) to enable imports and uploads.
         </span>
       {/if}
     </div>
+    <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <input
+        id="img-import-{ri}-{qi}"
+        type="url"
+        value={imageImportUrlDraft}
+        on:input={(e) => onImageImportUrlChange((e.currentTarget as HTMLInputElement).value)}
+        placeholder="https://example.com/image.png"
+        class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
+        disabled={!canUploadFile || imageActionDisabled}
+      />
+      <button
+        type="button"
+        class="inline-flex items-center justify-center px-3 py-2 text-sm rounded-lg border border-pub-muted bg-pub-dark text-pub-gold select-none"
+        class:opacity-40={!canUploadFile || imageActionDisabled || !imageImportUrlDraft.trim()}
+        class:cursor-pointer={canUploadFile && !imageActionDisabled && !!imageImportUrlDraft.trim()}
+        class:hover:bg-pub-darker={canUploadFile && !imageActionDisabled && !!imageImportUrlDraft.trim()}
+        disabled={!canUploadFile || imageActionDisabled || !imageImportUrlDraft.trim()}
+        on:click={() => onImageImport(imageImportUrlDraft)}
+      >
+        Import from URL
+      </button>
+    </div>
+    {#if isImportingImage}
+      <p class="mt-2 text-sm text-pub-muted">Importing image…</p>
+    {/if}
     {#if question.image}
       <button
         type="button"

@@ -3,16 +3,8 @@ import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join, resolve, relative } from 'path';
 import { isValidQuizFilename } from '$lib/server/storage/parser.js';
-
-const IMAGES_DIR = join(process.cwd(), 'data', 'quizzes', 'images');
+import { QUIZ_IMAGE_MIME_BY_EXT, getQuizImagesRootDir } from '$lib/server/storage/quiz-images.js';
 const IMAGE_FILENAME_REGEX = /^[a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+$/;
-const MIME_BY_EXT: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  webp: 'image/webp',
-};
 
 export async function GET({ params }) {
   const filename = params.filename;
@@ -26,7 +18,7 @@ export async function GET({ params }) {
   }
 
   const slug = filename.replace(/\.(yaml|yml)$/i, '');
-  const dir = join(IMAGES_DIR, slug);
+  const dir = join(getQuizImagesRootDir(), slug);
   const dirResolved = resolve(dir);
   const filepath = resolve(join(dirResolved, image));
 
@@ -41,7 +33,7 @@ export async function GET({ params }) {
   }
 
   const ext = image.split('.').pop()?.toLowerCase() ?? '';
-  const contentType = MIME_BY_EXT[ext] ?? 'application/octet-stream';
+  const contentType = QUIZ_IMAGE_MIME_BY_EXT[ext] ?? 'application/octet-stream';
 
   const buffer = await readFile(filepath);
   return new Response(buffer, {
