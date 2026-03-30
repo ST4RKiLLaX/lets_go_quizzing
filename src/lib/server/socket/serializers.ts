@@ -252,32 +252,32 @@ export function serializeQuestionPatch(
     answeredPlayerIds: answered.map((submission) => submission.playerId),
   };
 
-  if (role === 'host') {
-    if (
-      question.type === 'choice' ||
+  if (
+    role === 'host' &&
+    (question.type === 'choice' ||
       question.type === 'true_false' ||
       question.type === 'poll' ||
-      question.type === 'multi_select'
-    ) {
-      patch.optionCounts = buildOptionCounts(answered, question.id);
-    }
-    if (question.type === 'hotspot') {
-      const hotspotSubmissions = answered
-        .filter(
-          (submission) =>
-            submission.answerX != null &&
-            submission.answerY != null &&
-            submission.visibility !== 'blocked' &&
-            !submission.projectorHiddenByHost
-        )
-        .map((submission) => ({
-          playerId: submission.playerId,
-          answerX: submission.answerX!,
-          answerY: submission.answerY!,
-        }));
-      if (hotspotSubmissions.length > 0) {
-        patch.hotspotSubmissions = hotspotSubmissions;
-      }
+      question.type === 'multi_select')
+  ) {
+    patch.optionCounts = buildOptionCounts(answered, question.id);
+  }
+
+  if (question.type === 'hotspot') {
+    const hotspotSubmissions = answered
+      .filter(
+        (submission) =>
+          submission.answerX != null &&
+          submission.answerY != null &&
+          submission.visibility !== 'blocked' &&
+          !submission.projectorHiddenByHost
+      )
+      .map((submission) => ({
+        playerId: submission.playerId,
+        answerX: submission.answerX!,
+        answerY: submission.answerY!,
+      }));
+    if (hotspotSubmissions.length > 0) {
+      patch.hotspotSubmissions = hotspotSubmissions;
     }
   }
 

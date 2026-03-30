@@ -18,6 +18,21 @@ export function isQuestionPatchForState(
   return getStateQuestionIdentity(state) === getQuestionPatchIdentity(patch);
 }
 
+export function isQuestionPatchForCurrentQuestion(
+  state: SerializedState | null | undefined,
+  patch: SerializedQuestionPatch | null | undefined
+): boolean {
+  if (!state || !patch) return false;
+  if (state.type !== 'Question' && state.type !== 'RevealAnswer') return false;
+  const questionId = state.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex]?.id;
+  return (
+    state.roomId === patch.roomId &&
+    state.currentRoundIndex === patch.currentRoundIndex &&
+    state.currentQuestionIndex === patch.currentQuestionIndex &&
+    questionId === patch.questionId
+  );
+}
+
 export function applyRoomPatch(
   state: SerializedState | null,
   patch: SerializedRoomPatch

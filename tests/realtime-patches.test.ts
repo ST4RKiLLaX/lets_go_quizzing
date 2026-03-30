@@ -134,6 +134,6 @@ test('serializeQuestionPatch keeps projector question patches narrow', () => {
     submittedCount: 2,
     answeredPlayerIds: ['p1', 'p2'],
   });
-  expect(projectorPatch?.hotspotSubmissions).toBeUndefined();
+  expect(projectorPatch?.hotspotSubmissions).toEqual([{ playerId: 'p1', answerX: 10, answerY: 20 }]);
   expect(projectorPatch?.optionCounts).toBeUndefined();
 });

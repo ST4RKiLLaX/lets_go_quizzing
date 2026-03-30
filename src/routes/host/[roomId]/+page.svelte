@@ -16,7 +16,11 @@
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
-  import { applyRoomPatch, isQuestionPatchForState } from '$lib/utils/realtime-patches.js';
+  import {
+    applyRoomPatch,
+    isQuestionPatchForCurrentQuestion,
+    isQuestionPatchForState,
+  } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import {
     HOST_QUESTION_HINTS,
@@ -163,8 +167,10 @@
     doHostJoin(username, pwd);
     void loadPrizeOptions();
     const onStateUpdate = (payload: { state: SerializedState }) => {
-      state = payload.state;
-      questionPatch = null;
+      const nextState = payload.state;
+      const previousPatch = questionPatch;
+      state = nextState;
+      questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
       clearVisibilityPending();
       if (payload?.state) markHostSessionEstablished();
     };
@@ -261,7 +267,7 @@
   }
 
   function getLiveHotspotSubmissions(questionId: string) {
-    if (state?.type === 'Question' && questionPatch?.questionId === questionId && questionPatch.hotspotSubmissions) {
+    if (questionPatch?.questionId === questionId && questionPatch.hotspotSubmissions) {
       return questionPatch.hotspotSubmissions;
     }
     return (state?.submissions ?? []).filter(

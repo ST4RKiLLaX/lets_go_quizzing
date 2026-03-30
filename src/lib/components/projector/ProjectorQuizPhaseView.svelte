@@ -86,13 +86,31 @@
     });
   }
 
+  function getHotspotSubmissions(
+    question: Question | null,
+    currentState: SerializedState | null | undefined,
+    currentPatch: SerializedQuestionPatch | null
+  ) {
+    if (!question || question.type !== 'hotspot') return [];
+    if (currentPatch?.questionId === question.id && currentPatch.hotspotSubmissions) {
+      return currentPatch.hotspotSubmissions;
+    }
+    return (currentState?.submissions ?? []).filter(
+      (submission) =>
+        submission.questionId === question.id &&
+        submission.answerX != null &&
+        submission.answerY != null &&
+        submission.visibility !== 'blocked' &&
+        !submission.projectorHiddenByHost
+    );
+  }
+
   $: answeredList = phase === 'question' ? getAnsweredInOrder(currentQuestion, state, questionPatch) : [];
   $: rankedCorrectList =
     phase === 'reveal' && (state.quiz?.meta?.scoring_mode ?? 'standard') === 'ranked'
       ? getCorrectAnswersInRankOrder(currentQuestion, state)
       : [];
-  $: currentQuestionPatch =
-    phase === 'question' && questionPatch?.questionId === currentQuestion?.id ? questionPatch : null;
+  $: currentQuestionPatch = questionPatch?.questionId === currentQuestion?.id ? questionPatch : null;
   $: questionSubmittedCount =
     phase === 'question' && currentQuestionPatch
       ? currentQuestionPatch.submittedCount
@@ -122,23 +140,29 @@
     {#if qq.type === 'hotspot'}
       {@const hq = qq as HotspotQuestion}
       {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
+      {@const hotspotSubs = getHotspotSubmissions(qq, state, currentQuestionPatch)}
       {#if phase === 'question'}
         {#if src}
-          <img src={src} alt="" class="max-w-full rounded-lg my-4" />
+          <div class="relative inline-block max-w-full my-4">
+            <img src={src} alt="" class="max-w-full rounded-lg block" />
+            {#each hotspotSubs as sub}
+              {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
+              <HotspotEmojiMarker
+                x={sub.answerX!}
+                y={sub.answerY!}
+                emoji={player?.emoji ?? '?'}
+                name={player?.name ?? 'Unknown'}
+                isWrong={false}
+                showCorrectness={false}
+              />
+            {/each}
+          </div>
           <p class="text-xl text-pub-muted text-center mt-4">Tap the correct area</p>
         {/if}
       {:else if src}
         {@const ar = hq.imageAspectRatio ?? 1}
         {@const rY = hq.answer.radiusY ?? hq.answer.radius}
         {@const rot = hq.answer.rotation ?? 0}
-        {@const hotspotSubs = (state?.submissions ?? []).filter(
-          (s) =>
-            s.questionId === qq.id &&
-            s.answerX != null &&
-            s.answerY != null &&
-            s.visibility !== 'blocked' &&
-            !s.projectorHiddenByHost
-        )}
         <div class="relative inline-block max-w-full my-4">
           <img src={src} alt="" class="max-w-full rounded-lg block" />
           <div

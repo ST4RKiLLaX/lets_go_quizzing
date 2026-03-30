@@ -6,7 +6,11 @@
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import { useCountdown } from '$lib/timer.js';
-  import { applyRoomPatch, isQuestionPatchForState } from '$lib/utils/realtime-patches.js';
+  import {
+    applyRoomPatch,
+    isQuestionPatchForCurrentQuestion,
+    isQuestionPatchForState,
+  } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import ProjectorJoinView from '$lib/components/projector/ProjectorJoinView.svelte';
   import SessionLeaderboardView from '$lib/components/shared/SessionLeaderboardView.svelte';
@@ -117,8 +121,10 @@
     }
     joinRoom(initialPassword);
     socket.on('state:update', (payload: { state: SerializedState }) => {
-      state = payload.state;
-      questionPatch = null;
+      const nextState = payload.state;
+      const previousPatch = questionPatch;
+      state = nextState;
+      questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
     });
     socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
       if (!payload?.patch) return;
@@ -174,7 +180,7 @@
       <ProjectorQuizPhaseView
         phase="reveal"
         {state}
-        questionPatch={null}
+        {questionPatch}
         currentQuestion={currentQuestion}
         {optionLabelStyle}
         {totalTimerSeconds}
