@@ -1,6 +1,11 @@
 <script lang="ts">
   import type { Question, HotspotQuestion, InputQuestion, MatchingQuestion } from '$lib/types/quiz.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import {
+    classifyImageFieldInput,
+    getImageFieldDisplayValue,
+    isImportableImageUrl,
+  } from '$lib/components/quiz-editor/image-field-state.js';
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
@@ -9,7 +14,9 @@
   export let questionIndex: number;
   export let quizFilename: string | undefined = undefined;
   export let imageActionPending: { questionId: string; mode: 'upload' | 'import' } | null = null;
+  export let imageImportUrlDraft = '';
   export let onPatch: (patch: Partial<Question>) => void;
+  export let onImageImportUrlChange: (value: string) => void;
   export let onTransform: (fn: (q: Question) => Question) => void;
   export let onAddOption: () => void;
   export let onRemoveOption: (oi: number) => void;
@@ -47,13 +54,29 @@
   $: isUploadingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'upload';
   $: isImportingImage = imageActionPending?.questionId === question.id && imageActionPending.mode === 'import';
   $: imageActionDisabled = isUploadingImage || isImportingImage;
-  $: currentImageValue = question.image?.trim() ?? '';
-  $: canImportCurrentImage = canUploadFile && !imageActionDisabled && /^https?:\/\//i.test(currentImageValue);
+  $: imageFieldDisplayValue = getImageFieldDisplayValue(question.image, imageImportUrlDraft);
+  $: canImportCurrentImage = canUploadFile && !imageActionDisabled && isImportableImageUrl(imageFieldDisplayValue);
+  $: hasAnyImageFieldValue = imageFieldDisplayValue.trim().length > 0;
 
   /** Avoid <label for> focusing the hidden input — browsers scroll it into view and break <main> scroll. */
   let imageFileInput: HTMLInputElement | undefined;
   function triggerImageFilePicker() {
     imageFileInput?.click();
+  }
+
+  function handleImageInput(value: string) {
+    const change = classifyImageFieldInput(value);
+    if (change.type === 'clear') {
+      onImageImportUrlChange('');
+      onPatch({ image: undefined });
+      return;
+    }
+    if (change.type === 'draft-url') {
+      onImageImportUrlChange(change.value);
+      return;
+    }
+    onImageImportUrlChange('');
+    onPatch({ image: change.value });
   }
 </script>
 
@@ -189,8 +212,8 @@
     <input
       id="img-{ri}-{qi}"
       type="text"
-      value={question.image ?? ''}
-      on:input={(e) => onPatch({ image: (e.currentTarget as HTMLInputElement).value || undefined })}
+      value={imageFieldDisplayValue}
+      on:input={(e) => handleImageInput((e.currentTarget as HTMLInputElement).value)}
       placeholder={quizFilename?.trim()
         ? question.type === 'hotspot'
           ? 'stored filename or https://...'
@@ -240,10 +263,10 @@
         disabled={!canImportCurrentImage}
         title={!canUploadFile
           ? 'Open this quiz from the creator list or save a new quiz first, then import or upload.'
-          : currentImageValue && !/^https?:\/\//i.test(currentImageValue)
+          : imageFieldDisplayValue && !isImportableImageUrl(imageFieldDisplayValue)
             ? 'Paste an http or https image URL into the image field to import it.'
             : undefined}
-        on:click={() => onImageImport(currentImageValue)}
+        on:click={() => onImageImport(imageFieldDisplayValue.trim())}
       >
         Import URL
       </button>
@@ -257,7 +280,7 @@
         </span>
       {/if}
     </div>
-    {#if question.image}
+    {#if hasAnyImageFieldValue}
       <button
         type="button"
         class="mt-2 text-sm text-red-400 hover:text-red-300"
