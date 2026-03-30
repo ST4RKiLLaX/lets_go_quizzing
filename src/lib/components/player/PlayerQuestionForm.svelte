@@ -5,6 +5,7 @@
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
+  import { PLAYER_QUESTION_HINTS } from '$lib/constants/question-copy.js';
   import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
   import { getShuffledReorderIndices } from '$lib/utils/shuffle.js';
 
@@ -146,7 +147,9 @@
             </span>
           {/if}
         </div>
-        <p class="text-sm text-pub-muted mb-2">Tap to place your marker, then click Submit</p>
+        {#if PLAYER_QUESTION_HINTS[q.type]}
+          <p class="text-sm text-pub-muted mb-4">{PLAYER_QUESTION_HINTS[q.type]}</p>
+        {/if}
         {#if !isHotspotSubmitted(q.id)}
           <button
             type="button"
@@ -168,6 +171,9 @@
       {#if src}
         <img src={src} alt="" class="max-w-full rounded-lg my-4" />
       {/if}
+    {/if}
+    {#if q.type !== 'hotspot' && PLAYER_QUESTION_HINTS[q.type]}
+      <p class="text-sm text-pub-muted mb-4">{PLAYER_QUESTION_HINTS[q.type]}</p>
     {/if}
     {#if q.type === 'choice' || q.type === 'true_false' || q.type === 'poll'}
       {@const options = getQuestionOptions(q)}
@@ -222,7 +228,6 @@
       </div>
     {:else if q.type === 'reorder'}
       <div class="space-y-2">
-        <p class="text-sm text-pub-muted mb-4">Use arrows to reorder items</p>
         {#each reorderDraft as optIndex (optIndex)}
           <div class="flex items-center gap-2 bg-pub-dark rounded-lg p-2 {questionTimeExpired || isReorderSubmitted(q.id) ? 'opacity-60' : ''}" animate:flip={{ duration: 200 }}>
             <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center leading-none">
@@ -279,7 +284,6 @@
       {@const shuffledOptIndices = getShuffledReorderIndices(q.id + ':options', mq.options.length)}
       {@const draft = mq.items.map((_, i) => matchingDraft[i] ?? -1)}
       {@const allMatched = draft.length === mq.items.length && draft.every((v) => v >= 0)}
-      <p class="text-sm text-pub-muted mb-4">Tap an option, then tap an item to match</p>
       <div class="flex gap-4 flex-col sm:flex-row">
         <div class="flex-1 space-y-2">
           <p class="text-sm font-medium text-pub-gold mb-2">Items</p>

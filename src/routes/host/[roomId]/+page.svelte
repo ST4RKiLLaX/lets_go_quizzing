@@ -19,7 +19,7 @@
   import { applyRoomPatch, isQuestionPatchForState } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import {
-    QUESTION_MECHANIC_REMINDER,
+    HOST_QUESTION_HINTS,
     QUESTION_TYPE_LABELS,
   } from '$lib/constants/question-copy.js';
   import RevealChoiceTrueFalseList from '$lib/components/shared/question-display/RevealChoiceTrueFalseList.svelte';
@@ -525,7 +525,7 @@
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
           {/if}
-          <p class="text-sm text-pub-muted mb-6">{QUESTION_MECHANIC_REMINDER[q.type] ?? ''}</p>
+          <p class="text-sm text-pub-muted mb-6">{HOST_QUESTION_HINTS[q.type] ?? ''}</p>
           {#if currentRoundQuestionTotal > 0}
             <p class="text-center text-sm font-medium text-pub-muted mb-4">
               {currentQuestionNumber}/{currentRoundQuestionTotal}
@@ -590,6 +590,9 @@
             {#if src}
               <img src={src} alt="" class="max-w-full rounded-lg my-4" />
             {/if}
+          {/if}
+          {#if HOST_QUESTION_HINTS[q.type]}
+            <p class="text-sm text-pub-muted mb-4">{HOST_QUESTION_HINTS[q.type]}</p>
           {/if}
           {#if q.type === 'choice' || q.type === 'true_false'}
             {@const options = getQuestionOptions(q)}
