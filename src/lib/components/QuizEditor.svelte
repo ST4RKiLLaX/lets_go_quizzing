@@ -58,7 +58,6 @@
   let saving = false;
   /** Tracks in-flight image import/upload by stable question id (indices can change if user reorders). */
   let imageActionPending: { questionId: string; mode: 'upload' | 'import' } | null = null;
-  let imageImportUrlDrafts: Record<string, string> = {};
   let error = '';
   let questionPendingRemove: { ri: number; qi: number } | null = null;
   /** Question id that was reordered (for brief highlight + clearer UX) */
@@ -175,10 +174,6 @@
     return data.filename;
   }
 
-  function setImageImportUrlDraft(questionId: string, value: string) {
-    imageImportUrlDrafts = { ...imageImportUrlDrafts, [questionId]: value };
-  }
-
   async function handleImageUploadForQuestion(questionId: string, file: File) {
     if (!quizFilename?.trim()) {
       error =
@@ -236,9 +231,6 @@
       });
       const filename = await parseImageActionResponse(res, 'Import');
       updateQuestionImage(questionId, filename);
-      const nextDrafts = { ...imageImportUrlDrafts };
-      delete nextDrafts[questionId];
-      imageImportUrlDrafts = nextDrafts;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -456,11 +448,9 @@
           recentlyReordered={reorderHighlightId === question.id}
           {quizFilename}
           imageActionPending={imageActionPending}
-          imageImportUrlDraft={imageImportUrlDrafts[question.id] ?? ''}
           onPatch={(patch) => {
             quiz = actUpdateQuestionField(quiz, ri, qi, patch);
           }}
-          onImageImportUrlChange={(value) => setImageImportUrlDraft(question.id, value)}
           onTransform={(fn) => {
             quiz = actUpdateQuestion(quiz, ri, qi, fn);
           }}
