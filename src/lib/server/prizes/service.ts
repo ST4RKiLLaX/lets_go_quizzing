@@ -15,6 +15,8 @@ import { normalizePrizeTiers } from '../../prizes/tiers.js';
 import { RoomPrizeConfigSchema, RoomPrizeDefaultConfigSchema } from './schema.js';
 import { loadPrizeRedemptionStore, loadPrizeStore, savePrizeRedemptionStore, savePrizeStore, withPrizeMutationLock } from './store.js';
 import {
+  buildPrizeEmailHtml,
+  buildPrizeEmailText,
   buildPrizeEmailFrom,
   createPrizeEmailTransporter,
   getPrizeEmailStatus,
@@ -411,7 +413,14 @@ export async function sendPrizeEmail(params: { redemptionId: string; email: stri
     from: buildPrizeEmailFrom(transportConfig),
     to: params.email,
     subject: `Your prize: ${redemption.prizeNameSnapshot}`,
-    text: `Here is your prize link for ${redemption.prizeNameSnapshot}:\n\n${redemption.prizeUrlSnapshot}\n`,
+    text: buildPrizeEmailText({
+      prizeName: redemption.prizeNameSnapshot,
+      prizeUrl: redemption.prizeUrlSnapshot,
+    }),
+    html: buildPrizeEmailHtml({
+      prizeName: redemption.prizeNameSnapshot,
+      prizeUrl: redemption.prizeUrlSnapshot,
+    }),
   });
   await markRedemptionEmailed(redemption.redemptionId);
 }

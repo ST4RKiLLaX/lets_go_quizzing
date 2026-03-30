@@ -84,6 +84,12 @@ On first run, you're redirected to the setup page to create an admin account. Cr
 
 Prize email SMTP is UI-managed. Readable transport fields are stored in `data/config.json`, while the SMTP password is stored separately in `data/secrets.json` with restrictive file permissions.
 
+From the **Email** settings tab you can:
+
+- Preview a sample prize email in the browser without sending mail.
+- Run an SMTP connection test after saving settings. The test checks connect/auth only and does not send a real email.
+- Send prize emails using a styled HTML template with a plain-text fallback for simpler mail clients.
+
 ### Environment Variables (Optional Overrides)
 
 These override config file values when set. Useful for Kubernetes, CI, or deployment-specific tuning.

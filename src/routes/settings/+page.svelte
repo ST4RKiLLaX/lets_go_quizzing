@@ -280,6 +280,10 @@
     }
   }
 
+  function previewPrizeEmailTemplate() {
+    window.open('/api/settings/prize-email-preview', '_blank', 'noopener,noreferrer');
+  }
+
   onMount(() => {
     const { live, roomId } = get(hostQuizLiveStore);
     if (live && roomId) {
@@ -696,16 +700,25 @@
 
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p class="text-xs text-pub-muted">
-              Save first, then run a connection test. The test verifies SMTP connect/auth and does not send a real email.
+              Preview opens a sample email in the browser. Save first, then run a connection test. The test verifies SMTP connect/auth and does not send a real email.
             </p>
-            <button
-              type="button"
-              class="rounded-lg border border-pub-muted px-4 py-2 text-sm hover:bg-pub-dark disabled:opacity-50"
-              onclick={testPrizeEmailConnection}
-              disabled={testingPrizeEmailConnection || !smtpTransportReady}
-            >
-              {testingPrizeEmailConnection ? 'Testing...' : 'Test connection'}
-            </button>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                class="rounded-lg border border-pub-muted px-4 py-2 text-sm hover:bg-pub-dark"
+                onclick={previewPrizeEmailTemplate}
+              >
+                Preview email
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-pub-muted px-4 py-2 text-sm hover:bg-pub-dark disabled:opacity-50"
+                onclick={testPrizeEmailConnection}
+                disabled={testingPrizeEmailConnection || !smtpTransportReady}
+              >
+                {testingPrizeEmailConnection ? 'Testing...' : 'Test connection'}
+              </button>
+            </div>
           </div>
           {#if prizeEmailTestMessage}
             <p class="text-sm {prizeEmailTestStatus === 'success' ? 'text-green-400' : 'text-red-400'}">

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AppConfig } from '../src/lib/server/config.js';
 import type { GameState } from '../src/lib/server/game/state-machine.js';
+import { buildPrizeEmailHtml, buildPrizeEmailText } from '../src/lib/server/prizes/email.js';
 import { normalizePrizeTiers } from '../src/lib/prizes/tiers.js';
 import {
   claimPrizeForPlayer,
@@ -157,6 +158,25 @@ test('getPrizeEmailPolicy preserves feature intent separately from availability'
     transportConfigured: true,
     availableNow: true,
   });
+});
+
+test('prize email templates include the prize link and host contact guidance', () => {
+  const input = {
+    prizeName: 'Pro Course',
+    prizeUrl: 'https://example.com/prize',
+  };
+
+  const text = buildPrizeEmailText(input);
+  const html = buildPrizeEmailHtml(input);
+
+  expect(text).toContain('https://example.com/prize');
+  expect(text).toContain('Please contact the quiz host for more information.');
+  expect(text).toContain("Let's Go Quizzing and the app maker are not responsible for prize delivery.");
+
+  expect(html).toContain('Open Prize Link');
+  expect(html).toContain('https://example.com/prize');
+  expect(html).toContain('Please contact the quiz host.');
+  expect(html).toContain("Let's Go Quizzing and the app maker are not responsible for prize delivery.");
 });
 
 test('generatePrizeId is deterministic from prize identity fields', () => {

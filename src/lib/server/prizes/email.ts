@@ -27,6 +27,11 @@ export interface PrizeEmailValidationInput {
   passwordConfigured: boolean;
 }
 
+export interface PrizeEmailTemplateInput {
+  prizeName: string;
+  prizeUrl: string;
+}
+
 export function isValidEmailAddress(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -125,4 +130,132 @@ export function createPrizeEmailTransporter(config: AppConfig | null | undefined
       pass: transportConfig.password,
     },
   });
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+export function buildPrizeEmailText(input: PrizeEmailTemplateInput): string {
+  return [
+    `You unlocked ${input.prizeName}.`,
+    '',
+    'Prize link:',
+    input.prizeUrl,
+    '',
+    'Please contact the quiz host for more information.',
+    '',
+    "Let's Go Quizzing and the app maker are not responsible for prize delivery.",
+  ].join('\n');
+}
+
+export function buildPrizeEmailHtml(input: PrizeEmailTemplateInput): string {
+  const prizeName = escapeHtml(input.prizeName);
+  const prizeUrl = escapeHtml(input.prizeUrl);
+
+  return `<!doctype html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Prize Unlocked</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#111827;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#111827;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;border-collapse:collapse;background-color:#1f2937;border:1px solid #374151;">
+            <tr>
+              <td style="padding:24px 24px 16px;border-bottom:1px solid #374151;background-color:#1f2937;">
+                <div style="font-family:Arial,sans-serif;font-size:13px;line-height:18px;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">
+                  Let's Go Quizzing
+                </div>
+                <div style="padding-top:10px;font-family:Arial,sans-serif;font-size:28px;line-height:34px;font-weight:700;color:#fbbf24;">
+                  Prize Unlocked
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;font-family:Arial,sans-serif;color:#f9fafb;">
+                <div style="font-size:16px;line-height:26px;color:#e5e7eb;">
+                  You unlocked <strong style="color:#fbbf24;">${prizeName}</strong>.
+                </div>
+                <div style="padding-top:14px;font-size:15px;line-height:24px;color:#d1d5db;">
+                  Use the link below to access your prize:
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 22px 24px;">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${prizeUrl}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="#f59e0b" fillcolor="#f59e0b">
+                  <w:anchorlock/>
+                  <center style="color:#111827;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">
+                    Open Prize Link
+                  </center>
+                </v:roundrect>
+                <![endif]-->
+                <!--[if !mso]><!-- -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td bgcolor="#f59e0b" style="background-color:#f59e0b;">
+                      <a
+                        href="${prizeUrl}"
+                        style="display:inline-block;padding:14px 18px;font-family:Arial,sans-serif;font-size:16px;line-height:16px;font-weight:700;color:#111827;text-decoration:none;background-color:#f59e0b;"
+                      >
+                        Open Prize Link
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <!--<![endif]-->
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 22px 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#111827;border:1px solid #4b5563;">
+                  <tr>
+                    <td style="padding:16px;">
+                      <div style="font-family:Arial,sans-serif;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#fbbf24;">
+                        Prize Link
+                      </div>
+                      <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:14px;line-height:22px;">
+                        <a href="${prizeUrl}" style="color:#fbbf24;text-decoration:none;word-break:break-all;word-wrap:break-word;">
+                          ${prizeUrl}
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 18px 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#0f172a;border:1px solid #f59e0b;">
+                  <tr>
+                    <td style="padding:16px;font-family:Arial,sans-serif;font-size:15px;line-height:24px;color:#f9fafb;">
+                      <strong style="color:#fbbf24;">Need more information?</strong> Please contact the quiz host.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 24px 24px;font-family:Arial,sans-serif;font-size:12px;line-height:18px;color:#9ca3af;">
+                Let's Go Quizzing and the app maker are not responsible for prize delivery.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
