@@ -32,6 +32,7 @@
   import HostWrongAnswersStrip from '$lib/components/host/HostWrongAnswersStrip.svelte';
   import HostOpenEndedRevealModeration from '$lib/components/host/HostOpenEndedRevealModeration.svelte';
   import HostWordCloudRevealModeration from '$lib/components/host/HostWordCloudRevealModeration.svelte';
+  import { findUnavailablePrizeId } from '$lib/prizes/config-validation.js';
   import { normalizePrizeTiers } from '$lib/prizes/tiers.js';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
@@ -212,7 +213,7 @@
     if (signature !== lastSyncedPrizeConfig) {
       lastSyncedPrizeConfig = signature;
       prizeDraftEnabled = state?.roomPrizeConfig?.enabled ?? false;
-      prizeDraftTiers = state?.roomPrizeConfig?.tiers?.map((tier) => ({ ...tier })) ?? [];
+      prizeDraftTiers = state?.roomPrizeConfig?.tiers?.map((tier) => ({ ...tier, prizeIds: [...tier.prizeIds] })) ?? [];
     }
   }
 
@@ -222,6 +223,12 @@
 
     if (prizeDraftEnabled && tiers.length === 0) {
       prizeConfigError = 'Add at least one prize tier or turn room prizes off.';
+      return;
+    }
+    const unavailablePrizeId = prizeDraftEnabled ? findUnavailablePrizeId(tiers, prizeOptions) : undefined;
+    if (unavailablePrizeId) {
+      prizeConfigError =
+        `${prizeOptions.find((option) => option.id === unavailablePrizeId)?.name ?? 'Selected prize'} is no longer claimable. Update the tier before saving.`;
       return;
     }
 
@@ -248,6 +255,16 @@
 
   function closePrizeConfigModal() {
     showPrizeConfigModal = false;
+  }
+
+  function getRoomPrizeTierDisabledReason(): string {
+    if (prizeOptions.length === 0) {
+      return 'No active, unexpired prizes are available. Update prize settings first.';
+    }
+    if (prizeOptions.every((prize) => prize.remainingQuantity === 0)) {
+      return 'All available prizes are fully claimed. Increase quantity or add a new prize in settings.';
+    }
+    return '';
   }
 
   function getRevealHotspotSubmissions(questionId: string) {
@@ -825,14 +842,18 @@
           onsubmit={(e) => { e.preventDefault(); doHostJoin(hostRejoinUsername, hostRejoinPassword); }}
         >
           <input
+            name="username"
             type="text"
             bind:value={hostRejoinUsername}
+            autocomplete="username"
             placeholder="Username"
             class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
           />
           <input
+            name="current-password"
             type="password"
             bind:value={hostRejoinPassword}
+            autocomplete="current-password"
             placeholder="Password"
             class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
           />
@@ -882,6 +903,7 @@
       bind:enabled={prizeDraftEnabled}
       bind:tiers={prizeDraftTiers}
       availablePrizes={prizeOptions}
+      addTierDisabledReason={getRoomPrizeTierDisabledReason()}
       title="Room prizes"
       subtitle="Optional score tiers for this room. You can edit these until the game starts."
       emptyMessage="No room prize tiers configured."

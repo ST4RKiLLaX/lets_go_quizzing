@@ -28,8 +28,10 @@ export interface PrizeEmailValidationInput {
 }
 
 export interface PrizeEmailTemplateInput {
-  prizeName: string;
-  prizeUrl: string;
+  prizes: Array<{
+    prizeName: string;
+    prizeUrl: string;
+  }>;
 }
 
 export function isValidEmailAddress(value: string): boolean {
@@ -142,11 +144,16 @@ function escapeHtml(value: string): string {
 }
 
 export function buildPrizeEmailText(input: PrizeEmailTemplateInput): string {
-  return [
-    `You unlocked ${input.prizeName}.`,
+  const prizeLines = input.prizes.flatMap((prize, index) => [
+    `${index + 1}. ${prize.prizeName}`,
+    prize.prizeUrl,
     '',
-    'Prize link:',
-    input.prizeUrl,
+  ]);
+  return [
+    input.prizes.length === 1 ? `You unlocked ${input.prizes[0].prizeName}.` : 'You unlocked multiple prizes.',
+    '',
+    input.prizes.length === 1 ? 'Prize link:' : 'Prize links:',
+    ...prizeLines,
     '',
     'Please contact the quiz host for more information.',
     '',
@@ -155,8 +162,49 @@ export function buildPrizeEmailText(input: PrizeEmailTemplateInput): string {
 }
 
 export function buildPrizeEmailHtml(input: PrizeEmailTemplateInput): string {
-  const prizeName = escapeHtml(input.prizeName);
-  const prizeUrl = escapeHtml(input.prizeUrl);
+  const isSinglePrize = input.prizes.length === 1;
+  const intro =
+    isSinglePrize
+      ? `You unlocked <strong style="color:#fbbf24;">${escapeHtml(input.prizes[0].prizeName)}</strong>.`
+      : `You unlocked <strong style="color:#fbbf24;">${input.prizes.length} prizes</strong>.`;
+  const primaryPrizeUrl = escapeHtml(input.prizes[0]?.prizeUrl ?? '');
+  const prizeCards = input.prizes
+    .map((prize, index) => {
+      const prizeName = escapeHtml(prize.prizeName);
+      const prizeUrl = escapeHtml(prize.prizeUrl);
+      return `
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#111827;border:1px solid #4b5563;margin-top:${index === 0 ? '0' : '12'}px;">
+                  <tr>
+                    <td style="padding:16px;">
+                      <div style="font-family:Arial,sans-serif;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#fbbf24;">
+                        Prize ${index + 1}
+                      </div>
+                      <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:16px;line-height:24px;font-weight:700;color:#f9fafb;">
+                        ${prizeName}
+                      </div>
+                      <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:14px;line-height:22px;">
+                        <a href="${prizeUrl}" style="color:#fbbf24;text-decoration:none;word-break:break-all;word-wrap:break-word;">
+                          ${prizeUrl}
+                        </a>
+                      </div>
+                      ${isSinglePrize ? '' : `
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:14px;">
+                        <tr>
+                          <td bgcolor="#f59e0b" style="background-color:#f59e0b;">
+                            <a
+                              href="${prizeUrl}"
+                              style="display:inline-block;padding:12px 16px;font-family:Arial,sans-serif;font-size:15px;line-height:15px;font-weight:700;color:#111827;text-decoration:none;background-color:#f59e0b;"
+                            >
+                              Open Prize Link
+                            </a>
+                          </td>
+                        </tr>
+                      </table>`}
+                    </td>
+                  </tr>
+                </table>`;
+    })
+    .join('');
 
   return `<!doctype html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -185,17 +233,18 @@ export function buildPrizeEmailHtml(input: PrizeEmailTemplateInput): string {
             <tr>
               <td style="padding:24px;font-family:Arial,sans-serif;color:#f9fafb;">
                 <div style="font-size:16px;line-height:26px;color:#e5e7eb;">
-                  You unlocked <strong style="color:#fbbf24;">${prizeName}</strong>.
+                  ${intro}
                 </div>
                 <div style="padding-top:14px;font-size:15px;line-height:24px;color:#d1d5db;">
-                  Use the link below to access your prize:
+                  Use the ${isSinglePrize ? 'button' : 'buttons'} below to access your prize${isSinglePrize ? '' : 's'}:
                 </div>
               </td>
             </tr>
+            ${isSinglePrize ? `
             <tr>
               <td style="padding:0 24px 22px 24px;">
                 <!--[if mso]>
-                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${prizeUrl}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="#f59e0b" fillcolor="#f59e0b">
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${primaryPrizeUrl}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="#f59e0b" fillcolor="#f59e0b">
                   <w:anchorlock/>
                   <center style="color:#111827;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">
                     Open Prize Link
@@ -207,7 +256,7 @@ export function buildPrizeEmailHtml(input: PrizeEmailTemplateInput): string {
                   <tr>
                     <td bgcolor="#f59e0b" style="background-color:#f59e0b;">
                       <a
-                        href="${prizeUrl}"
+                        href="${primaryPrizeUrl}"
                         style="display:inline-block;padding:14px 18px;font-family:Arial,sans-serif;font-size:16px;line-height:16px;font-weight:700;color:#111827;text-decoration:none;background-color:#f59e0b;"
                       >
                         Open Prize Link
@@ -217,23 +266,10 @@ export function buildPrizeEmailHtml(input: PrizeEmailTemplateInput): string {
                 </table>
                 <!--<![endif]-->
               </td>
-            </tr>
+            </tr>` : ''}
             <tr>
               <td style="padding:0 24px 22px 24px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#111827;border:1px solid #4b5563;">
-                  <tr>
-                    <td style="padding:16px;">
-                      <div style="font-family:Arial,sans-serif;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#fbbf24;">
-                        Prize Link
-                      </div>
-                      <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:14px;line-height:22px;">
-                        <a href="${prizeUrl}" style="color:#fbbf24;text-decoration:none;word-break:break-all;word-wrap:break-word;">
-                          ${prizeUrl}
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                </table>
+                ${prizeCards}
               </td>
             </tr>
             <tr>

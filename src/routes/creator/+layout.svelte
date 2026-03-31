@@ -38,8 +38,10 @@
           <label for="creator-username" class="block text-sm text-pub-muted mb-1">Username</label>
           <input
             id="creator-username"
+            name="username"
             type="text"
             bind:value={username}
+            autocomplete="username"
             placeholder="Admin username"
             class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             on:keydown={(e) => e.key === 'Enter' && login()}
@@ -49,8 +51,10 @@
           <label for="creator-password" class="block text-sm text-pub-muted mb-1">Password</label>
           <input
             id="creator-password"
+            name="current-password"
             type="password"
             bind:value={password}
+            autocomplete="current-password"
             placeholder="Enter host password"
             class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             on:keydown={(e) => e.key === 'Enter' && login()}

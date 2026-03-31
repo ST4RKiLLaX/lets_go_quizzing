@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { RoomPrizeDefaultConfig } from '../types/prizes.js';
+import { normalizePrizeTiers } from '../prizes/tiers.js';
 import { ensureDataDir, getDataFilePath, writeDataJsonFileAtomic } from './json-file-store.js';
 import { isValidEmailAddress, isValidSmtpPort } from './prizes/email.js';
 import { RoomPrizeDefaultConfigSchema } from './prizes/schema.js';
@@ -47,6 +48,18 @@ const REQUIRED_FIELDS = ['version', 'adminUsername', 'adminPasswordHash'] as con
 
 let configCache: AppConfig | null = null;
 let configCacheValid = false;
+
+function normalizeConfig(config: AppConfig): AppConfig {
+  return {
+    ...config,
+    defaultRoomPrizeConfig: config.defaultRoomPrizeConfig
+      ? {
+          enabledByDefault: config.defaultRoomPrizeConfig.enabledByDefault,
+          tiers: normalizePrizeTiers(config.defaultRoomPrizeConfig.tiers),
+        }
+      : undefined,
+  };
+}
 
 function getConfigPath(): string {
   return getDataFilePath(CONFIG_FILENAME);
@@ -94,7 +107,7 @@ export function hasValidOperationalConfig(): boolean {
   try {
     const raw = JSON.parse(readFileSync(getConfigPath(), 'utf8'));
     if (!validateConfig(raw)) return false;
-    configCache = raw as AppConfig;
+    configCache = normalizeConfig(raw as AppConfig);
     configCacheValid = true;
     return true;
   } catch {
@@ -110,7 +123,7 @@ export function loadConfig(): AppConfig | null {
   try {
     const raw = JSON.parse(readFileSync(getConfigPath(), 'utf8'));
     if (!validateConfig(raw)) return null;
-    configCache = raw as AppConfig;
+    configCache = normalizeConfig(raw as AppConfig);
     configCacheValid = true;
     return configCache;
   } catch {
@@ -182,7 +195,7 @@ export function saveConfig(partial: Partial<AppConfig>): void {
   if (!next.adminUsername || !next.adminPasswordHash) {
     throw new Error('adminUsername and adminPasswordHash are required');
   }
-  writeDataJsonFileAtomic(CONFIG_FILENAME, next, 'config');
+  writeDataJsonFileAtomic(CONFIG_FILENAME, normalizeConfig(next), 'config');
   invalidateCache();
 }
 
@@ -201,13 +214,14 @@ export function createConfigAtomic(
     authEpoch: config.authEpoch ?? 0,
     ...config,
   };
-  if (!validateConfig(full)) throw new Error('Invalid config');
+  const normalizedFull = normalizeConfig(full);
+  if (!validateConfig(normalizedFull)) throw new Error('Invalid config');
   ensureDataDir();
   const path = getConfigPath();
   try {
     const fd = openSync(path, 'wx');
     try {
-      writeSync(fd, JSON.stringify(full, null, 2), 0, 'utf8');
+      writeSync(fd, JSON.stringify(normalizedFull, null, 2), 0, 'utf8');
     } finally {
       closeSync(fd);
     }

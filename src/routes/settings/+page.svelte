@@ -48,6 +48,7 @@
   let loadingPrizes = false;
   let prizeError = '';
   let showAddPrizeModal = false;
+  let prizePendingDelete: PrizeDefinition | null = null;
   let editingPrizeIds: string[] = [];
   let error = '';
   let success = '';
@@ -79,6 +80,20 @@
     return prize.active
       ? 'border-green-500/50 text-green-300 bg-green-500/10'
       : 'border-red-500/50 text-red-300 bg-red-500/10';
+  }
+
+  function getPrizeTierDisabledReason(allPrizes: PrizeDefinition[]): string {
+    if (allPrizes.length === 0) {
+      return 'Add a prize first.';
+    }
+    const selectablePrizes = allPrizes.filter((prize) => isPrizeSelectable(prize));
+    if (selectablePrizes.length === 0) {
+      return 'All prizes are expired or inactive. Update a prize or add a new one.';
+    }
+    if (selectablePrizes.every((prize) => Math.max(0, (prize.limit ?? 0) - (prize.usage ?? 0)) === 0)) {
+      return 'All active prizes are fully claimed. Increase quantity or add a new prize.';
+    }
+    return '';
   }
 
   $: smtpTransportReady =
@@ -395,11 +410,20 @@
     }
   }
 
-  async function deletePrize(prizeId: string) {
-    if (!confirm(`Delete prize ${prizeId}?`)) return;
+  function requestDeletePrize(prize: PrizeDefinition) {
+    prizeError = '';
+    prizePendingDelete = prize;
+  }
+
+  function closeDeletePrizeModal() {
+    prizePendingDelete = null;
+  }
+
+  async function confirmDeletePrize() {
+    if (!prizePendingDelete) return;
     prizeError = '';
     try {
-      const res = await fetch(`/api/prizes/${encodeURIComponent(prizeId)}`, {
+      const res = await fetch(`/api/prizes/${encodeURIComponent(prizePendingDelete.id)}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -408,6 +432,7 @@
         prizeError = data.error ?? 'Failed to delete prize';
         return;
       }
+      prizePendingDelete = null;
       await loadPrizes();
     } catch {
       prizeError = 'Failed to delete prize';
@@ -491,6 +516,7 @@
               id="settings-current-password"
               type="password"
               bind:value={currentPassword}
+              autocomplete="current-password"
               placeholder="Required to change username or password"
               class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             />
@@ -503,6 +529,7 @@
               id="settings-new-password"
               type="password"
               bind:value={newPassword}
+              autocomplete="new-password"
               placeholder="Leave blank to keep current"
               class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             />
@@ -516,6 +543,7 @@
               id="settings-new-password-confirm"
               type="password"
               bind:value={newPasswordConfirm}
+              autocomplete="new-password"
               class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             />
           </div>
@@ -763,6 +791,7 @@
               bind:enabled={defaultRoomPrizeEnabled}
               bind:tiers={defaultRoomPrizeTiers}
               availablePrizes={prizes.filter((prize) => isPrizeSelectable(prize)).map(toPrizeOption)}
+              addTierDisabledReason={getPrizeTierDisabledReason(prizes)}
               title="Default room prize setup"
               subtitle="Preload these tiers in room creation. Hosts can still change them per room."
               emptyMessage="No default prize tiers configured."
@@ -861,7 +890,7 @@
                         <button type="button" class="rounded-lg bg-pub-accent px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50" onclick={() => savePrize(prizes[index])} disabled={!editingPrizeIds.includes(prize.id)}>
                           Save
                         </button>
-                        <button type="button" class="rounded-lg border border-red-500/50 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10" onclick={() => deletePrize(prize.id)}>
+                        <button type="button" class="rounded-lg border border-red-500/50 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10" onclick={() => requestDeletePrize(prize)}>
                           Delete
                         </button>
                       </div>
@@ -931,6 +960,35 @@
     </div>
     {#if prizeError && showAddPrizeModal}
       <p class="text-sm text-red-400">{prizeError}</p>
+    {/if}
+  </div>
+</ConfirmModal>
+
+<ConfirmModal
+  open={!!prizePendingDelete}
+  title={prizePendingDelete?.usage ? 'Delete used prize?' : 'Delete prize?'}
+  titleId="delete-prize-modal-title"
+  cancelLabel="Cancel"
+  confirmLabel="Delete prize"
+  confirmButtonClass="bg-red-600 text-white"
+  onClose={closeDeletePrizeModal}
+  onConfirm={confirmDeletePrize}
+>
+  <div class="mb-4 space-y-3">
+    {#if prizePendingDelete}
+      <p class="text-sm text-pub-muted">
+        You are about to delete <span class="text-pub-gold font-medium">{prizePendingDelete.name}</span>.
+      </p>
+      {#if prizePendingDelete.usage > 0}
+        <div class="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+          This prize has already been claimed {prizePendingDelete.usage} time{prizePendingDelete.usage === 1 ? '' : 's'}.
+          Existing redemption snapshots will remain, but this prize will be removed from the active prize pool.
+        </div>
+      {:else}
+        <p class="text-sm text-pub-muted">
+          This will remove it from the prize pool immediately.
+        </p>
+      {/if}
     {/if}
   </div>
 </ConfirmModal>

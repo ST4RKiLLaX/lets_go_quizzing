@@ -69,6 +69,10 @@ export function setRoom(roomId: string, state: GameState): void {
   rooms.set(roomId, state);
 }
 
+export function listRooms(): GameState[] {
+  return Array.from(rooms.values());
+}
+
 export function generateRoomId(): string {
   return getNanoid()();
 }

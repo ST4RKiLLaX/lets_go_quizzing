@@ -66,8 +66,10 @@
         <label for="setup-username" class="block text-sm text-pub-muted mb-1">Admin username</label>
         <input
           id="setup-username"
+          name="username"
           type="text"
           bind:value={username}
+          autocomplete="username"
           placeholder="admin"
           minlength={3}
           maxlength={50}
@@ -80,8 +82,10 @@
         <label for="setup-password" class="block text-sm text-pub-muted mb-1">Admin password</label>
         <input
           id="setup-password"
+          name="new-password"
           type="password"
           bind:value={password}
+          autocomplete="new-password"
           placeholder="••••••••"
           minlength={8}
           required
@@ -95,8 +99,10 @@
         >
         <input
           id="setup-password-confirm"
+          name="new-password-confirm"
           type="password"
           bind:value={passwordConfirm}
+          autocomplete="new-password"
           placeholder="••••••••"
           required
           class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"

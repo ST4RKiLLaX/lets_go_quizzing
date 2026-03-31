@@ -2,8 +2,11 @@ import { z } from 'zod';
 
 export const PrizeTierSchema = z.object({
   minScore: z.number().int().min(0),
-  prizeId: z.string().trim().min(1),
+  prizeId: z.string().trim().min(1).optional(),
+  prizeIds: z.array(z.string().trim().min(1)).min(1).max(25).optional(),
   label: z.string().trim().max(120).optional(),
+}).refine((value) => !!value.prizeId || !!value.prizeIds?.length, {
+  message: 'Prize tier must include at least one prize',
 });
 
 export const RoomPrizeConfigSchema = z.object({
@@ -37,6 +40,7 @@ export const PrizeStoreSchema = z.object({
 });
 
 export const PrizeRedemptionRecordSchema = z.object({
+  claimId: z.string().trim().min(1).optional(),
   redemptionId: z.string().trim().min(1),
   roomId: z.string().trim().min(1),
   quizFilename: z.string().trim().min(1),

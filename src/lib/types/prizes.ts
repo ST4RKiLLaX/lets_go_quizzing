@@ -1,6 +1,6 @@
 export interface PrizeTier {
   minScore: number;
-  prizeId: string;
+  prizeIds: string[];
   label?: string;
 }
 
@@ -34,6 +34,7 @@ export interface PrizeDefinition extends PrizeOption {
 }
 
 export interface PrizeRedemptionRecord {
+  claimId?: string;
   redemptionId: string;
   roomId: string;
   quizFilename: string;
@@ -48,9 +49,29 @@ export interface PrizeRedemptionRecord {
   status: 'revealed' | 'emailed' | 'revoked';
 }
 
+export interface ClaimedPrize {
+  redemptionId: string;
+  prizeId: string;
+  prizeName: string;
+  prizeUrl: string;
+  status: PrizeRedemptionRecord['status'];
+}
+
+export interface PrizeClaimResult {
+  claimId: string;
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  playerEmoji: string;
+  finalScore: number;
+  bestTier: PrizeTier;
+  prizes: ClaimedPrize[];
+}
+
 export interface PrizeEligibility {
   eligible: boolean;
   bestTier?: PrizeTier;
-  prize?: PrizeOption;
+  prizes?: PrizeOption[];
+  claim?: PrizeClaimResult;
   reason?: 'disabled' | 'room_not_found' | 'not_ready' | 'not_eligible' | 'prize_missing' | 'already_claimed';
 }

@@ -40,9 +40,9 @@ export async function POST({ request }) {
     const redemption = await claimPrizeForPlayer(state, playerId, config);
     return json({
       ok: true,
-      redemptionId: redemption.redemptionId,
-      prizeName: redemption.prizeNameSnapshot,
-      prizeUrl: redemption.prizeUrlSnapshot,
+      claimId: redemption.claimId,
+      prizes: redemption.prizes,
+      bestTier: redemption.bestTier,
       emailConfigured: emailPolicy.featureEnabled,
       emailAvailableNow: emailPolicy.availableNow,
     });

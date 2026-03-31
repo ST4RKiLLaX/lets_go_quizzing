@@ -1,8 +1,10 @@
 import { isAuthenticated } from '$lib/server/auth.js';
 import { buildPrizeEmailHtml } from '$lib/server/prizes/email.js';
 
-const SAMPLE_PRIZE_NAME = 'Free Training Course';
-const SAMPLE_PRIZE_URL = 'https://example.com/free-training-course';
+const SAMPLE_PRIZES = [
+  { prizeName: 'Free Training Course', prizeUrl: 'https://example.com/free-training-course' },
+  { prizeName: 'VIP Backstage Pass', prizeUrl: 'https://example.com/vip-pass' },
+];
 
 export async function GET({ request }) {
   const cookie = request.headers.get('cookie');
@@ -11,8 +13,7 @@ export async function GET({ request }) {
   }
 
   const html = buildPrizeEmailHtml({
-    prizeName: SAMPLE_PRIZE_NAME,
-    prizeUrl: SAMPLE_PRIZE_URL,
+    prizes: SAMPLE_PRIZES,
   });
 
   return new Response(html, {

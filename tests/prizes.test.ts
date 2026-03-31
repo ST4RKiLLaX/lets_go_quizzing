@@ -3,12 +3,15 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AppConfig } from '../src/lib/server/config.js';
+import { createConfigAtomic } from '../src/lib/server/config.js';
 import type { GameState } from '../src/lib/server/game/state-machine.js';
 import { buildPrizeEmailHtml, buildPrizeEmailText } from '../src/lib/server/prizes/email.js';
+import { findUnavailablePrizeId } from '../src/lib/prizes/config-validation.js';
 import { normalizePrizeTiers } from '../src/lib/prizes/tiers.js';
 import {
   claimPrizeForPlayer,
   createRoomPrizeConfig,
+  deletePrize,
   generatePrizeId,
   getPrizeEmailPolicy,
   getPrizeEligibility,
@@ -43,8 +46,8 @@ function makeState(): GameState {
     {
       enabled: true,
       tiers: [
-        { minScore: 50, prizeId: 'course-pro' },
-        { minScore: 20, prizeId: 'course-basic' },
+        { minScore: 50, prizeIds: ['course-pro', 'course-basic'] },
+        { minScore: 20, prizeIds: ['course-basic'] },
       ],
     },
     'host'
@@ -123,14 +126,25 @@ test('listPrizeOptions only returns active prize labels', () => {
 test('normalizePrizeTiers deterministically trims, filters, and sorts tiers', () => {
   expect(
     normalizePrizeTiers([
-      { minScore: 5.9, prizeId: ' low ', label: '  Bronze  ' },
+      { minScore: 5.9, prizeIds: [' low ', ' bonus ', 'low'], label: '  Bronze  ' },
       { minScore: 20, prizeId: 'high', label: ' Gold ' },
       { minScore: -5, prizeId: '   ', label: 'ignored' },
     ])
   ).toEqual([
-    { minScore: 20, prizeId: 'high', label: 'Gold' },
-    { minScore: 5, prizeId: 'low', label: 'Bronze' },
+    { minScore: 20, prizeIds: ['high'], label: 'Gold' },
+    { minScore: 5, prizeIds: ['low', 'bonus'], label: 'Bronze' },
   ]);
+});
+
+test('findUnavailablePrizeId flags missing or exhausted prize assignments', () => {
+  const tiers = normalizePrizeTiers([
+    { minScore: 10, prizeIds: ['course-pro', 'course-basic'] },
+  ]);
+
+  expect(findUnavailablePrizeId(tiers, [
+    { id: 'course-pro', name: 'Pro Course', remainingQuantity: 1 },
+    { id: 'course-basic', name: 'Basic Course', remainingQuantity: 0 },
+  ])).toBe('course-basic');
 });
 
 test('getPrizeEmailPolicy preserves feature intent separately from availability', () => {
@@ -160,23 +174,36 @@ test('getPrizeEmailPolicy preserves feature intent separately from availability'
   });
 });
 
-test('prize email templates include the prize link and host contact guidance', () => {
+test('multi-prize email templates include one button per prize and host contact guidance', () => {
   const input = {
-    prizeName: 'Pro Course',
-    prizeUrl: 'https://example.com/prize',
+    prizes: [
+      { prizeName: 'Pro Course', prizeUrl: 'https://example.com/prize' },
+      { prizeName: 'VIP Pass', prizeUrl: 'https://example.com/vip' },
+    ],
   };
 
   const text = buildPrizeEmailText(input);
   const html = buildPrizeEmailHtml(input);
 
   expect(text).toContain('https://example.com/prize');
+  expect(text).toContain('https://example.com/vip');
   expect(text).toContain('Please contact the quiz host for more information.');
   expect(text).toContain("Let's Go Quizzing and the app maker are not responsible for prize delivery.");
 
-  expect(html).toContain('Open Prize Link');
+  expect((html.match(/Open Prize Link/g) ?? []).length).toBe(2);
   expect(html).toContain('https://example.com/prize');
+  expect(html).toContain('https://example.com/vip');
   expect(html).toContain('Please contact the quiz host.');
   expect(html).toContain("Let's Go Quizzing and the app maker are not responsible for prize delivery.");
+});
+
+test('single-prize email template uses the normal prize button label', () => {
+  const html = buildPrizeEmailHtml({
+    prizes: [{ prizeName: 'Pro Course', prizeUrl: 'https://example.com/prize' }],
+  });
+
+  expect(html).toContain('Open Prize Link');
+  expect(html).not.toContain('Open First Prize Link');
 });
 
 test('generatePrizeId is deterministic from prize identity fields', () => {
@@ -219,16 +246,59 @@ test('generatePrizeId changes when createdAt changes', () => {
   );
 });
 
-test('claimPrizeForPlayer consumes the best eligible tier once', async () => {
+test('claimPrizeForPlayer auto-claims all prizes in the best tier and is idempotent', async () => {
   prepareTempData();
   const state = makeState();
 
-  const redemption = await claimPrizeForPlayer(state, 'p1', makeConfig());
+  const claim = await claimPrizeForPlayer(state, 'p1', makeConfig());
 
-  expect(redemption.prizeId).toBe('course-pro');
-  expect(redemption.prizeUrlSnapshot).toBe('https://example.com/pro');
+  expect(claim.prizes.map((prize) => prize.prizeId)).toEqual(['course-pro', 'course-basic']);
+  expect(claim.prizes.map((prize) => prize.prizeUrl)).toEqual([
+    'https://example.com/pro',
+    'https://example.com/basic',
+  ]);
 
-  await expect(claimPrizeForPlayer(state, 'p1', makeConfig())).rejects.toThrow('Prize already claimed');
+  const repeatedClaim = await claimPrizeForPlayer(state, 'p1', makeConfig());
+  expect(repeatedClaim.claimId).toBe(claim.claimId);
+  expect(repeatedClaim.prizes).toHaveLength(2);
+});
+
+test('getPrizeEligibility returns grouped claimed prizes after auto-claim', async () => {
+  prepareTempData();
+  const state = makeState();
+
+  await claimPrizeForPlayer(state, 'p1', makeConfig());
+
+  const eligibility = getPrizeEligibility(state, 'p1', makeConfig());
+  expect(eligibility.reason).toBe('already_claimed');
+  expect(eligibility.claim?.prizes.map((prize) => prize.prizeId)).toEqual(['course-pro', 'course-basic']);
+});
+
+test('deletePrize allows deleting prizes that already have usage history', async () => {
+  prepareTempData();
+  const state = makeState();
+
+  await claimPrizeForPlayer(state, 'p1', makeConfig());
+  await expect(deletePrize('course-pro')).resolves.toBeUndefined();
+
+  expect(listPrizeOptions()).toEqual([{ id: 'course-basic', name: 'Basic Course', remainingQuantity: 4 }]);
+});
+
+test('deletePrize blocks deletion when prize is still referenced by default tiers', async () => {
+  prepareTempData();
+  createConfigAtomic({
+    adminUsername: 'admin',
+    adminPasswordHash: 'salt:hash',
+    prizesEnabled: true,
+    defaultRoomPrizeConfig: {
+      enabledByDefault: true,
+      tiers: [{ minScore: 10, prizeIds: ['course-pro'] }],
+    },
+  });
+
+  await expect(deletePrize('course-pro')).rejects.toThrow(
+    'Prize is still used by the default room prize setup. Remove it from settings tiers first.'
+  );
 });
 
 test('getPrizeEligibility rejects players before the game ends', () => {

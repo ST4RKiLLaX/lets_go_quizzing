@@ -12,7 +12,7 @@
   import PlayerWakeModal from '$lib/components/player/PlayerWakeModal.svelte';
   import { createSocket, getOrCreatePlayerId } from '$lib/socket.js';
   import type { SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
-  import type { PrizeOption } from '$lib/types/prizes.js';
+  import type { ClaimedPrize, PrizeOption } from '$lib/types/prizes.js';
   import type { Question } from '$lib/types/quiz.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
@@ -96,18 +96,18 @@
   let prizeEmailAvailableNow = false;
   let prizeEligibilityCheckedKey = '';
   let prizeEligible = false;
-  let prizeOption: PrizeOption | null = null;
+  let prizeOptions: PrizeOption[] = [];
   let prizeStatusMessage = '';
   let prizeEligibilityLoading = false;
   let prizeClaiming = false;
   let prizeClaimError = '';
-  let claimedPrizeName = '';
-  let claimedPrizeUrl = '';
-  let claimedRedemptionId = '';
+  let claimedPrizes: ClaimedPrize[] = [];
+  let claimedClaimId = '';
   let prizeEmail = '';
   let prizeEmailSending = false;
   let prizeEmailMessage = '';
   let prizeEmailMessageStatus: 'idle' | 'success' | 'error' = 'idle';
+  let prizeAutoClaimedKey = '';
 
   import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
 
@@ -925,17 +925,29 @@
   $: if (state?.type !== 'End') {
     prizeEligibilityCheckedKey = '';
     prizeEligible = false;
-    prizeOption = null;
+    prizeOptions = [];
     prizeStatusMessage = '';
     prizeClaimError = '';
-    claimedPrizeName = '';
-    claimedPrizeUrl = '';
-    claimedRedemptionId = '';
+    claimedPrizes = [];
+    claimedClaimId = '';
     prizeEmail = '';
     prizeEmailMessage = '';
+    prizeAutoClaimedKey = '';
   }
-  $: if (prizeEligibilityKey && prizeEligibilityKey !== prizeEligibilityCheckedKey && !claimedPrizeUrl) {
+  $: if (prizeEligibilityKey && prizeEligibilityKey !== prizeEligibilityCheckedKey && claimedPrizes.length === 0) {
     void loadPrizeEligibility();
+  }
+  $: if (
+    prizeEligibilityKey &&
+    prizeEligibilityCheckedKey === prizeEligibilityKey &&
+    prizeEligible &&
+    prizeOptions.length > 0 &&
+    claimedPrizes.length === 0 &&
+    prizeAutoClaimedKey !== prizeEligibilityKey &&
+    !prizeClaiming
+  ) {
+    prizeAutoClaimedKey = prizeEligibilityKey;
+    void claimPrize();
   }
 
   async function loadPrizeEligibility() {
@@ -951,12 +963,16 @@
       prizeEmailAvailableNow = data.emailAvailableNow === true;
       prizeEligibilityCheckedKey = prizeEligibilityKey;
       prizeEligible = data.eligible === true;
-      prizeOption = data.prize ?? null;
+      prizeOptions = Array.isArray(data.prizes) ? data.prizes : [];
+      if (data.reason === 'already_claimed' && data.claim) {
+        claimedPrizes = Array.isArray(data.claim.prizes) ? data.claim.prizes : [];
+        claimedClaimId = data.claim.claimId ?? '';
+      }
       prizeStatusMessage =
         data.reason === 'already_claimed'
-          ? 'Prize already claimed for this player.'
+          ? ''
           : data.reason === 'not_eligible'
-            ? 'No prize unlocked for this score.'
+            ? 'No prizes unlocked for this score.'
             : data.reason === 'not_ready'
               ? 'Prize claims are available when the game ends.'
               : '';
@@ -982,23 +998,25 @@
       const data = await res.json();
       if (!res.ok) {
         prizeClaimError = data.error ?? 'Prize claim failed';
+        prizeAutoClaimedKey = '';
         return;
       }
-      claimedPrizeName = data.prizeName ?? '';
-      claimedPrizeUrl = data.prizeUrl ?? '';
-      claimedRedemptionId = data.redemptionId ?? '';
+      claimedPrizes = Array.isArray(data.prizes) ? data.prizes : [];
+      claimedClaimId = data.claimId ?? '';
       prizeEmailAvailableNow = data.emailAvailableNow === true;
       prizeEligible = false;
+      prizeOptions = [];
       prizeStatusMessage = '';
     } catch {
       prizeClaimError = 'Prize claim failed';
+      prizeAutoClaimedKey = '';
     } finally {
       prizeClaiming = false;
     }
   }
 
   async function sendPrizeEmailNow() {
-    if (!claimedRedemptionId || !prizeEmail.trim()) return;
+    if (!claimedClaimId || !prizeEmail.trim()) return;
     prizeEmailSending = true;
     prizeEmailMessage = '';
     prizeEmailMessageStatus = 'idle';
@@ -1006,7 +1024,7 @@
       const res = await fetch('/api/prizes/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ redemptionId: claimedRedemptionId, email: prizeEmail.trim() }),
+        body: JSON.stringify({ claimId: claimedClaimId, email: prizeEmail.trim() }),
       });
       const data = await res.json();
       prizeEmailMessage = res.ok ? 'Prize email sent.' : (data.error ?? 'Unable to send prize email');
@@ -1177,23 +1195,33 @@
         />
         {#if state.type === 'End' && prizeFeatureEnabled}
           <div class="rounded-lg bg-pub-darker p-6 space-y-4">
-            <h2 class="text-xl font-bold text-pub-gold">Prize</h2>
-            {#if claimedPrizeUrl}
+            <h2 class="text-xl font-bold text-pub-gold">Prizes</h2>
+            {#if claimedPrizes.length > 0}
               <p class="text-pub-muted">
-                Your prize is ready. Save it now if you want to keep it.
+                Your prize{claimedPrizes.length === 1 ? ' is' : 's are'} ready. Save {claimedPrizes.length === 1 ? 'it' : 'them'} now if you want to keep {claimedPrizes.length === 1 ? 'it' : 'them'}.
               </p>
-              <p class="font-semibold text-pub-gold">{claimedPrizeName}</p>
-              <a
-                href={claimedPrizeUrl}
-                target="_blank"
-                rel="noreferrer"
-                class="block break-all rounded-lg border border-pub-gold/40 bg-pub-dark px-4 py-3 text-pub-gold hover:bg-pub-accent/20"
-              >
-                {claimedPrizeUrl}
-              </a>
+              <div class="space-y-3">
+                {#each claimedPrizes as prize, index}
+                  <div class="rounded-lg border border-pub-gold/30 bg-pub-dark p-4 space-y-2">
+                    <p class="text-xs uppercase tracking-wide text-pub-muted">Prize {index + 1}</p>
+                    <p class="font-semibold text-pub-gold">{prize.prizeName}</p>
+                    <a
+                      href={prize.prizeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      class="inline-flex items-center justify-center rounded-lg bg-pub-accent px-4 py-3 font-medium text-white hover:opacity-90"
+                    >
+                      Open Prize Link
+                    </a>
+                    <p class="break-all text-sm text-pub-muted">{prize.prizeUrl}</p>
+                  </div>
+                {/each}
+              </div>
               {#if prizeEmailAvailableNow}
                 <div class="space-y-2">
-                  <label class="block text-sm text-pub-muted" for="prize-email">Email this link now (optional)</label>
+                  <label class="block text-sm text-pub-muted" for="prize-email">
+                    Email {claimedPrizes.length === 1 ? 'this link' : 'these links'} now (optional)
+                  </label>
                   <div class="flex flex-col sm:flex-row gap-2">
                     <input
                       id="prize-email"
@@ -1212,7 +1240,7 @@
                     </button>
                   </div>
                   <div class="rounded-lg border border-pub-muted/50 bg-pub-dark px-3 py-2 text-xs text-pub-muted">
-                    We use your email address only to send the prize link. We do not retain it after the code is sent.
+                    We use your email address only to send the prize link{claimedPrizes.length === 1 ? '' : 's'}. We do not retain it after the code is sent.
                   </div>
                   {#if prizeEmailMessage}
                     <p class="text-sm {prizeEmailMessageStatus === 'success' ? 'text-green-400' : 'text-red-400'}">
@@ -1223,20 +1251,25 @@
               {/if}
             {:else if prizeEligibilityLoading}
               <p class="text-pub-muted">Checking prize eligibility...</p>
-            {:else if prizeEligible && prizeOption}
+            {:else if prizeClaiming}
               <p class="text-pub-muted">
-                You unlocked <span class="text-pub-gold font-semibold">{prizeOption.name}</span>.
+                Unlocking your prize{prizeOptions.length === 1 ? '' : 's'}...
               </p>
-              <button
-                type="button"
-                class="rounded-lg bg-pub-accent px-4 py-2 font-medium hover:opacity-90 disabled:opacity-50"
-                onclick={claimPrize}
-                disabled={prizeClaiming}
-              >
-                {prizeClaiming ? 'Claiming...' : 'Claim prize'}
-              </button>
+            {:else if prizeEligible && prizeOptions.length > 0}
+              <div class="space-y-2">
+                <p class="text-pub-muted">
+                  Unlocking {prizeOptions.length === 1 ? 'your prize' : 'your prizes'} automatically:
+                </p>
+                <ul class="space-y-2">
+                  {#each prizeOptions as prize}
+                    <li class="rounded-lg border border-pub-muted/50 bg-pub-dark px-4 py-3 text-pub-gold">
+                      {prize.name}
+                    </li>
+                  {/each}
+                </ul>
+              </div>
             {:else}
-              <p class="text-pub-muted">{prizeStatusMessage || 'No prize is available for this player.'}</p>
+              <p class="text-pub-muted">{prizeStatusMessage || 'No prizes are available for this player.'}</p>
             {/if}
             {#if prizeClaimError}
               <p class="text-sm text-red-400">{prizeClaimError}</p>

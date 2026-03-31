@@ -151,8 +151,10 @@
       </label>
       <input
         id="join-password"
+        name="room-password"
         type="password"
         bind:value={joinPassword}
+        autocomplete="off"
         placeholder="Enter room password"
         class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
       />

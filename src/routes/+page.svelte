@@ -6,6 +6,7 @@
   import { mapHostCreateError, resolveHostCreatePassword } from '$lib/auth/host-create.js';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import { findUnavailablePrizeId } from '$lib/prizes/config-validation.js';
   import { buildDefaultRoomPrizeConfig, normalizePrizeTiers } from '$lib/prizes/tiers.js';
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
@@ -97,8 +98,18 @@
 
   function applyDefaultPrizeConfig() {
     roomPrizeEnabled = defaultRoomPrizeEnabled;
-    roomPrizeTiers = defaultRoomPrizeTiers.map((tier) => ({ ...tier }));
+    roomPrizeTiers = defaultRoomPrizeTiers.map((tier) => ({ ...tier, prizeIds: [...tier.prizeIds] }));
     savePrizeSetupAsDefault = false;
+  }
+
+  function getRoomPrizeTierDisabledReason(): string {
+    if (prizeOptions.length === 0) {
+      return 'Add an active, unexpired prize in settings first.';
+    }
+    if (prizeOptions.every((prize) => prize.remainingQuantity === 0)) {
+      return 'All available prizes are fully claimed. Increase quantity or add a new prize in settings.';
+    }
+    return '';
   }
 
   async function loadPrizeOptions() {
@@ -254,13 +265,10 @@
     }
 
     if (prizeFeatureEnabled && roomPrizeEnabled) {
-      const insufficientPrize = sanitizedRoomPrizeTiers.find((tier) => {
-        const prize = prizeOptions.find((option) => option.id === tier.prizeId);
-        return prize?.remainingQuantity === 0;
-      });
-      if (insufficientPrize) {
+      const insufficientPrizeId = findUnavailablePrizeId(sanitizedRoomPrizeTiers, prizeOptions);
+      if (insufficientPrizeId) {
         insufficientPrizeName =
-          prizeOptions.find((option) => option.id === insufficientPrize.prizeId)?.name ?? 'Selected prize';
+          prizeOptions.find((option) => option.id === insufficientPrizeId)?.name ?? 'Selected prize';
         showInsufficientPrizeModal = true;
         return;
       }
@@ -523,8 +531,10 @@
             <label for="host-username" class="block text-sm text-pub-muted mb-1">Username</label>
             <input
               id="host-username"
+              name="username"
               type="text"
               bind:value={hostUsername}
+              autocomplete="username"
               placeholder="Admin username"
               class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             />
@@ -533,8 +543,10 @@
             <label for="host-password" class="block text-sm text-pub-muted mb-1">Host password</label>
             <input
               id="host-password"
+              name="current-password"
               type="password"
               bind:value={hostPassword}
+              autocomplete="current-password"
               placeholder="Enter host password"
               class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
             />
@@ -553,8 +565,10 @@
           </label>
           <input
             id="player-join-password"
+            name="room-password"
             type="password"
             bind:value={playerJoinPassword}
+            autocomplete="off"
             placeholder="Require password for players joining this room"
             class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
           />
@@ -614,6 +628,7 @@
             bind:tiers={roomPrizeTiers}
             bind:saveAsDefault={savePrizeSetupAsDefault}
             availablePrizes={prizeOptions}
+            addTierDisabledReason={getRoomPrizeTierDisabledReason()}
             title="Room prizes"
             subtitle="Optional score tiers for this game only."
             showSaveDefault

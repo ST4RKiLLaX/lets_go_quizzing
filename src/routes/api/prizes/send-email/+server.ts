@@ -11,15 +11,15 @@ export async function POST({ request }) {
 
   try {
     const body = await request.json();
-    const redemptionId = typeof body?.redemptionId === 'string' ? body.redemptionId.trim() : '';
+    const claimId = typeof body?.claimId === 'string' ? body.claimId.trim() : '';
     const email = typeof body?.email === 'string' ? body.email.trim() : '';
-    if (!redemptionId || !email) {
-      return json({ error: 'redemptionId and email are required' }, { status: 400 });
+    if (!claimId || !email) {
+      return json({ error: 'claimId and email are required' }, { status: 400 });
     }
     if (!isValidEmailAddress(email)) {
       return json({ error: 'Enter a valid email address' }, { status: 400 });
     }
-    await sendPrizeEmail({ redemptionId, email });
+    await sendPrizeEmail({ claimId, email });
     return json({ ok: true });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });

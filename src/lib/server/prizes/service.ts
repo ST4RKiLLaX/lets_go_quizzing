@@ -1,8 +1,11 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { loadConfig, type AppConfig } from '../config.js';
 import type { GameState } from '../game/state-machine.js';
+import { listRooms } from '../game/rooms.js';
 import type {
+  ClaimedPrize,
   PrizeDefinition,
+  PrizeClaimResult,
   PrizeEligibility,
   PrizeOption,
   PrizeRedemptionRecord,
@@ -23,6 +26,13 @@ import {
   getPrizeEmailTransportConfig,
 } from './email.js';
 
+type PrizeTierInput = {
+  minScore: number;
+  prizeIds?: string[];
+  prizeId?: string;
+  label?: string;
+};
+
 function normalizePrizeField(value: string): string {
   return value.trim();
 }
@@ -35,6 +45,31 @@ function isValidExpirationDate(expirationDate: string): boolean {
 
 function getPrizeExpirationTimestamp(expirationDate: string): number {
   return new Date(`${expirationDate}T23:59:59.999Z`).getTime();
+}
+
+function roomPrizeConfigReferencesPrize(roomPrizeConfig: RoomPrizeConfig | undefined, prizeId: string): boolean {
+  return normalizePrizeTiers(roomPrizeConfig?.tiers ?? []).some((tier) => tier.prizeIds.includes(prizeId));
+}
+
+function getPrizeDeletionReferenceError(prizeId: string): string | undefined {
+  const config = loadConfig();
+  if (roomPrizeConfigReferencesPrize(config?.defaultRoomPrizeConfig && {
+    enabled: config.defaultRoomPrizeConfig.enabledByDefault,
+    tiers: config.defaultRoomPrizeConfig.tiers,
+    configuredAt: 0,
+    configuredBy: 'default',
+  }, prizeId)) {
+    return 'Prize is still used by the default room prize setup. Remove it from settings tiers first.';
+  }
+
+  const referencingRoomIds = listRooms()
+    .filter((room) => roomPrizeConfigReferencesPrize(room.roomPrizeConfig, prizeId))
+    .map((room) => room.roomId);
+  if (referencingRoomIds.length > 0) {
+    return `Prize is still assigned in room prizes for: ${referencingRoomIds.join(', ')}`;
+  }
+
+  return undefined;
 }
 
 export function isPrizeExpired(prize: Pick<PrizeDefinition, 'expirationDate'>, now = Date.now()): boolean {
@@ -147,18 +182,25 @@ export function verifyPrizeClaimToken(params: {
 }
 
 export function createRoomPrizeConfig(
-  raw: { enabled?: boolean; tiers?: PrizeTier[] } | undefined,
+  raw: { enabled?: boolean; tiers?: PrizeTierInput[] } | undefined,
   configuredBy: string
 ): RoomPrizeConfig | undefined {
   if (!raw?.enabled) return undefined;
   const tiers = normalizePrizeTiers(raw.tiers ?? []);
   if (tiers.length === 0) return undefined;
-  return RoomPrizeConfigSchema.parse({
+  const configuredAt = Date.now();
+  RoomPrizeConfigSchema.parse({
     enabled: true,
     tiers,
-    configuredAt: Date.now(),
+    configuredAt,
     configuredBy,
   });
+  return {
+    enabled: true,
+    tiers,
+    configuredAt,
+    configuredBy,
+  };
 }
 
 export function listPrizeOptions(): PrizeOption[] {
@@ -256,11 +298,50 @@ export async function deletePrize(prizeId: string): Promise<void> {
     if (!prize) {
       throw new Error('Prize not found');
     }
-    if (prize.usage > 0) {
-      throw new Error('Used prizes cannot be deleted');
+    const referenceError = getPrizeDeletionReferenceError(prizeId);
+    if (referenceError) {
+      throw new Error(referenceError);
     }
     savePrizeStore(store.prizes.filter((entry) => entry.id !== prizeId));
   });
+}
+
+function getClaimId(redemption: PrizeRedemptionRecord): string {
+  return redemption.claimId ?? redemption.redemptionId;
+}
+
+function toClaimedPrize(redemption: PrizeRedemptionRecord): ClaimedPrize {
+  return {
+    redemptionId: redemption.redemptionId,
+    prizeId: redemption.prizeId,
+    prizeName: redemption.prizeNameSnapshot,
+    prizeUrl: redemption.prizeUrlSnapshot,
+    status: redemption.status,
+  };
+}
+
+function buildPrizeClaimResult(redemptions: PrizeRedemptionRecord[], bestTier: PrizeTier): PrizeClaimResult {
+  if (redemptions.length === 0) {
+    throw new Error('Claim redemptions are required');
+  }
+  const first = redemptions[0];
+  return {
+    claimId: getClaimId(first),
+    roomId: first.roomId,
+    playerId: first.playerId,
+    playerName: first.playerName,
+    playerEmoji: first.playerEmoji,
+    finalScore: first.finalScore,
+    bestTier,
+    prizes: redemptions.map(toClaimedPrize),
+  };
+}
+
+function getPlayerClaimRedemptions(roomId: string, playerId: string): PrizeRedemptionRecord[] {
+  const redemptions = loadPrizeRedemptionStore().redemptions
+    .filter((redemption) => redemption.roomId === roomId && redemption.playerId === playerId)
+    .sort((a, b) => a.redeemedAt - b.redeemedAt);
+  return redemptions;
 }
 
 function getBestEligibleTier(config: RoomPrizeConfig | undefined, score: number): PrizeTier | undefined {
@@ -286,31 +367,30 @@ export function getPrizeEligibility(state: GameState | undefined, playerId: stri
   if (!tier) {
     return { eligible: false, reason: 'not_eligible' };
   }
-  const prize = loadPrizeStore().prizes.find(
-    (entry) => entry.id === tier.prizeId && entry.active && !isPrizeExpired(entry)
+  const prizes = loadPrizeStore().prizes.filter(
+    (entry) => tier.prizeIds.includes(entry.id) && entry.active && !isPrizeExpired(entry)
   );
-  if (!prize) {
+  if (prizes.length !== tier.prizeIds.length) {
     return { eligible: false, reason: 'prize_missing' };
   }
-  const existing = loadPrizeRedemptionStore().redemptions.find(
-    (redemption) => redemption.roomId === state.roomId && redemption.playerId === playerId
-  );
-  if (existing) {
+  const existing = getPlayerClaimRedemptions(state.roomId, playerId);
+  if (existing.length > 0) {
     return {
       eligible: false,
       reason: 'already_claimed',
       bestTier: tier,
-      prize: { id: prize.id, name: prize.name },
+      prizes: prizes.map((prize) => ({ id: prize.id, name: prize.name })),
+      claim: buildPrizeClaimResult(existing, tier),
     };
   }
   return {
     eligible: true,
     bestTier: tier,
-    prize: { id: prize.id, name: prize.name },
+    prizes: prizes.map((prize) => ({ id: prize.id, name: prize.name })),
   };
 }
 
-export async function claimPrizeForPlayer(state: GameState, playerId: string, config: AppConfig | null): Promise<PrizeRedemptionRecord> {
+export async function claimPrizeForPlayer(state: GameState, playerId: string, config: AppConfig | null): Promise<PrizeClaimResult> {
   if (!isPrizeFeatureEnabled(config)) {
     throw new Error('Prize feature disabled');
   }
@@ -328,40 +408,47 @@ export async function claimPrizeForPlayer(state: GameState, playerId: string, co
 
   return withPrizeMutationLock(() => {
     const redemptionStore = loadPrizeRedemptionStore();
-    if (
-      redemptionStore.redemptions.some(
-        (redemption) => redemption.roomId === state.roomId && redemption.playerId === playerId
-      )
-    ) {
-      throw new Error('Prize already claimed');
+    const existing = redemptionStore.redemptions
+      .filter((redemption) => redemption.roomId === state.roomId && redemption.playerId === playerId)
+      .sort((a, b) => a.redeemedAt - b.redeemedAt);
+    if (existing.length > 0) {
+      return buildPrizeClaimResult(existing, tier);
     }
 
     const prizeStore = loadPrizeStore();
-    const prizeIdx = prizeStore.prizes.findIndex((entry) => entry.id === tier.prizeId);
-    if (prizeIdx < 0) {
-      throw new Error('Assigned prize not found');
-    }
-    const prize = prizeStore.prizes[prizeIdx];
-    if (!prize.active) {
-      throw new Error('Assigned prize is inactive');
-    }
-    if (isPrizeExpired(prize)) {
-      throw new Error('Assigned prize has expired');
-    }
-    if (prize.usage >= prize.limit) {
-      throw new Error('Assigned prize is no longer available');
-    }
+    const prizeMatches = tier.prizeIds.map((prizeId) => {
+      const prizeIdx = prizeStore.prizes.findIndex((entry) => entry.id === prizeId);
+      if (prizeIdx < 0) {
+        throw new Error('Assigned prize not found');
+      }
+      const prize = prizeStore.prizes[prizeIdx];
+      if (!prize.active) {
+        throw new Error('Assigned prize is inactive');
+      }
+      if (isPrizeExpired(prize)) {
+        throw new Error('Assigned prize has expired');
+      }
+      if (prize.usage >= prize.limit) {
+        throw new Error('Assigned prize is no longer available');
+      }
+      return { prizeIdx, prize };
+    });
 
-    const updatedPrize: PrizeDefinition = {
-      ...prize,
-      usage: prize.usage + 1,
-      updatedAt: Date.now(),
-    };
     const prizes = [...prizeStore.prizes];
-    prizes[prizeIdx] = updatedPrize;
+    const redeemedAt = Date.now();
+    for (const { prizeIdx, prize } of prizeMatches) {
+      const updatedPrize: PrizeDefinition = {
+        ...prize,
+        usage: prize.usage + 1,
+        updatedAt: redeemedAt,
+      };
+      prizes[prizeIdx] = updatedPrize;
+    }
     savePrizeStore(prizes);
 
-    const redemption: PrizeRedemptionRecord = {
+    const claimId = randomUUID();
+    const redemptions: PrizeRedemptionRecord[] = prizeMatches.map(({ prize }) => ({
+      claimId,
       redemptionId: randomUUID(),
       roomId: state.roomId,
       quizFilename: state.quizFilename,
@@ -369,39 +456,47 @@ export async function claimPrizeForPlayer(state: GameState, playerId: string, co
       playerName: player.name,
       playerEmoji: player.emoji,
       finalScore: player.score,
-      prizeId: updatedPrize.id,
-      prizeNameSnapshot: updatedPrize.name,
-      prizeUrlSnapshot: updatedPrize.url,
-      redeemedAt: Date.now(),
+      prizeId: prize.id,
+      prizeNameSnapshot: prize.name,
+      prizeUrlSnapshot: prize.url,
+      redeemedAt,
       status: 'revealed',
-    };
-    savePrizeRedemptionStore([...redemptionStore.redemptions, redemption]);
-    return redemption;
+    }));
+    savePrizeRedemptionStore([...redemptionStore.redemptions, ...redemptions]);
+    return buildPrizeClaimResult(redemptions, tier);
   });
 }
 
-export function getRedemptionById(redemptionId: string): PrizeRedemptionRecord | undefined {
-  return loadPrizeRedemptionStore().redemptions.find((redemption) => redemption.redemptionId === redemptionId);
+function getClaimRedemptionsById(claimId: string): PrizeRedemptionRecord[] {
+  return loadPrizeRedemptionStore().redemptions
+    .filter((redemption) => getClaimId(redemption) === claimId)
+    .sort((a, b) => a.redeemedAt - b.redeemedAt);
 }
 
-export async function markRedemptionEmailed(redemptionId: string): Promise<void> {
+export async function markClaimEmailed(claimId: string): Promise<void> {
   return withPrizeMutationLock(() => {
     const store = loadPrizeRedemptionStore();
-    const idx = store.redemptions.findIndex((redemption) => redemption.redemptionId === redemptionId);
-    if (idx < 0) {
-      throw new Error('Redemption not found');
+    const indexes = store.redemptions
+      .map((redemption, index) => ({ redemption, index }))
+      .filter(({ redemption }) => getClaimId(redemption) === claimId)
+      .map(({ index }) => index);
+    if (indexes.length === 0) {
+      throw new Error('Prize claim not found');
     }
     const next = [...store.redemptions];
-    next[idx] = { ...next[idx], status: 'emailed' };
+    for (const index of indexes) {
+      next[index] = { ...next[index], status: 'emailed' };
+    }
     savePrizeRedemptionStore(next);
   });
 }
 
-export async function sendPrizeEmail(params: { redemptionId: string; email: string }): Promise<void> {
-  const redemption = getRedemptionById(params.redemptionId);
-  if (!redemption) {
-    throw new Error('Redemption not found');
+export async function sendPrizeEmail(params: { claimId: string; email: string }): Promise<void> {
+  const redemptions = getClaimRedemptionsById(params.claimId);
+  if (redemptions.length === 0) {
+    throw new Error('Prize claim not found');
   }
+  const prizes = redemptions.map(toClaimedPrize);
   const config = loadConfig();
   const transportConfig = getPrizeEmailTransportConfig(config);
   if (!transportConfig) {
@@ -412,15 +507,22 @@ export async function sendPrizeEmail(params: { redemptionId: string; email: stri
   await transporter.sendMail({
     from: buildPrizeEmailFrom(transportConfig),
     to: params.email,
-    subject: `Your prize: ${redemption.prizeNameSnapshot}`,
+    subject:
+      prizes.length === 1
+        ? `Your prize: ${prizes[0].prizeName}`
+        : `Your prizes from Let's Go Quizzing`,
     text: buildPrizeEmailText({
-      prizeName: redemption.prizeNameSnapshot,
-      prizeUrl: redemption.prizeUrlSnapshot,
+      prizes: prizes.map((prize) => ({
+        prizeName: prize.prizeName,
+        prizeUrl: prize.prizeUrl,
+      })),
     }),
     html: buildPrizeEmailHtml({
-      prizeName: redemption.prizeNameSnapshot,
-      prizeUrl: redemption.prizeUrlSnapshot,
+      prizes: prizes.map((prize) => ({
+        prizeName: prize.prizeName,
+        prizeUrl: prize.prizeUrl,
+      })),
     }),
   });
-  await markRedemptionEmailed(redemption.redemptionId);
+  await markClaimEmailed(params.claimId);
 }
