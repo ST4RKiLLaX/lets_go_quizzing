@@ -89,9 +89,13 @@
   function getHotspotSubmissions(
     question: Question | null,
     currentState: SerializedState | null | undefined,
-    currentPatch: SerializedQuestionPatch | null
+    currentPatch: SerializedQuestionPatch | null,
+    currentPhase: 'question' | 'reveal'
   ) {
     if (!question || question.type !== 'hotspot') return [];
+    if (currentPhase === 'question') {
+      return [];
+    }
     if (currentPatch?.questionId === question.id && currentPatch.hotspotSubmissions) {
       return currentPatch.hotspotSubmissions;
     }
@@ -140,7 +144,7 @@
     {#if qq.type === 'hotspot'}
       {@const hq = qq as HotspotQuestion}
       {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
-      {@const hotspotSubs = getHotspotSubmissions(qq, state, currentQuestionPatch)}
+      {@const hotspotSubs = getHotspotSubmissions(qq, state, currentQuestionPatch, phase)}
       {#if phase === 'question'}
         {#if src}
           <div class="relative inline-block max-w-full my-4">

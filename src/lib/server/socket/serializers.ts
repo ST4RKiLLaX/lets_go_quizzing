@@ -262,7 +262,7 @@ export function serializeQuestionPatch(
     patch.optionCounts = buildOptionCounts(answered, question.id);
   }
 
-  if (question.type === 'hotspot') {
+  if (role === 'host' && question.type === 'hotspot') {
     const hotspotSubmissions = answered
       .filter(
         (submission) =>

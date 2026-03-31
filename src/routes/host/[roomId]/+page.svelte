@@ -62,6 +62,7 @@
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: currentQuestion =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
+  $: currentQuestionId = currentQuestion?.id;
   $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
 
   $: timerEndsAt =
@@ -249,27 +250,7 @@
     showPrizeConfigModal = false;
   }
 
-  function getLiveSubmittedCount(questionId: string | undefined): number {
-    if (!questionId) return 0;
-    if (state?.type === 'Question' && questionPatch?.questionId === questionId) {
-      return questionPatch.submittedCount;
-    }
-    return (state?.submissions ?? []).filter((submission) => submission.questionId === questionId).length;
-  }
-
-  function getLiveOptionCounts(questionId: string): Map<number, number> {
-    if (state?.type === 'Question' && questionPatch?.questionId === questionId && questionPatch.optionCounts) {
-      return new Map(
-        Object.entries(questionPatch.optionCounts).map(([index, count]) => [Number(index), count])
-      );
-    }
-    return getOptionCounts(state?.submissions ?? [], questionId);
-  }
-
-  function getLiveHotspotSubmissions(questionId: string) {
-    if (questionPatch?.questionId === questionId && questionPatch.hotspotSubmissions) {
-      return questionPatch.hotspotSubmissions;
-    }
+  function getRevealHotspotSubmissions(questionId: string) {
     return (state?.submissions ?? []).filter(
       (submission) =>
         submission.questionId === questionId &&
@@ -279,6 +260,40 @@
         !submission.projectorHiddenByHost
     );
   }
+
+  $: liveSubmittedCount =
+    !currentQuestionId
+      ? 0
+      : state?.type === 'Question' && questionPatch?.questionId === currentQuestionId
+        ? questionPatch.submittedCount
+        : (state?.submissions ?? []).filter((submission) => submission.questionId === currentQuestionId)
+            .length;
+
+  $: liveOptionCounts =
+    currentQuestionId &&
+    state?.type === 'Question' &&
+    questionPatch?.questionId === currentQuestionId &&
+    questionPatch.optionCounts
+      ? new Map(
+          Object.entries(questionPatch.optionCounts).map(([index, count]) => [Number(index), count])
+        )
+      : getOptionCounts(state?.submissions ?? [], currentQuestionId ?? '');
+
+  $: liveHotspotSubmissions =
+    currentQuestion?.type !== 'hotspot'
+      ? []
+      : state?.type === 'RevealAnswer'
+        ? getRevealHotspotSubmissions(currentQuestion.id)
+        : state?.type === 'Question' && questionPatch?.questionId === currentQuestion.id
+          ? (questionPatch.hotspotSubmissions ?? [])
+          : (state?.submissions ?? []).filter(
+              (submission) =>
+                submission.questionId === currentQuestion.id &&
+                submission.answerX != null &&
+                submission.answerY != null &&
+                submission.visibility !== 'blocked' &&
+                !submission.projectorHiddenByHost
+            );
 
   function next() {
     if (state?.type === 'QuestionPreview') {
@@ -571,7 +586,6 @@
             {@const ar = hq.imageAspectRatio ?? 1}
             {@const rY = hq.answer.radiusY ?? hq.answer.radius}
             {@const rot = hq.answer.rotation ?? 0}
-            {@const hotspotSubs = getLiveHotspotSubmissions(q.id)}
             {#if src}
               <div class="relative inline-block max-w-full my-4">
                 <img src={src} alt="" class="max-w-full rounded-lg block" />
@@ -581,7 +595,7 @@
                     style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
                   ></div>
                 {/if}
-                {#each hotspotSubs as sub}
+                {#each liveHotspotSubmissions as sub}
                   {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
                   {@const isWrong = state?.wrongAnswers?.some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
                   <HotspotEmojiMarker
@@ -632,7 +646,7 @@
               </ul>
             {/if}
           {:else if q.type === 'multi_select'}
-            {@const counts = getLiveOptionCounts(q.id)}
+            {@const counts = liveOptionCounts}
             {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
             {#if state?.type === 'RevealAnswer'}
               <RevealMultiSelectList
@@ -713,7 +727,7 @@
               </div>
             </div>
           {:else if q.type === 'poll'}
-            {@const counts = getLiveOptionCounts(q.id)}
+            {@const counts = liveOptionCounts}
             <PollOptionsList
               options={q.options}
               {optionLabelStyle}
@@ -769,7 +783,7 @@
 
         {#if state?.type === 'Question' && state.submissions}
           <p class="text-pub-muted text-sm mt-4">
-            {getLiveSubmittedCount(currentQuestion?.id)} of {(state.players ?? []).length} submitted
+            {liveSubmittedCount} of {(state.players ?? []).length} submitted
           </p>
         {/if}
 

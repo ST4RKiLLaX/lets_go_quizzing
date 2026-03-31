@@ -106,7 +106,7 @@ test('serializeQuestionPatch returns live counts for host multi-select updates',
   });
 });
 
-test('serializeQuestionPatch keeps projector question patches narrow', () => {
+test('serializeQuestionPatch keeps hotspot markers out of projector question patches', () => {
   const state = makeState({
     quiz: makeHotspotQuiz(),
     type: 'Question',
@@ -134,6 +134,6 @@ test('serializeQuestionPatch keeps projector question patches narrow', () => {
     submittedCount: 2,
     answeredPlayerIds: ['p1', 'p2'],
   });
-  expect(projectorPatch?.hotspotSubmissions).toEqual([{ playerId: 'p1', answerX: 10, answerY: 20 }]);
+  expect(projectorPatch?.hotspotSubmissions).toBeUndefined();
   expect(projectorPatch?.optionCounts).toBeUndefined();
 });
