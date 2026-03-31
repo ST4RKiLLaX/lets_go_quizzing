@@ -2,11 +2,12 @@
   import type { Readable } from 'svelte/store';
   import { flip } from 'svelte/animate';
   import CountdownPie from '$lib/components/CountdownPie.svelte';
+  import MatchingDragAndDropQuestion from '$lib/components/player/MatchingDragAndDropQuestion.svelte';
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
   import { PLAYER_QUESTION_HINTS } from '$lib/constants/question-copy.js';
-  import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion, ClickToMatchQuestion, DragAndDropQuestion } from '$lib/types/quiz.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
 
   export let question: Question;
@@ -288,8 +289,8 @@
           Submit Ordering
         </button>
       </div>
-    {:else if q.type === 'matching'}
-      {@const mq = q as MatchingQuestion}
+    {:else if q.type === 'click_to_match'}
+      {@const mq = q as ClickToMatchQuestion}
       {@const shuffledOptIndices = getQuestionDisplayOptionIndices(q, roomId)}
       {@const draft = mq.items.map((_, i) => matchingDraft[i] ?? -1)}
       {@const allMatched = draft.length === mq.items.length && draft.every((v) => v >= 0)}
@@ -355,6 +356,15 @@
           Submit
         </button>
       {/if}
+    {:else if q.type === 'drag_and_drop'}
+      <MatchingDragAndDropQuestion
+        question={q as DragAndDropQuestion}
+        {roomId}
+        bind:matchingDraft
+        {questionTimeExpired}
+        {isMatchingSubmitted}
+        {submitMatching}
+      />
     {:else if q.type === 'slider'}
       <div class="space-y-4">
         <div class="px-4 py-4 bg-pub-dark rounded-lg {isSliderSubmitted(q.id) ? 'opacity-60' : ''}">
@@ -449,7 +459,7 @@
         <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
           Your order: {getSelectedOptionLabels(q).join(', ')}
         </p>
-      {:else if q.type === 'matching' && getSelectedOptionLabels(q).length > 0}
+      {:else if (q.type === 'click_to_match' || q.type === 'drag_and_drop') && getSelectedOptionLabels(q).length > 0}
         <p class="mt-2 px-4 py-3 bg-pub-dark rounded text-pub-muted break-words">
           Your matches: {getSelectedOptionLabels(q).join(', ')}
         </p>

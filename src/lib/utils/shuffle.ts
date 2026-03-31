@@ -59,7 +59,8 @@ export function shouldShuffleQuestionOptions(question: Question): boolean {
     case 'multi_select':
       return question.shuffle_options === true;
     case 'reorder':
-    case 'matching':
+    case 'click_to_match':
+    case 'drag_and_drop':
       return question.shuffle_options !== false;
     default:
       return false;
@@ -82,7 +83,8 @@ export function getQuestionDisplayOptionIndices(question: Question, roomId?: str
       return shouldShuffleQuestionOptions(question)
         ? getShuffledReorderIndices(getQuestionShuffleSeed(roomId, question.id), question.options.length)
         : getOrderedIndices(question.options.length);
-    case 'matching':
+    case 'click_to_match':
+    case 'drag_and_drop':
       return shouldShuffleQuestionOptions(question)
         ? getShuffledReorderIndices(getQuestionShuffleSeed(roomId, question.id, ':options'), question.options.length)
         : getOrderedIndices(question.options.length);

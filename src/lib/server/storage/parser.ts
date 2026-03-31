@@ -16,7 +16,8 @@ import {
   type WordCloudQuestion,
   type ReorderQuestion,
   type HotspotQuestion,
-  type MatchingQuestion,
+  type ClickToMatchQuestion,
+  type DragAndDropQuestion,
   type Question,
   type Round,
   type QuizMeta,
@@ -41,11 +42,37 @@ export {
   type WordCloudQuestion,
   type ReorderQuestion,
   type HotspotQuestion,
-  type MatchingQuestion,
+  type ClickToMatchQuestion,
+  type DragAndDropQuestion,
   type Question,
   type Round,
   type QuizMeta,
 };
+
+function normalizeLegacyMatchingQuestion(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const question = raw as Record<string, unknown>;
+  if (question.type !== 'matching') return raw;
+  return { ...question, type: 'click_to_match' };
+}
+
+function normalizeLegacyMatchingQuiz(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const quiz = raw as Record<string, unknown>;
+  if (!Array.isArray(quiz.rounds)) return raw;
+  return {
+    ...quiz,
+    rounds: quiz.rounds.map((round) => {
+      if (!round || typeof round !== 'object') return round;
+      const typedRound = round as Record<string, unknown>;
+      if (!Array.isArray(typedRound.questions)) return round;
+      return {
+        ...typedRound,
+        questions: typedRound.questions.map((question) => normalizeLegacyMatchingQuestion(question)),
+      };
+    }),
+  };
+}
 
 function checkForUrlSpaces(content: string): void {
   if (/https?:\s+\/\//.test(content)) {
@@ -80,7 +107,7 @@ export function parseQuizFile(filePath: string): Quiz {
     throw improveYamlParseError(e);
   }
   try {
-    return QuizSchema.parse(raw);
+    return QuizSchema.parse(normalizeLegacyMatchingQuiz(raw));
   } catch (e) {
     if (e instanceof z.ZodError) throw new Error(formatZodError(e), { cause: e });
     throw e;

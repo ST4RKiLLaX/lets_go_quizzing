@@ -405,7 +405,11 @@
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(', ');
     } else if (Array.isArray(wa.answer) && q?.type === 'reorder') {
       display = wa.answer.map((index) => q.options[index] ?? String(index)).join(' → ');
-    } else if (Array.isArray(wa.answer) && q?.type === 'matching' && q.items?.length === wa.answer.length) {
+    } else if (
+      Array.isArray(wa.answer) &&
+      (q?.type === 'click_to_match' || q?.type === 'drag_and_drop') &&
+      q.items?.length === wa.answer.length
+    ) {
       const indexes = wa.answer as number[];
       display = q.items
         .map((item, i) => `${item} → ${q.options[indexes[i]] ?? String(indexes[i])}`)
@@ -675,7 +679,7 @@
                 </ul>
               </div>
             </div>
-          {:else if q.type === 'matching'}
+          {:else if q.type === 'click_to_match' || q.type === 'drag_and_drop'}
             <div class="space-y-4">
               {#if state?.type === 'RevealAnswer'}
                 <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Pairs:</h3>

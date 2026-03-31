@@ -168,19 +168,26 @@ function normalizeVisibleLabel(s: string): string {
   return s.trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
-const MatchingQuestionSchema = z
-  .object({
-    id: z.string(),
-    type: z.literal('matching'),
-    text: z.string(),
-    explanation: z.string().optional(),
-    image: imageSchema,
-    points: z.number().positive().optional(),
-    shuffle_options: z.boolean().optional(),
-    items: z.array(z.string()).min(2),
-    options: z.array(z.string()).min(2),
-    answer: z.array(z.number().int().min(0)).min(2),
-  })
+const MatchQuestionFields = {
+  id: z.string(),
+  text: z.string(),
+  explanation: z.string().optional(),
+  image: imageSchema,
+  points: z.number().positive().optional(),
+  shuffle_options: z.boolean().optional(),
+  items: z.array(z.string()).min(2),
+  options: z.array(z.string()).min(2),
+  answer: z.array(z.number().int().min(0)).min(2),
+};
+
+function buildMatchQuestionSchema<TType extends 'click_to_match' | 'drag_and_drop'>(
+  type: TType
+) {
+  return z
+    .object({
+      type: z.literal(type),
+      ...MatchQuestionFields,
+    })
   .superRefine((q, ctx) => {
     const normItems = q.items.map((s) => s.trim());
     const normOptions = q.options.map((s) => s.trim());
@@ -211,6 +218,10 @@ const MatchingQuestionSchema = z
       seenOptions.add(optionLabels[i]);
     }
   });
+}
+
+const ClickToMatchQuestionSchema = buildMatchQuestionSchema('click_to_match');
+const DragAndDropQuestionSchema = buildMatchQuestionSchema('drag_and_drop');
 
 const QuestionSchema = z.discriminatedUnion('type', [
   ChoiceQuestionSchema,
@@ -223,7 +234,8 @@ const QuestionSchema = z.discriminatedUnion('type', [
   WordCloudQuestionSchema,
   ReorderQuestionSchema,
   HotspotQuestionSchema,
-  MatchingQuestionSchema,
+  ClickToMatchQuestionSchema,
+  DragAndDropQuestionSchema,
 ]);
 
 const RoundSchema = z
@@ -255,14 +267,14 @@ const RoundSchema = z
               q.answer.y <= 1 &&
               q.answer.radius > 0 &&
               q.answer.radius <= 0.5)) &&
-          (q.type !== 'matching' ||
+          ((q.type !== 'click_to_match' && q.type !== 'drag_and_drop') ||
             (q.answer.length === q.items.length &&
               new Set(q.answer).size === q.answer.length &&
               q.answer.every((idx) => idx >= 0 && idx < q.options.length)))
       ),
     {
       message:
-        'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, slider answers must fit the min/max/step range, hotspot answer must have valid x/y/radius, matching answer must map each item to a unique valid option index',
+        'choice answers must be valid indices, multi_select answers must be unique valid indices, reorder answers must be a full unique ordering, slider answers must fit the min/max/step range, hotspot answer must have valid x/y/radius, click_to_match and drag_and_drop answers must map each item to a unique valid option index',
     }
   );
 
@@ -292,7 +304,8 @@ export type OpenEndedQuestion = z.infer<typeof OpenEndedQuestionSchema>;
 export type WordCloudQuestion = z.infer<typeof WordCloudQuestionSchema>;
 export type ReorderQuestion = z.infer<typeof ReorderQuestionSchema>;
 export type HotspotQuestion = z.infer<typeof HotspotQuestionSchema>;
-export type MatchingQuestion = z.infer<typeof MatchingQuestionSchema>;
+export type ClickToMatchQuestion = z.infer<typeof ClickToMatchQuestionSchema>;
+export type DragAndDropQuestion = z.infer<typeof DragAndDropQuestionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type Round = z.infer<typeof RoundSchema>;
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;

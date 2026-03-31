@@ -72,7 +72,8 @@ export const QUIZ_JSON_SCHEMA = {
                     'multi_select',
                     'puzzle',
                     'reorder',
-                    'matching',
+                    'click_to_match',
+                    'drag_and_drop',
                     'hotspot',
                     'slider',
                     'input',
@@ -80,7 +81,7 @@ export const QUIZ_JSON_SCHEMA = {
                     'word_cloud',
                   ],
                   description:
-                    'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, matching = match items to options, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
+                    'choice = multiple choice, true_false = fixed true/false, poll = opinion poll, multi_select = choose multiple, puzzle/reorder = order items, click_to_match = assign options by tapping or clicking, drag_and_drop = match by dragging cards into slots, hotspot = tap region on image, slider = numeric range, input = fill in the blank, open_ended = long text, word_cloud = short text aggregated',
                 },
                 text: { type: 'string', description: 'Question text shown to players' },
                 explanation: {
@@ -100,7 +101,7 @@ export const QUIZ_JSON_SCHEMA = {
                 shuffle_options: {
                   type: 'boolean',
                   description:
-                    'Whether to shuffle displayed options for supported question types. Existing matching and reorder questions stay shuffled when this is omitted.',
+                    'Whether to shuffle displayed options for supported question types. Click to Match, Drag and Drop, and reorder stay shuffled when this is omitted.',
                 },
                 options: {
                   type: 'array',
@@ -243,7 +244,10 @@ export const QUIZ_JSON_SCHEMA = {
                   },
                 },
                 {
-                  if: { properties: { type: { const: 'matching' } }, required: ['type'] },
+                  if: {
+                    properties: { type: { enum: ['click_to_match', 'drag_and_drop'] } },
+                    required: ['type'],
+                  },
                   then: {
                     required: ['items', 'options', 'answer'],
                     properties: {

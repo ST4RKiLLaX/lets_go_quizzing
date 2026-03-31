@@ -126,7 +126,19 @@
   function setQuestionType(
     ri: number,
     qi: number,
-    type: 'choice' | 'true_false' | 'poll' | 'multi_select' | 'slider' | 'input' | 'open_ended' | 'word_cloud' | 'reorder' | 'matching' | 'hotspot'
+    type:
+      | 'choice'
+      | 'true_false'
+      | 'poll'
+      | 'multi_select'
+      | 'slider'
+      | 'input'
+      | 'open_ended'
+      | 'word_cloud'
+      | 'reorder'
+      | 'click_to_match'
+      | 'drag_and_drop'
+      | 'hotspot'
   ) {
     quiz = actSetQuestionType(quiz, ri, qi, type);
   }

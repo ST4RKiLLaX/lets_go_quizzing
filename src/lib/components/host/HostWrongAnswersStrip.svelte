@@ -18,7 +18,8 @@
       currentQuestion?.type === 'multi_select' ||
       currentQuestion?.type === 'slider' ||
       currentQuestion?.type === 'reorder' ||
-      currentQuestion?.type === 'matching' ||
+      currentQuestion?.type === 'click_to_match' ||
+      currentQuestion?.type === 'drag_and_drop' ||
       currentQuestion?.type === 'hotspot') &&
     (state.wrongAnswers?.length ?? 0) > 0;
 </script>

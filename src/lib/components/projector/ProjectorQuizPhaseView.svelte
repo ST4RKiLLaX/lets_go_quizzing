@@ -248,7 +248,7 @@
           {/each}
         </ul>
         <p class="mt-4 text-xl text-pub-muted text-center">Arrange these in the correct order</p>
-      {:else if qq.type === 'matching'}
+      {:else if qq.type === 'click_to_match' || qq.type === 'drag_and_drop'}
         <div class="flex gap-4 flex-col sm:flex-row">
           <div class="flex-1">
             <p class="text-sm font-medium text-pub-muted mb-2">Items</p>
@@ -314,7 +314,7 @@
             {/each}
           </ul>
         </div>
-      {:else if qq.type === 'matching'}
+      {:else if qq.type === 'click_to_match' || qq.type === 'drag_and_drop'}
         <div class="space-y-2">
           <h3 class="text-sm font-semibold text-pub-muted mb-2 text-center">Correct Pairs</h3>
           <ul class="space-y-2">

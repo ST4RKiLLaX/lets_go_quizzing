@@ -20,7 +20,8 @@ import type {
   InputQuestion,
   ReorderQuestion,
   HotspotQuestion,
-  MatchingQuestion,
+  ClickToMatchQuestion,
+  DragAndDropQuestion,
 } from '$lib/types/quiz.js';
 import { createEmptyChoiceQuestion, generateQuestionId } from '$lib/types/quiz.js';
 
@@ -34,8 +35,15 @@ export type QuestionType =
   | 'open_ended'
   | 'word_cloud'
   | 'reorder'
-  | 'matching'
+  | 'click_to_match'
+  | 'drag_and_drop'
   | 'hotspot';
+
+type MatchQuestion = ClickToMatchQuestion | DragAndDropQuestion;
+
+function isMatchQuestion(question: Question): question is MatchQuestion {
+  return question.type === 'click_to_match' || question.type === 'drag_and_drop';
+}
 
 export function addRound(quiz: Quiz): Quiz {
   return {
@@ -117,10 +125,17 @@ export function setQuestionType(
       q.type === 'poll' ||
       q.type === 'multi_select' ||
       q.type === 'reorder' ||
-      q.type === 'matching'
+      isMatchQuestion(q)
         ? q.shuffle_options
         : undefined,
   };
+  const matchingBase = isMatchQuestion(q)
+    ? {
+        items: [...q.items],
+        options: [...q.options],
+        answer: [...q.answer],
+      }
+    : null;
   const newQ: Question =
     type === 'choice'
       ? { ...base, type: 'choice', shuffle_options: base.shuffle_options ?? false, options: ['', ''], answer: 0 }
@@ -140,21 +155,30 @@ export function setQuestionType(
                     ? { ...base, type: 'word_cloud' }
                     : type === 'reorder'
                       ? { ...base, type: 'reorder', shuffle_options: base.shuffle_options ?? true, options: ['', ''], answer: [0, 1] }
-                      : type === 'matching'
+                      : type === 'click_to_match'
                         ? {
                             ...base,
-                            type: 'matching',
+                            type: 'click_to_match',
                             shuffle_options: base.shuffle_options ?? true,
-                            items: ['', ''],
-                            options: ['', '', '', ''],
-                            answer: [0, 1],
+                            items: matchingBase?.items ?? ['', ''],
+                            options: matchingBase?.options ?? ['', '', '', ''],
+                            answer: matchingBase?.answer ?? [0, 1],
                           }
-                        : {
-                            ...base,
-                            type: 'hotspot',
-                            image: (base.image as string) ?? '',
-                            answer: { x: 0.5, y: 0.5, radius: 0.1 },
-                          };
+                        : type === 'drag_and_drop'
+                          ? {
+                              ...base,
+                              type: 'drag_and_drop',
+                              shuffle_options: base.shuffle_options ?? true,
+                              items: matchingBase?.items ?? ['', ''],
+                              options: matchingBase?.options ?? ['', '', '', ''],
+                              answer: matchingBase?.answer ?? [0, 1],
+                            }
+                          : {
+                              ...base,
+                              type: 'hotspot',
+                              image: (base.image as string) ?? '',
+                              answer: { x: 0.5, y: 0.5, radius: 0.1 },
+                            };
   return {
     ...quiz,
     rounds: quiz.rounds.map((r, i) =>
@@ -410,8 +434,8 @@ export function setHotspotImageAspectRatio(quiz: Quiz, ri: number, qi: number, a
 }
 
 export function addMatchingItem(quiz: Quiz, ri: number, qi: number): Quiz {
-  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
-  if (q.type !== 'matching') return quiz;
+  const q = quiz.rounds[ri].questions[qi] as MatchQuestion;
+  if (!isMatchQuestion(q)) return quiz;
   return {
     ...quiz,
     rounds: quiz.rounds.map((r, i) =>
@@ -430,8 +454,8 @@ export function addMatchingItem(quiz: Quiz, ri: number, qi: number): Quiz {
 }
 
 export function removeMatchingItem(quiz: Quiz, ri: number, qi: number, ii: number): Quiz {
-  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
-  if (q.type !== 'matching' || q.items.length <= 2) return quiz;
+  const q = quiz.rounds[ri].questions[qi] as MatchQuestion;
+  if (!isMatchQuestion(q) || q.items.length <= 2) return quiz;
   const newItems = q.items.filter((_, i) => i !== ii);
   const newAnswer = q.answer.filter((_, i) => i !== ii);
   return {
@@ -445,8 +469,8 @@ export function removeMatchingItem(quiz: Quiz, ri: number, qi: number, ii: numbe
 }
 
 export function addMatchingOption(quiz: Quiz, ri: number, qi: number): Quiz {
-  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
-  if (q.type !== 'matching') return quiz;
+  const q = quiz.rounds[ri].questions[qi] as MatchQuestion;
+  if (!isMatchQuestion(q)) return quiz;
   return {
     ...quiz,
     rounds: quiz.rounds.map((r, i) =>
@@ -458,8 +482,8 @@ export function addMatchingOption(quiz: Quiz, ri: number, qi: number): Quiz {
 }
 
 export function removeMatchingOption(quiz: Quiz, ri: number, qi: number, oi: number): Quiz {
-  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
-  if (q.type !== 'matching' || q.options.length <= 2) return quiz;
+  const q = quiz.rounds[ri].questions[qi] as MatchQuestion;
+  if (!isMatchQuestion(q) || q.options.length <= 2) return quiz;
   const newOptions = q.options.filter((_, i) => i !== oi);
   const newAnswer = q.answer
     .map((idx) => (idx === oi ? 0 : idx > oi ? idx - 1 : idx))
@@ -475,8 +499,8 @@ export function removeMatchingOption(quiz: Quiz, ri: number, qi: number, oi: num
 }
 
 export function setMatchingAnswer(quiz: Quiz, ri: number, qi: number, itemIndex: number, optionIndex: number): Quiz {
-  const q = quiz.rounds[ri].questions[qi] as MatchingQuestion;
-  if (q.type !== 'matching' || itemIndex < 0 || itemIndex >= q.items.length) return quiz;
+  const q = quiz.rounds[ri].questions[qi] as MatchQuestion;
+  if (!isMatchQuestion(q) || itemIndex < 0 || itemIndex >= q.items.length) return quiz;
   if (optionIndex < 0 || optionIndex >= q.options.length) return quiz;
   const newAnswer = [...q.answer];
   newAnswer[itemIndex] = optionIndex;

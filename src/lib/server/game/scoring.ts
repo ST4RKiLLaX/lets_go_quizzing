@@ -11,7 +11,8 @@ import type {
   WordCloudQuestion,
   ReorderQuestion,
   HotspotQuestion,
-  MatchingQuestion,
+  ClickToMatchQuestion,
+  DragAndDropQuestion,
 } from '../storage/parser.js';
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
@@ -58,7 +59,10 @@ function isReorderCorrect(question: ReorderQuestion, submission: AnswerSubmissio
   return submission.answerIndexes.every((value, index) => value === question.answer[index]);
 }
 
-function isMatchingCorrect(question: MatchingQuestion, submission: AnswerSubmission): boolean {
+function isMatchingCorrect(
+  question: ClickToMatchQuestion | DragAndDropQuestion,
+  submission: AnswerSubmission
+): boolean {
   if (!submission.answerIndexes?.length || submission.answerIndexes.length !== question.items.length) return false;
   return submission.answerIndexes.every((value, index) => value === question.answer[index]);
 }
@@ -95,7 +99,8 @@ function isCorrect(
     | WordCloudQuestion
     | ReorderQuestion
     | HotspotQuestion
-    | MatchingQuestion,
+    | ClickToMatchQuestion
+    | DragAndDropQuestion,
   submission: AnswerSubmission,
   fuzzyThreshold: number
 ): boolean {
@@ -114,7 +119,7 @@ function isCorrect(
   if (question.type === 'reorder') {
     return isReorderCorrect(question, submission);
   }
-  if (question.type === 'matching') {
+  if (question.type === 'click_to_match' || question.type === 'drag_and_drop') {
     return isMatchingCorrect(question, submission);
   }
   if (question.type === 'hotspot') {

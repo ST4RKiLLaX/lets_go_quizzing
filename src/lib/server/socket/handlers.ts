@@ -984,7 +984,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           answerIndexes: normalized,
           submittedAt: Date.now(),
         };
-      } else if (question.type === 'matching') {
+      } else if (question.type === 'click_to_match' || question.type === 'drag_and_drop') {
         const normalized = Array.isArray(answerIndexes)
           ? answerIndexes.filter(
               (value) => Number.isInteger(value) && value >= 0 && value < question.options.length

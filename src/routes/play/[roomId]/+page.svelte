@@ -661,7 +661,7 @@
             : reorderDraft;
       return indexes.map((index) => q.options[index]).filter(Boolean);
     }
-    if (q.type === 'matching') {
+    if (q.type === 'click_to_match' || q.type === 'drag_and_drop') {
       const indexes =
         getSubmittedAnswerIndexes(q.id).length > 0
           ? getSubmittedAnswerIndexes(q.id)
@@ -717,7 +717,10 @@
     reorderDraft = getQuestionDisplayOptionIndices(currentQuestion, roomId ?? undefined);
   }
 
-  $: if (currentQuestion?.type === 'matching' && matchingDraft.length === 0) {
+  $: if (
+    (currentQuestion?.type === 'click_to_match' || currentQuestion?.type === 'drag_and_drop') &&
+    matchingDraft.length === 0
+  ) {
     matchingDraft = currentQuestion.items.map(() => -1);
   }
 
@@ -777,14 +780,21 @@
     } else if (q.type === 'choice' || q.type === 'true_false' || q.type === 'poll') {
       const idx = sub?.answerIndex ?? (selectedAnswer?.questionId === qId ? selectedAnswer.answerIndex : undefined);
       if (idx != null) base.submittedAnswerIndex = idx;
-    } else if (q.type === 'multi_select' || q.type === 'reorder' || q.type === 'matching') {
+    } else if (
+      q.type === 'multi_select' ||
+      q.type === 'reorder' ||
+      q.type === 'click_to_match' ||
+      q.type === 'drag_and_drop'
+    ) {
       const idxs =
         (sub?.answerIndexes?.length ? sub.answerIndexes : undefined) ??
         (selectedMultiSelect?.questionId === qId ? selectedMultiSelect.answerIndexes : undefined) ??
         (selectedReorder?.questionId === qId ? selectedReorder.answerIndexes : undefined) ??
         (selectedMatching?.questionId === qId ? selectedMatching.answerIndexes : undefined) ??
         (q.type === 'reorder' && reorderDraft.length > 0 ? reorderDraft : undefined) ??
-        (q.type === 'matching' && qId === currentQuestionId && matchingDraft.every((v) => v >= 0)
+        ((q.type === 'click_to_match' || q.type === 'drag_and_drop') &&
+        qId === currentQuestionId &&
+        matchingDraft.every((v) => v >= 0)
           ? matchingDraft
           : undefined);
       if (idxs?.length) base.submittedAnswerIndexes = [...idxs];

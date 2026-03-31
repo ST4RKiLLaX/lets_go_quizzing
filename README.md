@@ -148,14 +148,15 @@ You can use the built-in **Quiz Creator** at `/creator` to author games directly
 | `open_ended`   | Long text response; not scored               | —       |
 | `word_cloud`   | Short text aggregated into a visual cloud    | —       |
 | `reorder`      | Arrange options in the correct order         | ✓       |
-| `matching`     | Match left-side items to right-side options  | ✓       |
+| `click_to_match` | Match items by clicking/tapping options and slots | ✓   |
+| `drag_and_drop` | Match items by dragging cards into slots     | ✓       |
 | `hotspot`      | Tap a region on an image (e.g. map, diagram) | ✓       |
 
 Scored question types support an optional `points` multiplier (e.g. `points: 2` = double points, `points: 3` = triple). Default is 1. Works in both Standard and Ranked modes.
 
 Option-based question types also support `shuffle_options`:
 - `choice`, `poll`, `multi_select`: set `shuffle_options: true` to shuffle the displayed options per room
-- `matching`, `reorder`: current quizzes already shuffle by default per room; set `shuffle_options: false` if you want to keep the authored order
+- `click_to_match`, `drag_and_drop`, `reorder`: these stay shuffled by default per room; set `shuffle_options: false` if you want to keep the authored order
 
 ### Examples by Type
 
@@ -252,16 +253,27 @@ Option-based question types also support `shuffle_options`:
   explanation: 1776, 1789, 1969.
 ```
 
-**matching** — `items` are the prompts, `options` are the answer pool, and `answer[i]` is the correct option index for `items[i]`:
+**click_to_match** — `items` are the prompts, `options` are the answer pool, and `answer[i]` is the correct option index for `items[i]`:
 
 ```yaml
 - id: q10
-  type: matching
+  type: click_to_match
   text: Match each country to its capital.
   items: [France, Japan, Canada]
   options: [Tokyo, Ottawa, Paris]
   answer: [2, 0, 1]
   explanation: Paris is in France, Tokyo is in Japan, and Ottawa is in Canada.
+```
+
+**drag_and_drop** — Uses the same `items`, `options`, and `answer[i]` data shape as `click_to_match`, but players solve it with drag-and-drop:
+
+```yaml
+- id: q10_drag
+  type: drag_and_drop
+  text: Match each scientist to their field.
+  items: [Einstein, Curie, Darwin]
+  options: [Evolution, Physics, Chemistry]
+  answer: [1, 2, 0]
 ```
 
 **hotspot** — Tap a region on an image. Requires `image`, `answer` with `x`, `y` (0–1, center), and `radius` (tolerance as fraction, e.g. `0.1` = 10%). The schema also supports optional `radiusY` and `rotation` for elliptical targets. Use the Form editor to click the image to set the target:

@@ -18,7 +18,7 @@
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
   import { formatOptionLabel } from '$lib/utils/option-label.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
-  import type { Question, HotspotQuestion, MatchingQuestion } from '$lib/types/quiz.js';
+  import type { Question, HotspotQuestion, MatchQuestion } from '$lib/types/quiz.js';
 
   export let question: Question | null = null;
   export let roundName: string;
@@ -158,8 +158,8 @@
           </div>
         {/if}
       </div>
-    {:else if q.type === 'matching'}
-      {@const mq = q as MatchingQuestion}
+    {:else if q.type === 'click_to_match' || q.type === 'drag_and_drop'}
+      {@const mq = q as MatchQuestion}
       <div class="space-y-4">
         <div>
           <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Pairs:</h3>

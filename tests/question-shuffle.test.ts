@@ -1,5 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { QuizSchema, type Quiz } from '../src/lib/schema/quiz.js';
+import { parseQuizFile } from '../src/lib/server/storage/parser.js';
 import { getQuestionDisplayOptionIndices, getShuffledReorderIndices } from '../src/lib/utils/shuffle.js';
 
 test('choice questions keep authored order unless shuffle_options is enabled', () => {
@@ -38,7 +42,7 @@ test('choice questions keep authored order unless shuffle_options is enabled', (
   );
 });
 
-test('matching and reorder preserve current shuffled behavior when shuffle_options is omitted', () => {
+test('click_to_match and reorder preserve current shuffled behavior when shuffle_options is omitted', () => {
   const quiz = QuizSchema.parse({
     meta: { name: 'Legacy Shuffle Quiz' },
     rounds: [
@@ -47,7 +51,7 @@ test('matching and reorder preserve current shuffled behavior when shuffle_optio
         questions: [
           {
             id: 'match-1',
-            type: 'matching',
+            type: 'click_to_match',
             text: 'Match items',
             items: ['A', 'B'],
             options: ['One', 'Two', 'Three'],
@@ -73,7 +77,7 @@ test('matching and reorder preserve current shuffled behavior when shuffle_optio
   );
 });
 
-test('matching and reorder can disable shuffling explicitly', () => {
+test('click_to_match and reorder can disable shuffling explicitly', () => {
   const quiz = QuizSchema.parse({
     meta: { name: 'No Shuffle Quiz' },
     rounds: [
@@ -82,7 +86,7 @@ test('matching and reorder can disable shuffling explicitly', () => {
         questions: [
           {
             id: 'match-2',
-            type: 'matching',
+            type: 'click_to_match',
             text: 'Match items',
             shuffle_options: false,
             items: ['A', 'B'],
@@ -172,4 +176,58 @@ test('room-scoped shuffles are stable within a room', () => {
   expect(getQuestionDisplayOptionIndices(question, 'ROOM_B')).toEqual(
     getShuffledReorderIndices('ROOM_B:choice-room-1', 4)
   );
+});
+
+test('drag_and_drop keeps room-scoped shuffled option order', () => {
+  const quiz = QuizSchema.parse({
+    meta: { name: 'Drag Quiz' },
+    rounds: [
+      {
+        name: 'Round 1',
+        questions: [
+          {
+            id: 'drag-1',
+            type: 'drag_and_drop',
+            text: 'Drag the matches',
+            options: ['A', 'B', 'C'],
+            items: ['One', 'Two'],
+            answer: [0, 1],
+          },
+        ],
+      },
+    ],
+  } satisfies Quiz);
+
+  expect(getQuestionDisplayOptionIndices(quiz.rounds[0].questions[0]!, 'ROOM1')).toEqual(
+    getShuffledReorderIndices('ROOM1:drag-1:options', 3)
+  );
+});
+
+test('parseQuizFile migrates legacy matching questions to click_to_match', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'lgq-matching-'));
+  const filePath = join(tempDir, 'legacy.yaml');
+
+  writeFileSync(
+    filePath,
+    [
+      'meta:',
+      '  name: Legacy Matching Quiz',
+      'rounds:',
+      '  - name: Round 1',
+      '    questions:',
+      '      - id: q1',
+      '        type: matching',
+      '        text: Match capitals',
+      '        items: [France, Japan]',
+      '        options: [Paris, Tokyo, Rome]',
+      '        answer: [0, 1]',
+    ].join('\n')
+  );
+
+  try {
+    const quiz = parseQuizFile(filePath);
+    expect(quiz.rounds[0].questions[0]?.type).toBe('click_to_match');
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });

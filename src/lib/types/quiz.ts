@@ -118,9 +118,8 @@ export interface HotspotQuestion {
   answer: { x: number; y: number; radius: number; radiusY?: number; rotation?: number };
 }
 
-export interface MatchingQuestion {
+interface MatchQuestionBase {
   id: string;
-  type: 'matching';
   text: string;
   explanation?: string;
   image?: string;
@@ -130,6 +129,16 @@ export interface MatchingQuestion {
   options: string[];
   answer: number[];
 }
+
+export interface ClickToMatchQuestion extends MatchQuestionBase {
+  type: 'click_to_match';
+}
+
+export interface DragAndDropQuestion extends MatchQuestionBase {
+  type: 'drag_and_drop';
+}
+
+export type MatchQuestion = ClickToMatchQuestion | DragAndDropQuestion;
 
 export type Question =
   | ChoiceQuestion
@@ -142,7 +151,7 @@ export type Question =
   | WordCloudQuestion
   | ReorderQuestion
   | HotspotQuestion
-  | MatchingQuestion;
+  | MatchQuestion;
 
 export interface Round {
   name: string;
@@ -260,10 +269,22 @@ export function createEmptyHotspotQuestion(id: string): HotspotQuestion {
   };
 }
 
-export function createEmptyMatchingQuestion(id: string): MatchingQuestion {
+export function createEmptyClickToMatchQuestion(id: string): ClickToMatchQuestion {
   return {
     id,
-    type: 'matching',
+    type: 'click_to_match',
+    text: '',
+    shuffle_options: true,
+    items: ['', ''],
+    options: ['', '', '', ''],
+    answer: [0, 1],
+  };
+}
+
+export function createEmptyDragAndDropQuestion(id: string): DragAndDropQuestion {
+  return {
+    id,
+    type: 'drag_and_drop',
     text: '',
     shuffle_options: true,
     items: ['', ''],
