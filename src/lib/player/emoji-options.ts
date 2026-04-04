@@ -1,9 +1,10 @@
 /**
  * Emoji palette for player avatar selection.
  *
- * Ownership pattern A (leaf import): EmojiCategoryPicker, PlayerJoinForm,
- * PlayerLobbyForm, and PlayerSettingsModal each import EMOJI_CATEGORIES
- * directly. The play-page route imports EMOJI_OPTIONS (flat) only for the
+ * Ownership pattern A (leaf import): EmojiCategoryPicker imports
+ * EMOJI_CATEGORIES and renders the full picker. PlayerJoinForm,
+ * PlayerLobbyForm, and PlayerSettingsModal import EmojiCategoryPicker only.
+ * The play-page route imports EMOJI_OPTIONS (flat) only for the
  * firstAvailable lookup; it does NOT pass the list down as a prop.
  */
 
@@ -101,12 +102,12 @@ export const EMOJI_CATEGORIES: EmojiCategory[] = [
 ];
 
 /**
- * Mirrors server-side emoji normalization from handlers.ts
- * (player:join ~L734, player:register ~L833).
+ * Mirrors server-side emoji normalization used in the socket `player:join`
+ * (request path) and `player:register` handlers in handlers.ts.
  *
- * Exported so tests can assert post-truncation uniqueness against
- * the same logic as the server, without duplicating the expression.
- * When updating the server's normalization, update this function too.
+ * Exported so tests can assert post-truncation uniqueness against the same
+ * logic as the server without duplicating the expression. When updating the
+ * server's normalization, update this function too.
  */
 export function normalizePlayerEmoji(emoji?: string): string {
   return (emoji || '👤').slice(0, 4);

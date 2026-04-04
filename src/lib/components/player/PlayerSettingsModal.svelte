@@ -32,8 +32,6 @@
           <EmojiCategoryPicker
             selected={draftEmoji}
             unavailable={unavailableEmojis}
-            density="comfortable"
-            scrollClass="max-h-56"
             onPick={(e) => { draftEmoji = e; }}
           />
           {#if registerError}

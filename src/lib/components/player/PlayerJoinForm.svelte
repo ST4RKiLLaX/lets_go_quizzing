@@ -39,16 +39,21 @@
       {joiningRoom ? 'Joining...' : 'Try again'}
     </button>
 
-  {:else if mode === 'request'}
+  {:else if mode === 'request' || mode === 'denied'}
+    {@const isDenied = mode === 'denied'}
+    {#if isDenied}
+      <p class="text-sm text-red-400 mb-2">{joinError || 'Host denied your request. Change your name or emoji to try again.'}</p>
+    {:else}
+      <p class="text-sm text-pub-muted mb-2">Enter your name and emoji to request access</p>
+    {/if}
     <form
       class="space-y-3"
       on:submit|preventDefault={() => onJoin(joinPassword, name, emoji)}
     >
-      <p class="text-sm text-pub-muted mb-2">Enter your name and emoji to request access</p>
       <div>
-        <label for="request-name" class="block text-sm text-pub-muted mb-1">Your name</label>
+        <label for="join-request-name" class="block text-sm text-pub-muted mb-1">Your name</label>
         <input
-          id="request-name"
+          id="join-request-name"
           type="text"
           bind:value={name}
           placeholder="Enter your name"
@@ -66,62 +71,36 @@
           onPick={(e) => { emoji = e; }}
         />
       </div>
-      {#if joinError}
+      {#if !isDenied && joinError}
         <p class="text-sm text-red-400">{joinError}</p>
       {/if}
-      <button
-        type="submit"
-        class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-        disabled={joiningRoom || !name.trim()}
-      >
-        {joiningRoom ? 'Requesting...' : 'Request to join'}
-      </button>
+      {#if isDenied}
+        <div class="flex gap-2">
+          <button
+            type="submit"
+            class="px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            disabled={joiningRoom || !name.trim()}
+          >
+            {joiningRoom ? 'Requesting...' : 'Try again'}
+          </button>
+          <a href="/" class="px-6 py-3 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90">
+            Leave
+          </a>
+        </div>
+      {:else}
+        <button
+          type="submit"
+          class="w-full px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          disabled={joiningRoom || !name.trim()}
+        >
+          {joiningRoom ? 'Requesting...' : 'Request to join'}
+        </button>
+      {/if}
     </form>
 
   {:else if mode === 'waiting'}
     <p class="text-pub-muted mb-4">Waiting for host approval...</p>
     <p class="text-sm text-pub-muted">The host will approve or deny your request shortly.</p>
-
-  {:else if mode === 'denied'}
-    <p class="text-sm text-red-400 mb-2">{joinError || 'Host denied your request. Change your name or emoji to try again.'}</p>
-    <form
-      class="space-y-3"
-      on:submit|preventDefault={() => onJoin(joinPassword, name, emoji)}
-    >
-      <div>
-        <label for="denied-request-name" class="block text-sm text-pub-muted mb-1">Your name</label>
-        <input
-          id="denied-request-name"
-          type="text"
-          bind:value={name}
-          placeholder="Enter your name"
-          maxlength={50}
-          class="w-full bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
-        />
-      </div>
-      <div>
-        <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
-        <EmojiCategoryPicker
-          selected={emoji}
-          unavailable={requestFormUnavailableEmojis}
-          density="compact"
-          scrollClass="max-h-48"
-          onPick={(e) => { emoji = e; }}
-        />
-      </div>
-      <div class="flex gap-2">
-        <button
-          type="submit"
-          class="px-6 py-3 bg-green-600 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-          disabled={joiningRoom || !name.trim()}
-        >
-          {joiningRoom ? 'Requesting...' : 'Try again'}
-        </button>
-        <a href="/" class="px-6 py-3 bg-pub-darker border border-pub-muted rounded-lg font-medium hover:opacity-90">
-          Leave
-        </a>
-      </div>
-    </form>
 
   {:else if mode === 'password'}
     <form
