@@ -1,4 +1,4 @@
-import { compareTwoStrings } from 'string-similarity';
+import { compareTwoStrings } from './diceBigramCompare.js';
 import type { GameState, AnswerSubmission } from './state-machine.js';
 import type {
   ChoiceQuestion,

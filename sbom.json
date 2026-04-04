@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "lets-go-quizzing-0.0.1-sbom",
-  "documentNamespace": "https://spdx.org/spdxdocs/lets-go-quizzing-0.0.1-1774990992840",
+  "documentNamespace": "https://spdx.org/spdxdocs/lets-go-quizzing-0.0.1-1775315938228",
   "creationInfo": {
-    "created": "2026-03-31T21:03:12.839Z",
+    "created": "2026-04-04T15:18:58.227Z",
     "creators": [
       "Tool: generate-sbom.js",
       "Organization: lets-go-quizzing"
@@ -9210,29 +9210,6 @@
       "comment": "Dev dependency"
     },
     {
-      "SPDXID": "SPDXRef-Package-string-similarity-4.0.4",
-      "name": "string-similarity",
-      "versionInfo": "4.0.4",
-      "downloadLocation": "https://registry.npmjs.org/string-similarity/-/string-similarity-4.0.4.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "copyrightText": "NOASSERTION",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ=="
-        }
-      ],
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/string-similarity@4.0.4"
-        }
-      ]
-    },
-    {
       "SPDXID": "SPDXRef-Package-stringify-entities-4.0.4",
       "name": "stringify-entities",
       "versionInfo": "4.0.4",
@@ -10620,11 +10597,6 @@
       "spdxElementId": "SPDXRef-Root",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-Package-socket.io-client-4.8.3"
-    },
-    {
-      "spdxElementId": "SPDXRef-Root",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-string-similarity-4.0.4"
     },
     {
       "spdxElementId": "SPDXRef-Root",
