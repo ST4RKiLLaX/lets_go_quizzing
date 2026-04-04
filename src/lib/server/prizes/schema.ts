@@ -1,12 +1,40 @@
 import { z } from 'zod';
 
 export const PrizeTierSchema = z.object({
-  minScore: z.number().int().min(0),
+  awardBy: z.enum(['score', 'rank']).optional(),
+  minScore: z.number().int().min(0).optional(),
+  topCount: z.number().int().min(1).optional(),
   prizeId: z.string().trim().min(1).optional(),
   prizeIds: z.array(z.string().trim().min(1)).min(1).max(25).optional(),
   label: z.string().trim().max(120).optional(),
-}).refine((value) => !!value.prizeId || !!value.prizeIds?.length, {
-  message: 'Prize tier must include at least one prize',
+}).superRefine((value, ctx) => {
+  if (!value.prizeId && !value.prizeIds?.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Prize tier must include at least one prize',
+      path: ['prizeIds'],
+    });
+  }
+
+  const awardBy = value.awardBy ?? 'score';
+  if (awardBy === 'score') {
+    if (value.minScore == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Score tiers require a minimum score',
+        path: ['minScore'],
+      });
+    }
+    return;
+  }
+
+  if (value.topCount == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Rank tiers require a top count',
+      path: ['topCount'],
+    });
+  }
 });
 
 export const RoomPrizeConfigSchema = z.object({

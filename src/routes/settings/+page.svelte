@@ -793,7 +793,7 @@
               availablePrizes={prizes.filter((prize) => isPrizeSelectable(prize)).map(toPrizeOption)}
               addTierDisabledReason={getPrizeTierDisabledReason(prizes)}
               title="Default room prize setup"
-              subtitle="Preload these tiers in room creation. Hosts can still change them per room."
+              subtitle="Preload score or rank tiers in room creation. Hosts can still change them per room."
               emptyMessage="No default prize tiers configured."
               enabledLabel="Enable by default"
             />

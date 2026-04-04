@@ -8,6 +8,7 @@ export interface Player {
   name: string;
   emoji: string;
   score: number;
+  totalAnswerTimeMs?: number;
   socketId?: string;
 }
 
@@ -55,6 +56,7 @@ export interface GameState {
   hiddenWordsByQuestion: Map<string, Set<string>>;
   timerEndsAt?: number;
   startedAt?: number;
+  questionStartedAt?: number;
 }
 
 export type GameEvent =
@@ -102,10 +104,12 @@ export function transition(state: GameState, event: GameEvent): GameState {
     }
     if (event.type === 'START_QUESTION') {
       const timer = state.quiz.meta.default_timer;
+      const questionStartedAt = Date.now();
       return {
         ...state,
         type: 'Question',
-        timerEndsAt: timer ? Date.now() + timer * 1000 : undefined,
+        timerEndsAt: timer ? questionStartedAt + timer * 1000 : undefined,
+        questionStartedAt,
       };
     }
   } else if (st === 'Question') {
@@ -114,6 +118,7 @@ export function transition(state: GameState, event: GameEvent): GameState {
         ...state,
         type: 'End',
         timerEndsAt: undefined,
+        questionStartedAt: undefined,
       };
     }
     if (event.type === 'NEXT' || event.type === 'STOP_TIMER') {
@@ -121,6 +126,7 @@ export function transition(state: GameState, event: GameEvent): GameState {
         ...state,
         type: 'RevealAnswer',
         timerEndsAt: undefined,
+        questionStartedAt: undefined,
       };
     }
   } else if (st === 'RevealAnswer') {
@@ -138,6 +144,7 @@ export function transition(state: GameState, event: GameEvent): GameState {
           currentQuestionIndex: state.currentQuestionIndex + 1,
           submissions: [],
           wrongAnswers: [],
+          questionStartedAt: undefined,
         };
       }
       return {
@@ -161,6 +168,7 @@ export function transition(state: GameState, event: GameEvent): GameState {
           currentQuestionIndex: 0,
           submissions: [],
           wrongAnswers: [],
+          questionStartedAt: undefined,
         };
       }
       if (!hasNextRound(state) && !hasNextQuestion(state)) {
@@ -201,5 +209,6 @@ export function createInitialState(roomId: string, quiz: Quiz, quizFilename: str
     wrongAnswers: [],
     bannedPlayerIds: new Set(),
     hiddenWordsByQuestion: new Map(),
+    questionStartedAt: undefined,
   };
 }

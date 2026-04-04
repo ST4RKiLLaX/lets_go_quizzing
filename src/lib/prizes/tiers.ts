@@ -1,7 +1,9 @@
 import type { PrizeTier, RoomPrizeDefaultConfig } from '../types/prizes.js';
 
 type PrizeTierInput = {
-  minScore: number;
+  awardBy?: 'score' | 'rank';
+  minScore?: number;
+  topCount?: number;
   prizeIds?: string[];
   prizeId?: string;
   label?: string;
@@ -26,13 +28,36 @@ function normalizePrizeIds(tier: PrizeTierInput): string[] {
 
 export function normalizePrizeTiers(tiers: PrizeTierInput[]): PrizeTier[] {
   return tiers
-    .map((tier) => ({
-      minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
-      prizeIds: normalizePrizeIds(tier),
-      label: tier.label?.trim() || undefined,
-    }))
+    .map((tier): PrizeTier => {
+      const awardBy: PrizeTier['awardBy'] = tier.awardBy === 'rank' ? 'rank' : 'score';
+      const base = {
+        awardBy,
+        prizeIds: normalizePrizeIds(tier),
+        label: tier.label?.trim() || undefined,
+      };
+
+      if (awardBy === 'rank') {
+        return {
+          ...base,
+          topCount: Math.max(1, Math.floor(Number(tier.topCount) || 1)),
+        };
+      }
+
+      return {
+        ...base,
+        minScore: Math.max(0, Math.floor(Number(tier.minScore) || 0)),
+      };
+    })
     .filter((tier) => tier.prizeIds.length > 0)
-    .sort((a, b) => b.minScore - a.minScore);
+    .sort((a, b) => {
+      if (a.awardBy !== b.awardBy) {
+        return a.awardBy === 'score' ? -1 : 1;
+      }
+      if (a.awardBy === 'score' && b.awardBy === 'score') {
+        return (b.minScore ?? 0) - (a.minScore ?? 0);
+      }
+      return (a.topCount ?? 1) - (b.topCount ?? 1);
+    });
 }
 
 export function buildDefaultRoomPrizeConfig(enabledByDefault: boolean, tiers: PrizeTier[]): RoomPrizeDefaultConfig {

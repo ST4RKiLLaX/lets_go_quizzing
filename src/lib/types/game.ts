@@ -6,6 +6,7 @@ export interface SerializedPlayer {
   name: string;
   emoji: string;
   score: number;
+  totalAnswerTimeMs?: number;
   isActive?: boolean;
 }
 

@@ -31,6 +31,7 @@ function serializePlayers(players: GameState['players']): SerializedPlayer[] {
     name: player.name,
     emoji: player.emoji,
     score: player.score,
+    totalAnswerTimeMs: player.totalAnswerTimeMs ?? 0,
     isActive: !!player.socketId,
   }));
   playersCache.set(players, serialized);

@@ -15,6 +15,7 @@ import type {
 } from '../../types/prizes.js';
 import { toPrizeOption } from '../../prizes/options.js';
 import { normalizePrizeTiers } from '../../prizes/tiers.js';
+import { buildRankedPlayers } from '../../utils/players.js';
 import { RoomPrizeConfigSchema, RoomPrizeDefaultConfigSchema } from './schema.js';
 import { loadPrizeRedemptionStore, loadPrizeStore, savePrizeRedemptionStore, savePrizeStore, withPrizeMutationLock } from './store.js';
 import {
@@ -27,7 +28,9 @@ import {
 } from './email.js';
 
 type PrizeTierInput = {
-  minScore: number;
+  awardBy?: 'score' | 'rank';
+  minScore?: number;
+  topCount?: number;
   prizeIds?: string[];
   prizeId?: string;
   label?: string;
@@ -320,7 +323,29 @@ function toClaimedPrize(redemption: PrizeRedemptionRecord): ClaimedPrize {
   };
 }
 
-function buildPrizeClaimResult(redemptions: PrizeRedemptionRecord[], bestTier: PrizeTier): PrizeClaimResult {
+function getPrimaryPrizeTier(matchedTiers: PrizeTier[]): PrizeTier {
+  const primaryTier = matchedTiers[0];
+  if (!primaryTier) {
+    throw new Error('Matched prize tier is required');
+  }
+  return primaryTier;
+}
+
+function buildFallbackMatchedTiers(redemptions: PrizeRedemptionRecord[]): PrizeTier[] {
+  return redemptions.length === 0
+    ? []
+    : [{
+        awardBy: 'score',
+        minScore: redemptions[0].finalScore,
+        prizeIds: Array.from(new Set(redemptions.map((redemption) => redemption.prizeId))),
+      }];
+}
+
+function resolveClaimMatchedTiers(matchedTiers: PrizeTier[], redemptions: PrizeRedemptionRecord[]): PrizeTier[] {
+  return matchedTiers.length > 0 ? matchedTiers : buildFallbackMatchedTiers(redemptions);
+}
+
+function buildPrizeClaimResult(redemptions: PrizeRedemptionRecord[], matchedTiers: PrizeTier[]): PrizeClaimResult {
   if (redemptions.length === 0) {
     throw new Error('Claim redemptions are required');
   }
@@ -332,7 +357,8 @@ function buildPrizeClaimResult(redemptions: PrizeRedemptionRecord[], bestTier: P
     playerName: first.playerName,
     playerEmoji: first.playerEmoji,
     finalScore: first.finalScore,
-    bestTier,
+    bestTier: getPrimaryPrizeTier(matchedTiers),
+    matchedTiers,
     prizes: redemptions.map(toClaimedPrize),
   };
 }
@@ -344,9 +370,58 @@ function getPlayerClaimRedemptions(roomId: string, playerId: string): PrizeRedem
   return redemptions;
 }
 
-function getBestEligibleTier(config: RoomPrizeConfig | undefined, score: number): PrizeTier | undefined {
-  if (!config?.enabled) return undefined;
-  return normalizePrizeTiers(config.tiers).find((tier) => score >= tier.minScore);
+function getRankedPrizePlayers(state: GameState) {
+  return buildRankedPlayers(state.players.values());
+}
+
+function getMatchedPrizeTiers(state: GameState, playerId: string): PrizeTier[] {
+  const config = state.roomPrizeConfig;
+  if (!config?.enabled) return [];
+  const player = state.players.get(playerId);
+  if (!player) return [];
+
+  const rankedPlayers = getRankedPrizePlayers(state);
+  const playerRank = rankedPlayers.find((entry) => entry.id === playerId)?.rank;
+
+  return normalizePrizeTiers(config.tiers).filter((tier) => {
+    if (tier.awardBy === 'rank') {
+      return playerRank != null && playerRank <= (tier.topCount ?? 0);
+    }
+    return player.score >= (tier.minScore ?? 0);
+  });
+}
+
+function getMatchedPrizeIds(matchedTiers: PrizeTier[]): string[] {
+  const seen = new Set<string>();
+  const prizeIds: string[] = [];
+  for (const tier of matchedTiers) {
+    for (const prizeId of tier.prizeIds) {
+      if (seen.has(prizeId)) continue;
+      seen.add(prizeId);
+      prizeIds.push(prizeId);
+    }
+  }
+  return prizeIds;
+}
+
+function getResolvedMatchedPrizes(
+  prizeStore: PrizeDefinition[],
+  prizeIds: string[],
+  options?: { requireAvailability?: boolean }
+): PrizeDefinition[] | undefined {
+  const requireAvailability = options?.requireAvailability === true;
+  const resolved: PrizeDefinition[] = [];
+  for (const prizeId of prizeIds) {
+    const prize = prizeStore.find((entry) => entry.id === prizeId);
+    if (!prize || !prize.active || isPrizeExpired(prize)) {
+      return undefined;
+    }
+    if (requireAvailability && prize.usage >= prize.limit) {
+      return undefined;
+    }
+    resolved.push(prize);
+  }
+  return resolved;
 }
 
 export function getPrizeEligibility(state: GameState | undefined, playerId: string, config: AppConfig | null): PrizeEligibility {
@@ -363,29 +438,31 @@ export function getPrizeEligibility(state: GameState | undefined, playerId: stri
   if (!player) {
     return { eligible: false, reason: 'not_eligible' };
   }
-  const tier = getBestEligibleTier(state.roomPrizeConfig, player.score);
-  if (!tier) {
-    return { eligible: false, reason: 'not_eligible' };
-  }
-  const prizes = loadPrizeStore().prizes.filter(
-    (entry) => tier.prizeIds.includes(entry.id) && entry.active && !isPrizeExpired(entry)
-  );
-  if (prizes.length !== tier.prizeIds.length) {
-    return { eligible: false, reason: 'prize_missing' };
-  }
   const existing = getPlayerClaimRedemptions(state.roomId, playerId);
+  const matchedTiers = getMatchedPrizeTiers(state, playerId);
   if (existing.length > 0) {
+    const claimTiers = resolveClaimMatchedTiers(matchedTiers, existing);
     return {
       eligible: false,
       reason: 'already_claimed',
-      bestTier: tier,
-      prizes: prizes.map((prize) => ({ id: prize.id, name: prize.name })),
-      claim: buildPrizeClaimResult(existing, tier),
+      bestTier: getPrimaryPrizeTier(claimTiers),
+      matchedTiers: claimTiers,
+      prizes: existing.map((redemption) => ({ id: redemption.prizeId, name: redemption.prizeNameSnapshot })),
+      claim: buildPrizeClaimResult(existing, claimTiers),
     };
+  }
+  if (matchedTiers.length === 0) {
+    return { eligible: false, reason: 'not_eligible' };
+  }
+  const prizeIds = getMatchedPrizeIds(matchedTiers);
+  const prizes = getResolvedMatchedPrizes(loadPrizeStore().prizes, prizeIds);
+  if (!prizes || prizes.length !== prizeIds.length) {
+    return { eligible: false, reason: 'prize_missing' };
   }
   return {
     eligible: true,
-    bestTier: tier,
+    bestTier: getPrimaryPrizeTier(matchedTiers),
+    matchedTiers,
     prizes: prizes.map((prize) => ({ id: prize.id, name: prize.name })),
   };
 }
@@ -401,10 +478,11 @@ export async function claimPrizeForPlayer(state: GameState, playerId: string, co
   if (!player) {
     throw new Error('Player not found');
   }
-  const tier = getBestEligibleTier(state.roomPrizeConfig, player.score);
-  if (!tier) {
+  const matchedTiers = getMatchedPrizeTiers(state, playerId);
+  if (matchedTiers.length === 0) {
     throw new Error('Player is not eligible for a prize');
   }
+  const prizeIds = getMatchedPrizeIds(matchedTiers);
 
   return withPrizeMutationLock(() => {
     const redemptionStore = loadPrizeRedemptionStore();
@@ -412,11 +490,11 @@ export async function claimPrizeForPlayer(state: GameState, playerId: string, co
       .filter((redemption) => redemption.roomId === state.roomId && redemption.playerId === playerId)
       .sort((a, b) => a.redeemedAt - b.redeemedAt);
     if (existing.length > 0) {
-      return buildPrizeClaimResult(existing, tier);
+      return buildPrizeClaimResult(existing, resolveClaimMatchedTiers(matchedTiers, existing));
     }
 
     const prizeStore = loadPrizeStore();
-    const prizeMatches = tier.prizeIds.map((prizeId) => {
+    const prizeMatches = prizeIds.map((prizeId) => {
       const prizeIdx = prizeStore.prizes.findIndex((entry) => entry.id === prizeId);
       if (prizeIdx < 0) {
         throw new Error('Assigned prize not found');
@@ -463,7 +541,7 @@ export async function claimPrizeForPlayer(state: GameState, playerId: string, co
       status: 'revealed',
     }));
     savePrizeRedemptionStore([...redemptionStore.redemptions, ...redemptions]);
-    return buildPrizeClaimResult(redemptions, tier);
+    return buildPrizeClaimResult(redemptions, matchedTiers);
   });
 }
 

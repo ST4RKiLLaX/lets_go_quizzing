@@ -43,6 +43,7 @@ export async function POST({ request }) {
       claimId: redemption.claimId,
       prizes: redemption.prizes,
       bestTier: redemption.bestTier,
+      matchedTiers: redemption.matchedTiers,
       emailConfigured: emailPolicy.featureEnabled,
       emailAvailableNow: emailPolicy.availableNow,
     });

@@ -1,5 +1,9 @@
+export type PrizeTierAwardBy = 'score' | 'rank';
+
 export interface PrizeTier {
-  minScore: number;
+  awardBy: PrizeTierAwardBy;
+  minScore?: number;
+  topCount?: number;
   prizeIds: string[];
   label?: string;
 }
@@ -65,12 +69,14 @@ export interface PrizeClaimResult {
   playerEmoji: string;
   finalScore: number;
   bestTier: PrizeTier;
+  matchedTiers: PrizeTier[];
   prizes: ClaimedPrize[];
 }
 
 export interface PrizeEligibility {
   eligible: boolean;
   bestTier?: PrizeTier;
+  matchedTiers?: PrizeTier[];
   prizes?: PrizeOption[];
   claim?: PrizeClaimResult;
   reason?: 'disabled' | 'room_not_found' | 'not_ready' | 'not_eligible' | 'prize_missing' | 'already_claimed';

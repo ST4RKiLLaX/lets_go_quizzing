@@ -972,7 +972,7 @@
         data.reason === 'already_claimed'
           ? ''
           : data.reason === 'not_eligible'
-            ? 'No prizes unlocked for this score.'
+            ? 'No prizes unlocked for this result.'
             : data.reason === 'not_ready'
               ? 'Prize claims are available when the game ends.'
               : '';

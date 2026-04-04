@@ -23,13 +23,34 @@
   }
 
   function addTier() {
-    tiers = [...tiers, { minScore: 0, prizeIds: buildDefaultPrizeIds(), label: '' }];
+    tiers = [...tiers, { awardBy: 'score', minScore: 0, prizeIds: buildDefaultPrizeIds(), label: '' }];
   }
 
   function updateTier(index: number, updates: Partial<PrizeTier>) {
     tiers = tiers.map((tier, currentIndex) =>
       currentIndex === index ? { ...tier, ...updates } : tier
     );
+  }
+
+  function updateTierAwardBy(index: number, awardBy: 'score' | 'rank') {
+    const tier = tiers[index];
+    if (!tier) return;
+    if (awardBy === 'rank') {
+      updateTier(index, { awardBy, minScore: undefined, topCount: tier.topCount ?? 1 });
+      return;
+    }
+    updateTier(index, { awardBy, minScore: tier.minScore ?? 0, topCount: undefined });
+  }
+
+  function updateTierThreshold(index: number, rawValue: string) {
+    const tier = tiers[index];
+    if (!tier) return;
+    const numericValue = Number(rawValue);
+    if (tier.awardBy === 'rank') {
+      updateTier(index, { topCount: Math.max(1, Math.floor(numericValue || 1)) });
+      return;
+    }
+    updateTier(index, { minScore: Math.max(0, Math.floor(numericValue || 0)) });
   }
 
   function removeTier(index: number) {
@@ -95,16 +116,29 @@
 
       {#each tiers as tier, index}
         <div class="rounded-xl border border-pub-muted bg-pub-dark p-4">
-          <div class="grid gap-3 md:grid-cols-[96px_minmax(0,1fr)_auto] md:items-end">
+          <div class="grid gap-3 md:grid-cols-[140px_110px_minmax(0,1fr)_auto] md:items-end">
             <label class="block text-sm">
-              <span class="mb-1 block text-pub-muted">Min score</span>
-              <input
-                type="number"
-                min={0}
-                value={tier.minScore}
+              <span class="mb-1 block text-pub-muted">Award by</span>
+              <select
+                value={tier.awardBy ?? 'score'}
                 disabled={!editable}
                 class="w-full rounded-lg border border-pub-muted bg-pub-darker px-3 py-2"
-                oninput={(event) => updateTier(index, { minScore: Number((event.currentTarget as HTMLInputElement).value) || 0 })}
+                onchange={(event) => updateTierAwardBy(index, (event.currentTarget as HTMLSelectElement).value as 'score' | 'rank')}
+              >
+                <option value="score">Score</option>
+                <option value="rank">Rank</option>
+              </select>
+            </label>
+
+            <label class="block text-sm">
+              <span class="mb-1 block text-pub-muted">{tier.awardBy === 'rank' ? 'Top count' : 'Min score'}</span>
+              <input
+                type="number"
+                min={tier.awardBy === 'rank' ? 1 : 0}
+                value={tier.awardBy === 'rank' ? (tier.topCount ?? 1) : (tier.minScore ?? 0)}
+                disabled={!editable}
+                class="w-full rounded-lg border border-pub-muted bg-pub-darker px-3 py-2"
+                oninput={(event) => updateTierThreshold(index, (event.currentTarget as HTMLInputElement).value)}
               />
             </label>
 

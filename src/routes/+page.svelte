@@ -630,7 +630,7 @@
             availablePrizes={prizeOptions}
             addTierDisabledReason={getRoomPrizeTierDisabledReason()}
             title="Room prizes"
-            subtitle="Optional score tiers for this game only."
+            subtitle="Optional score or rank tiers for this game only. Players can unlock prizes from every tier they match."
             showSaveDefault
             emptyMessage="No room prize tiers configured."
           />

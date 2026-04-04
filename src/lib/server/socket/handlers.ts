@@ -538,6 +538,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
       name: pending.name,
       emoji: pending.emoji,
       score: 0,
+      totalAnswerTimeMs: 0,
       socketId: pending.socketId,
     });
     const nextState = { ...state, players, pendingPlayers };
@@ -635,6 +636,7 @@ function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
         name: p.name,
         emoji: p.emoji,
         score: 0,
+        totalAnswerTimeMs: 0,
         socketId: p.socketId,
       });
       toAdmit.push({ playerId, socketId: p.socketId, name: p.name, emoji: p.emoji });
@@ -762,6 +764,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
             name: cappedName,
             emoji: requestedEmoji,
             score: 0,
+            totalAnswerTimeMs: 0,
             socketId: socket.id,
           });
           const nextState = { ...state, players };
@@ -795,6 +798,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
         name: isReturning ? existingPlayer!.name : '',
         emoji: isReturning ? existingPlayer!.emoji : '👤',
         score: isReturning ? existingPlayer!.score : 0,
+        totalAnswerTimeMs: isReturning ? existingPlayer!.totalAnswerTimeMs ?? 0 : 0,
         socketId: socket.id,
       });
       const nextState = { ...state, players };
@@ -845,6 +849,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       name: cappedName,
       emoji: requestedEmoji,
       score: 0,
+      totalAnswerTimeMs: 0,
       socketId: socket.id,
     });
     const next: GameState = { ...state, players };
@@ -1073,7 +1078,18 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
         return;
       }
       const submissions = [...state.submissions, submission];
-      const next = { ...state, submissions };
+      const players = new Map(state.players);
+      const player = players.get(playerId);
+      if (!player) {
+        ack?.({ error: 'Player not found' });
+        return;
+      }
+      const answerDurationMs = Math.max(0, submission.submittedAt - (state.questionStartedAt ?? submission.submittedAt));
+      players.set(playerId, {
+        ...player,
+        totalAnswerTimeMs: (player.totalAnswerTimeMs ?? 0) + answerDurationMs,
+      });
+      const next = { ...state, submissions, players };
       setRoom(roomId, next);
       ack?.({ ok: true });
       queueQuestionPatch(io, roomId, getRoom);

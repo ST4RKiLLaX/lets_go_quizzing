@@ -56,6 +56,7 @@ export function createRoom(
     wrongAnswers: [],
     bannedPlayerIds: new Set(),
     hiddenWordsByQuestion: new Map(),
+    questionStartedAt: undefined,
   };
   rooms.set(roomId, state);
   return roomId;
