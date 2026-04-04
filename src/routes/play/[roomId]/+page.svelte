@@ -1298,7 +1298,6 @@
   bind:draftEmoji={settingsDraftEmoji}
   registerError={registerError}
   unavailableEmojis={unavailableEmojisForSettings}
-  emojiOptions={EMOJI_OPTIONS}
   onClose={() => { showSettingsModal = false; registerError = ''; }}
   onSave={saveSettingsFromModal}
 />

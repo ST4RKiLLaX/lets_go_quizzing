@@ -1,10 +1,11 @@
 <script lang="ts">
+  import EmojiCategoryPicker from './EmojiCategoryPicker.svelte';
+
   export let open = false;
   export let draftName = '';
   export let draftEmoji = '😀';
   export let registerError = '';
   export let unavailableEmojis: Set<string> = new Set();
-  export let emojiOptions: string[] = [];
   export let onClose: () => void = () => {};
   export let onSave: () => void = () => {};
 </script>
@@ -28,22 +29,13 @@
         </div>
         <div>
           <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
-          <div class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-44 overflow-y-auto p-1" style="scrollbar-width: thin;">
-            {#each emojiOptions as e}
-              {@const isUnavailable = unavailableEmojis.has(e)}
-              <button
-                type="button"
-                class="relative h-12 w-full text-2xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : draftEmoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
-                disabled={isUnavailable}
-                onclick={() => { if (!isUnavailable) draftEmoji = e; }}
-              >
-                {e}
-                {#if isUnavailable}
-                  <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">✕</span>
-                {/if}
-              </button>
-            {/each}
-          </div>
+          <EmojiCategoryPicker
+            selected={draftEmoji}
+            unavailable={unavailableEmojis}
+            density="comfortable"
+            scrollClass="max-h-56"
+            onPick={(e) => { draftEmoji = e; }}
+          />
           {#if registerError}
             <p class="mt-2 text-sm text-red-400">{registerError}</p>
           {/if}

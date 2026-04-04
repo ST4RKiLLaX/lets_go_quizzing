@@ -18,6 +18,7 @@ import {
 import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
 import { broadcastRoomPatchToRoom, broadcastStateToRoom } from './broadcast.js';
 import { saveHistory } from './history.js';
+import { normalizePlayerEmoji } from '../../player/emoji-options.js';
 import { normalizeWordCloudToken } from '../../utils/word-cloud.js';
 import { flushQueuedQuestionPatch, queueQuestionPatch } from './question-patch.js';
 import { createRoomPrizeConfig, isPrizeFeatureEnabled } from '../prizes/service.js';
@@ -731,7 +732,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           ack?.({ error: 'This name contains inappropriate content' });
           return;
         }
-        const requestedEmoji = (emoji || '👤').slice(0, 4);
+        const requestedEmoji = normalizePlayerEmoji(emoji);
         const emojiTakenByPlayer = Array.from(state.players.entries()).some(
           ([, p]) => !!p.socketId && p.emoji === requestedEmoji
         );
@@ -830,7 +831,7 @@ function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       ack?.({ error: 'This name contains inappropriate content' });
       return;
     }
-    const requestedEmoji = (emoji || '👤').slice(0, 4);
+    const requestedEmoji = normalizePlayerEmoji(emoji);
     const takenByActivePlayer = Array.from(state.players.entries()).some(
       ([id, p]) => id !== playerId && !!p.socketId && p.emoji === requestedEmoji
     );

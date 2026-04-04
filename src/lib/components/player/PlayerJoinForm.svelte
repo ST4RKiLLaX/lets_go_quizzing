@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
+  import EmojiCategoryPicker from './EmojiCategoryPicker.svelte';
 
   export let roomId: string;
   export let joinPassword = '';
@@ -58,22 +58,13 @@
       </div>
       <div>
         <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
-        <div class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-32 overflow-y-auto p-1" style="scrollbar-width: thin;">
-          {#each EMOJI_OPTIONS as e}
-            {@const isUnavailable = requestFormUnavailableEmojis.has(e)}
-            <button
-              type="button"
-              class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
-              disabled={isUnavailable}
-              on:click={() => { if (!isUnavailable) emoji = e; }}
-            >
-              {e}
-              {#if isUnavailable}
-                <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">✕</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
+        <EmojiCategoryPicker
+          selected={emoji}
+          unavailable={requestFormUnavailableEmojis}
+          density="compact"
+          scrollClass="max-h-48"
+          onPick={(e) => { emoji = e; }}
+        />
       </div>
       {#if joinError}
         <p class="text-sm text-red-400">{joinError}</p>
@@ -110,22 +101,13 @@
       </div>
       <div>
         <span class="block text-sm text-pub-muted mb-2">Pick an emoji</span>
-        <div class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-32 overflow-y-auto p-1" style="scrollbar-width: thin;">
-          {#each EMOJI_OPTIONS as e}
-            {@const isUnavailable = requestFormUnavailableEmojis.has(e)}
-            <button
-              type="button"
-              class="relative h-10 w-full text-xl leading-none rounded flex items-center justify-center {isUnavailable ? 'bg-pub-dark opacity-45 cursor-not-allowed' : emoji === e ? 'bg-pub-accent ring-2 ring-pub-gold' : 'bg-pub-dark hover:bg-pub-darker'}"
-              disabled={isUnavailable}
-              on:click={() => { if (!isUnavailable) emoji = e; }}
-            >
-              {e}
-              {#if isUnavailable}
-                <span class="absolute inset-0 flex items-center justify-center text-base font-extrabold text-red-300 pointer-events-none">✕</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
+        <EmojiCategoryPicker
+          selected={emoji}
+          unavailable={requestFormUnavailableEmojis}
+          density="compact"
+          scrollClass="max-h-48"
+          onPick={(e) => { emoji = e; }}
+        />
       </div>
       <div class="flex gap-2">
         <button
