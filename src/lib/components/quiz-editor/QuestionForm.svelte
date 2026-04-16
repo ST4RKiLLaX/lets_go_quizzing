@@ -71,6 +71,8 @@
   $: imageFieldDisplayValue = getImageFieldDisplayValue(question.image, imageImportUrlDraft);
   $: canImportCurrentImage = canUploadFile && !imageActionDisabled && isImportableImageUrl(imageFieldDisplayValue);
   $: hasAnyImageFieldValue = imageFieldDisplayValue.trim().length > 0;
+  $: imagePreviewSrc = getQuestionImageSrc(imageFieldDisplayValue.trim(), quizFilename);
+  $: showNonHotspotImagePreview = question.type !== 'hotspot' && !!imagePreviewSrc;
 
   /** Avoid <label for> focusing the hidden input — browsers scroll it into view and break <main> scroll. */
   let imageFileInput: HTMLInputElement | undefined;
@@ -317,6 +319,14 @@
       >
         Clear image
       </button>
+    {/if}
+    {#if showNonHotspotImagePreview}
+      <div class="mt-3 space-y-2">
+        <span class="block text-sm text-pub-muted">Image preview</span>
+        <div class="relative inline-block max-w-full">
+          <img src={imagePreviewSrc} alt="" class="max-w-full rounded-lg block" />
+        </div>
+      </div>
     {/if}
   </div>
   {#if question.type === 'hotspot'}
