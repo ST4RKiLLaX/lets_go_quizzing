@@ -32,6 +32,7 @@
   import { cubicOut } from 'svelte/easing';
   import type { ComponentType } from 'svelte';
   import { onMount } from 'svelte';
+  import { toast } from '$lib/stores/toasts.js';
 
   let YamlEditorComponent: ComponentType | null = null;
   onMount(() => {
@@ -200,16 +201,16 @@
 
   async function handleImageUploadForQuestion(questionId: string, file: File) {
     if (!quizFilename?.trim()) {
-      error =
-        'Cannot upload: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).';
+      toast.error(
+        'Cannot upload: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).'
+      );
       return;
     }
     if (!questionId?.trim()) {
-      error = 'Cannot upload: question ID is missing. Try reloading the page.';
+      toast.error('Cannot upload: question ID is missing. Try reloading the page.');
       return;
     }
     imageActionPending = { questionId, mode: 'upload' };
-    error = '';
     try {
       const formData = new FormData();
       formData.append('quizFilename', quizFilename);
@@ -223,7 +224,7 @@
       const filename = await parseImageActionResponse(res, 'Upload');
       updateQuestionImage(questionId, filename);
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       imageActionPending = null;
     }
@@ -231,21 +232,21 @@
 
   async function handleImageImportForQuestion(questionId: string, url: string) {
     if (!quizFilename?.trim()) {
-      error =
-        'Cannot import: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).';
+      toast.error(
+        'Cannot import: open this quiz from the creator list so it has a saved file name (new quizzes need “Create quiz” first).'
+      );
       return;
     }
     if (!questionId?.trim()) {
-      error = 'Cannot import: question ID is missing. Try reloading the page.';
+      toast.error('Cannot import: question ID is missing. Try reloading the page.');
       return;
     }
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
-      error = 'Cannot import: image URL is required.';
+      toast.error('Cannot import: image URL is required.');
       return;
     }
     imageActionPending = { questionId, mode: 'import' };
-    error = '';
     try {
       const res = await fetch('/api/quizzes/images/import-url', {
         method: 'POST',
@@ -257,7 +258,7 @@
       updateQuestionImage(questionId, filename);
       clearImageImportUrlDraft(questionId);
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       imageActionPending = null;
     }

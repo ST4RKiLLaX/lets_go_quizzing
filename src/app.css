@@ -1,6 +1,24 @@
 @import 'tailwindcss';
 @config "../tailwind.config.js";
 
+/* Toast notification host: above modals (z-50) and PlayerConfetti (z-100). */
+.toast-host {
+  z-index: 110;
+}
+
+/* Screen-reader-only utility for toast announcer live regions. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /*
  * Page roots under src/routes/+layout.svelte should use min-h-full (fill <main>), not
  * min-h-screen (100vh). <main> is shorter than the viewport because of the footer and

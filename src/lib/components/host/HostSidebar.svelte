@@ -4,7 +4,6 @@
 
   export let state: SerializedState;
   $: sortedPlayers = sortPlayersByScore(state.players);
-  export let kickError: string;
   export let onKick: (playerId: string, ban?: boolean) => void;
   export let onApprove: (playerId: string) => void;
   export let onDeny: (playerId: string) => void;
@@ -58,9 +57,6 @@
       <h3 class="text-sm font-semibold text-pub-muted">Players</h3>
       <span class="text-sm text-pub-muted">{(state.players ?? []).length} active</span>
     </div>
-    {#if kickError}
-      <p class="text-sm text-red-400 mb-2">{kickError}</p>
-    {/if}
     <ol class="space-y-2 text-sm">
       {#each sortedPlayers as player, i}
         <li class="flex items-center gap-2 min-w-0 group">

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { toast } from '$lib/stores/toasts.js';
 
   export let data;
   let username = '';
@@ -7,11 +8,9 @@
   let passwordConfirm = '';
   let origin = '';
   let roomIdLen = 6;
-  let error = '';
   let submitting = false;
 
   async function submit() {
-    error = '';
     submitting = true;
     try {
       const res = await fetch('/api/setup', {
@@ -28,12 +27,13 @@
       });
       const json = await res.json();
       if (!res.ok) {
-        error = json.error ?? 'Setup failed';
+        toast.error(json.error ?? 'Setup failed');
         return;
       }
-      goto(data.migrationMode ? '/?migrated=1' : '/');
+      toast.success(data.migrationMode ? 'Migration complete' : 'Setup complete');
+      goto('/');
     } catch {
-      error = 'Setup failed';
+      toast.error('Setup failed');
     } finally {
       submitting = false;
     }
@@ -134,9 +134,6 @@
           class="w-full bg-pub-darker border border-pub-muted rounded-lg px-4 py-2"
         />
       </div>
-      {#if error}
-        <p class="text-sm text-red-400">{error}</p>
-      {/if}
       <button
         type="submit"
         disabled={submitting}

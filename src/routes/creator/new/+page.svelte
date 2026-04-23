@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import QuizEditor from '$lib/components/QuizEditor.svelte';
   import { createEmptyQuiz } from '$lib/types/quiz.js';
+  import { toast } from '$lib/stores/toasts.js';
   let quiz = createEmptyQuiz();
 
   async function handleSave(q: typeof quiz) {
@@ -13,6 +14,7 @@
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? 'Failed to save');
+    toast.success(`Quiz "${q.meta?.name || data.filename}" created.`);
     goto(`/creator/${encodeURIComponent(data.filename)}`);
   }
 </script>

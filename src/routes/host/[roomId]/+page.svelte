@@ -36,6 +36,8 @@
   import { normalizePrizeTiers } from '$lib/prizes/tiers.js';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import { toast } from '$lib/stores/toasts.js';
+  import { ackToast } from '$lib/utils/socket-ack.js';
   import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
 
   const roomId = $page.params.roomId;
@@ -46,7 +48,6 @@
   let prizeOptions: PrizeOption[] = [];
   let prizeDraftEnabled = false;
   let prizeDraftTiers: PrizeTier[] = [];
-  let prizeConfigError = '';
   let showPrizeConfigModal = false;
   let lastSyncedPrizeConfig = '';
   let copied = false;
@@ -218,38 +219,33 @@
   }
 
   function saveRoomPrizeConfig() {
-    prizeConfigError = '';
     const tiers = normalizePrizeTiers(prizeDraftTiers);
 
     if (prizeDraftEnabled && tiers.length === 0) {
-      prizeConfigError = 'Add at least one prize tier or turn room prizes off.';
+      toast.error('Add at least one prize tier or turn room prizes off.');
       return;
     }
     const unavailablePrizeId = prizeDraftEnabled ? findUnavailablePrizeId(tiers, prizeOptions) : undefined;
     if (unavailablePrizeId) {
-      prizeConfigError =
-        `${prizeOptions.find((option) => option.id === unavailablePrizeId)?.name ?? 'Selected prize'} is no longer claimable. Update the tier before saving.`;
+      toast.error(
+        `${prizeOptions.find((option) => option.id === unavailablePrizeId)?.name ?? 'Selected prize'} is no longer claimable. Update the tier before saving.`
+      );
       return;
     }
 
     socket?.emit(
       'host:set_room_prize_config',
       { enabled: prizeDraftEnabled, tiers },
-      (ack: { ok?: boolean; error?: string; state?: SerializedState }) => {
-        if (ack?.error) {
-          prizeConfigError = ack.error;
-          return;
-        }
-        if (ack?.state) {
-          state = ack.state;
-        }
+      ackToast('Failed to save prize config', (ack) => {
+        const serialized = (ack as { state?: SerializedState }).state;
+        if (serialized) state = serialized;
         showPrizeConfigModal = false;
-      }
+        toast.success('Room prizes saved.');
+      })
     );
   }
 
   function openPrizeConfigModal() {
-    prizeConfigError = '';
     showPrizeConfigModal = true;
   }
 
@@ -314,9 +310,9 @@
 
   function next() {
     if (state?.type === 'QuestionPreview') {
-      socket?.emit('host:start_question', {}, () => {});
+      socket?.emit('host:start_question', {}, ackToast('Could not start question'));
     } else {
-      socket?.emit('host:next', {}, () => {});
+      socket?.emit('host:next', {}, ackToast('Could not advance'));
     }
   }
 
@@ -329,12 +325,12 @@
   }
 
   function confirmEndQuiz() {
-    socket?.emit('host:end_game', {}, () => {});
+    socket?.emit('host:end_game', {}, ackToast('Could not end game'));
     showEndQuizModal = false;
   }
 
   function override(playerId: string, questionId: string, delta: number) {
-    socket?.emit('host:override', { playerId, questionId, delta }, () => {});
+    socket?.emit('host:override', { playerId, questionId, delta }, ackToast('Override failed'));
   }
 
   let visibilityPending: string | null = null;
@@ -349,7 +345,7 @@
       visibilityPending = null;
       visibilityPendingTimeout = null;
     }, VISIBILITY_TIMEOUT_MS);
-    socket?.emit('host:set_submission_visibility', { playerId, questionId, visible }, () => {});
+    socket?.emit('host:set_submission_visibility', { playerId, questionId, visible }, ackToast('Could not update visibility'));
   }
 
   function setWordVisibility(questionId: string, word: string, visible: boolean) {
@@ -361,7 +357,7 @@
       visibilityPending = null;
       visibilityPendingTimeout = null;
     }, VISIBILITY_TIMEOUT_MS);
-    socket?.emit('host:set_word_visibility', { questionId, word: normWord, visible }, () => {});
+    socket?.emit('host:set_word_visibility', { questionId, word: normWord, visible }, ackToast('Could not update visibility'));
   }
 
   function clearVisibilityPending() {
@@ -389,38 +385,20 @@
       previewElapsedSeconds = 0;
     }
   }
-  let kickError = '';
   function kick(playerId: string, ban = false) {
-    kickError = '';
-    socket?.emit('host:kick', { playerId, ban }, (ack: { ok?: boolean; code?: string; message?: string }) => {
-      if (ack?.ok === false) {
-        kickError = ack.message ?? ack.code ?? 'Kick failed';
-      }
-    });
+    socket?.emit('host:kick', { playerId, ban }, ackToast('Kick failed'));
   }
 
   function approvePending(playerId: string) {
-    socket?.emit('host:approve', { playerId }, (ack: { ok?: boolean; code?: string; message?: string }) => {
-      if (ack?.ok === false) {
-        kickError = ack.message ?? ack.code ?? 'Approve failed';
-      }
-    });
+    socket?.emit('host:approve', { playerId }, ackToast('Approve failed'));
   }
 
   function denyPending(playerId: string) {
-    socket?.emit('host:deny', { playerId }, (ack: { ok?: boolean; code?: string; message?: string }) => {
-      if (ack?.ok === false) {
-        kickError = ack.message ?? ack.code ?? 'Deny failed';
-      }
-    });
+    socket?.emit('host:deny', { playerId }, ackToast('Deny failed'));
   }
 
   function approveAllPending() {
-    socket?.emit('host:approve_all', {}, (ack: { ok?: boolean; code?: string; message?: string }) => {
-      if (ack?.ok === false) {
-        kickError = ack.message ?? ack.code ?? 'Approve all failed';
-      }
-    });
+    socket?.emit('host:approve_all', {}, ackToast('Approve all failed'));
   }
 
   function getWrongAnswerDisplay(wa: { playerId: string; questionId: string; answer: string | number | number[] }) {
@@ -518,7 +496,7 @@
         <div class="flex flex-wrap gap-3 sm:gap-4">
           <button
             class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-            onclick={() => socket?.emit('host:start', {}, () => {})}
+            onclick={() => socket?.emit('host:start', {}, ackToast('Could not start game'))}
           >
             Start Game
           </button>
@@ -872,7 +850,6 @@
     {#if state && (state.type === 'Lobby' || state.type === 'QuestionPreview' || state.type === 'Question' || state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End')}
       <HostSidebar
         state={state}
-        kickError={kickError}
         onKick={kick}
         onApprove={approvePending}
         onDeny={denyPending}
@@ -908,8 +885,5 @@
       subtitle="Optional score or rank tiers for this room. Players can unlock prizes from every tier they match."
       emptyMessage="No room prize tiers configured."
     />
-    {#if prizeConfigError}
-      <p class="text-sm text-red-400">{prizeConfigError}</p>
-    {/if}
   </div>
 </ConfirmModal>

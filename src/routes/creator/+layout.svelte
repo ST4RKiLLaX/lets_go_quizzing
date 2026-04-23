@@ -1,13 +1,13 @@
 <script lang="ts">
+  import { toast } from '$lib/stores/toasts.js';
+
   export let data;
 
   let username = '';
   let password = '';
-  let error = '';
   let loggingIn = false;
 
   async function login() {
-    error = '';
     loggingIn = true;
     try {
       const res = await fetch('/api/auth/login', {
@@ -18,10 +18,11 @@
       });
       const result = await res.json();
       if (!res.ok) {
-        error = result.error ?? 'Login failed';
+        toast.error(result.error ?? 'Login failed');
         return;
       }
-      window.location.href = '/creator';
+      // Full reload; toast is delivered via the creator-login TOAST_KEYS entry.
+      window.location.href = '/creator?toast=creator-login';
     } finally {
       loggingIn = false;
     }
@@ -60,9 +61,6 @@
             on:keydown={(e) => e.key === 'Enter' && login()}
           />
         </div>
-        {#if error}
-          <p class="text-sm text-red-400">{error}</p>
-        {/if}
         <button
           class="w-full px-6 py-3 bg-pub-accent rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
           on:click={login}

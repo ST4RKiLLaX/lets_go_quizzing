@@ -5,6 +5,7 @@
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
+  import { toast } from '$lib/stores/toasts.js';
   import { toPrizeOption } from '$lib/prizes/options.js';
   import { buildDefaultRoomPrizeConfig } from '$lib/prizes/tiers.js';
   import type { PrizeDefinition, PrizeTier } from '$lib/types/prizes.js';
@@ -35,8 +36,6 @@
   let prizeEmailAvailableNow = false;
   let clearPrizeEmailSmtpPassword = false;
   let testingPrizeEmailConnection = false;
-  let prizeEmailTestMessage = '';
-  let prizeEmailTestStatus: 'idle' | 'success' | 'error' = 'idle';
   let defaultRoomPrizeEnabled = false;
   let defaultRoomPrizeTiers: PrizeTier[] = [];
   let prizes: PrizeDefinition[] = [];
@@ -46,12 +45,14 @@
   let newPrizeExpirationDate = '';
   let newPrizeNotes = '';
   let loadingPrizes = false;
-  let prizeError = '';
+  let prizeLoadError = '';
+  let modalPrizeError = '';
   let showAddPrizeModal = false;
   let prizePendingDelete: PrizeDefinition | null = null;
   let editingPrizeIds: string[] = [];
-  let error = '';
-  let success = '';
+  // Inline error is used only for blocking client-side validation that
+  // prerequisites the save button. Server-side save outcomes go to toasts.
+  let validationError = '';
   let loading = true;
   let saving = false;
   let prizeToggleSaving = false;
@@ -123,17 +124,17 @@
       return;
     }
     loadingPrizes = true;
-    prizeError = '';
+    prizeLoadError = '';
     try {
       const res = await fetch('/api/prizes', { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) {
-        prizeError = data.error ?? 'Failed to load prizes';
+        prizeLoadError = data.error ?? 'Failed to load prizes';
         return;
       }
       prizes = data.prizes ?? [];
     } catch {
-      prizeError = 'Failed to load prizes';
+      prizeLoadError = 'Failed to load prizes';
     } finally {
       loadingPrizes = false;
     }
@@ -141,7 +142,7 @@
 
   async function loadSettings() {
     loading = true;
-    error = '';
+    validationError = '';
     try {
       const res = await fetch('/api/settings', { credentials: 'include' });
       if (res.status === 401) {
@@ -170,14 +171,12 @@
       prizeEmailSmtpPasswordConfigured = data.prizeEmailSmtpPasswordConfigured === true;
       prizeEmailAvailableNow = data.prizeEmailAvailableNow === true;
       clearPrizeEmailSmtpPassword = false;
-      prizeEmailTestMessage = '';
-      prizeEmailTestStatus = 'idle';
       defaultRoomPrizeEnabled = data.defaultRoomPrizeConfig?.enabledByDefault ?? false;
       defaultRoomPrizeTiers = data.defaultRoomPrizeConfig?.tiers ?? [];
       envOverrides = data.envOverrides ?? { origin: false, roomIdLen: false };
       await loadPrizes();
     } catch {
-      error = 'Failed to load settings';
+      toast.error('Failed to load settings');
     } finally {
       loading = false;
     }
@@ -198,12 +197,11 @@
   }
 
   async function save() {
-    error = '';
-    success = '';
+    validationError = '';
     const changingCredentials =
       username.trim() !== originalUsername || newPassword.length >= 8;
     if (changingCredentials && !currentPassword.trim()) {
-      error = 'Current password is required to change username or password';
+      validationError = 'Current password is required to change username or password';
       return;
     }
     saving = true;
@@ -243,10 +241,9 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        error = data.error ?? 'Update failed';
+        toast.error(data.error ?? 'Update failed');
         return;
       }
-      success = 'Settings saved.';
       if (clearPrizeEmailSmtpPassword) {
         prizeEmailSmtpPasswordConfigured = false;
       } else if (prizeEmailSmtpPassword.trim()) {
@@ -255,8 +252,9 @@
       prizeEmailAvailableNow = getPrizeEmailFeatureRequested() && smtpTransportReady;
       prizeEmailSmtpPassword = '';
       clearPrizeEmailSmtpPassword = false;
+      let successMessage = 'Settings saved.';
       if (changingCredentials) {
-        success += ' Other sessions have been invalidated.';
+        successMessage += ' Other sessions have been invalidated.';
         currentPassword = '';
         newPassword = '';
         newPasswordConfirm = '';
@@ -265,19 +263,18 @@
         }
       }
       if (body.origin !== undefined) {
-        success += ' Changes to ORIGIN require a server restart to take effect.';
+        successMessage += ' Changes to ORIGIN require a server restart to take effect.';
       }
+      toast.success(successMessage);
       await invalidateAll();
     } catch {
-      error = 'Update failed';
+      toast.error('Update failed');
     } finally {
       saving = false;
     }
   }
 
   async function testPrizeEmailConnection() {
-    prizeEmailTestMessage = '';
-    prizeEmailTestStatus = 'idle';
     testingPrizeEmailConnection = true;
     try {
       const res = await fetch('/api/settings/prize-email-test', {
@@ -285,11 +282,10 @@
         credentials: 'include',
       });
       const data = await res.json();
-      prizeEmailTestMessage = res.ok ? 'SMTP connection verified.' : (data.error ?? 'SMTP test failed');
-      prizeEmailTestStatus = res.ok ? 'success' : 'error';
+      if (res.ok) toast.success('SMTP connection verified.');
+      else toast.error(data.error ?? 'SMTP test failed');
     } catch {
-      prizeEmailTestMessage = 'SMTP test failed';
-      prizeEmailTestStatus = 'error';
+      toast.error('SMTP test failed');
     } finally {
       testingPrizeEmailConnection = false;
     }
@@ -309,8 +305,6 @@
   });
 
   async function savePrizeFeatureToggle() {
-    prizeError = '';
-    success = '';
     prizeToggleSaving = true;
     const previousPrizesEnabled = !prizesEnabled;
     const previousPrizeEmailEnabled = prizeEmailEnabled;
@@ -326,17 +320,17 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        prizeError = data.error ?? 'Failed to save prize feature setting';
+        toast.error(data.error ?? 'Failed to save prize feature setting');
         prizesEnabled = previousPrizesEnabled;
         prizeEmailEnabled = previousPrizeEmailEnabled;
         return;
       }
-      success = 'Prize feature setting saved.';
+      toast.success('Prize feature setting saved.');
       prizeEmailAvailableNow = getPrizeEmailFeatureRequested() && smtpTransportReady;
       await invalidateAll();
       await loadPrizes();
     } catch {
-      prizeError = 'Failed to save prize feature setting';
+      toast.error('Failed to save prize feature setting');
       prizesEnabled = previousPrizesEnabled;
       prizeEmailEnabled = previousPrizeEmailEnabled;
     } finally {
@@ -345,9 +339,9 @@
   }
 
   async function createPrize() {
-    prizeError = '';
+    modalPrizeError = '';
     if (!newPrizeExpirationDate) {
-      prizeError = 'Expiration date is required';
+      modalPrizeError = 'Expiration date is required';
       return;
     }
     try {
@@ -365,23 +359,25 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        prizeError = data.error ?? 'Failed to create prize';
+        modalPrizeError = data.error ?? 'Failed to create prize';
         return;
       }
+      const createdName = newPrizeName;
       newPrizeName = '';
       newPrizeUrl = '';
       newPrizeLimit = 1;
       newPrizeExpirationDate = '';
       newPrizeNotes = '';
       showAddPrizeModal = false;
+      toast.success(createdName ? `Prize "${createdName}" created.` : 'Prize created.');
       await loadPrizes();
     } catch {
-      prizeError = 'Failed to create prize';
+      modalPrizeError = 'Failed to create prize';
     }
   }
 
   function openAddPrizeModal() {
-    prizeError = '';
+    modalPrizeError = '';
     showAddPrizeModal = true;
   }
 
@@ -390,7 +386,6 @@
   }
 
   async function savePrize(prize: PrizeDefinition) {
-    prizeError = '';
     try {
       const res = await fetch(`/api/prizes/${encodeURIComponent(prize.id)}`, {
         method: 'PUT',
@@ -400,18 +395,18 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        prizeError = data.error ?? 'Failed to save prize';
+        toast.error(data.error ?? 'Failed to save prize');
         return;
       }
       editingPrizeIds = editingPrizeIds.filter((id) => id !== prize.id);
+      toast.success(`Prize "${prize.name}" saved.`);
       await loadPrizes();
     } catch {
-      prizeError = 'Failed to save prize';
+      toast.error('Failed to save prize');
     }
   }
 
   function requestDeletePrize(prize: PrizeDefinition) {
-    prizeError = '';
     prizePendingDelete = prize;
   }
 
@@ -421,7 +416,7 @@
 
   async function confirmDeletePrize() {
     if (!prizePendingDelete) return;
-    prizeError = '';
+    const deletingName = prizePendingDelete.name;
     try {
       const res = await fetch(`/api/prizes/${encodeURIComponent(prizePendingDelete.id)}`, {
         method: 'DELETE',
@@ -429,13 +424,14 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        prizeError = data.error ?? 'Failed to delete prize';
+        toast.error(data.error ?? 'Failed to delete prize');
         return;
       }
       prizePendingDelete = null;
+      toast.success(`Prize "${deletingName}" deleted.`);
       await loadPrizes();
     } catch {
-      prizeError = 'Failed to delete prize';
+      toast.error('Failed to delete prize');
     }
   }
 </script>
@@ -748,11 +744,6 @@
               </button>
             </div>
           </div>
-          {#if prizeEmailTestMessage}
-            <p class="text-sm {prizeEmailTestStatus === 'success' ? 'text-green-400' : 'text-red-400'}">
-              {prizeEmailTestMessage}
-            </p>
-          {/if}
         </div>
       </div>
       {/if}
@@ -905,14 +896,11 @@
       {/if}
 
       <p class="text-xs text-pub-muted">Session auth is used for saving. Password required only when changing username or password.</p>
-      {#if error}
-        <p class="text-sm text-red-400">{error}</p>
+      {#if validationError}
+        <p class="text-sm text-red-400">{validationError}</p>
       {/if}
-      {#if prizeError}
-        <p class="text-sm text-red-400">{prizeError}</p>
-      {/if}
-      {#if success}
-        <p class="text-sm text-green-400">{success}</p>
+      {#if prizeLoadError}
+        <p class="text-sm text-red-400">{prizeLoadError}</p>
       {/if}
       <button
         type="submit"
@@ -958,8 +946,8 @@
         <input bind:value={newPrizeNotes} placeholder="Notes (optional)" class="w-full rounded-lg border border-pub-muted bg-pub-dark px-3 py-2" />
       </label>
     </div>
-    {#if prizeError && showAddPrizeModal}
-      <p class="text-sm text-red-400">{prizeError}</p>
+    {#if modalPrizeError}
+      <p class="text-sm text-red-400">{modalPrizeError}</p>
     {/if}
   </div>
 </ConfirmModal>

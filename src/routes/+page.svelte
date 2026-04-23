@@ -11,6 +11,7 @@
   import { createSocket } from '$lib/socket.js';
   import { socketStore } from '$lib/stores/socket.js';
   import { createSettlementGuard } from '$lib/utils/settlement-guard.js';
+  import { toast } from '$lib/stores/toasts.js';
   import type { QuizListItem } from '$lib/types/quiz-list.js';
   import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
 
@@ -25,7 +26,6 @@
   let autoAdmitBeforeGame = true;
   let manualAdmitAfterGame = true;
   let passwordError = '';
-  let prizeError = '';
   let creating = false;
   let hostAuthenticated = false;
   let showQuizMenu = false;
@@ -130,6 +130,7 @@
       defaultRoomPrizeTiers = [];
       roomPrizeEnabled = false;
       roomPrizeTiers = [];
+      toast.warning('Could not load prize options. Prizes disabled for this session.');
     } finally {
       loadingPrizeOptions = false;
       prizeOptionsLoaded = true;
@@ -230,7 +231,6 @@
   async function startAsHost() {
     mode = 'host';
     passwordError = '';
-    prizeError = '';
     if (hostPasswordRequired) {
       try {
         await refreshHostAuthState();
@@ -255,12 +255,11 @@
   async function createRoom() {
     if (!quizFilename) return;
     passwordError = '';
-    prizeError = '';
     const sanitizedRoomPrizeTiers = normalizePrizeTiers(roomPrizeTiers);
 
     if (prizeFeatureEnabled && roomPrizeEnabled && sanitizedRoomPrizeTiers.length === 0) {
       creating = false;
-      prizeError = 'Add at least one prize tier or turn room prizes off.';
+      toast.error('Add at least one prize tier or turn room prizes off.');
       return;
     }
 
@@ -320,7 +319,7 @@
       const saveDefaultData = await saveDefaultRes.json();
       if (!saveDefaultRes.ok) {
         creating = false;
-        prizeError = saveDefaultData.error ?? 'Failed to save default prize setup';
+        toast.error(saveDefaultData.error ?? 'Failed to save default prize setup');
         return;
       }
     }
@@ -415,7 +414,10 @@
 
   function goToPlay() {
     const id = roomId.trim().toUpperCase();
-    if (!id) return;
+    if (!id) {
+      toast.warning('Enter a room code to join.');
+      return;
+    }
     goto(`/play/${id}`);
   }
 </script>
@@ -423,11 +425,6 @@
 <div class="min-h-full flex flex-col items-center justify-center px-6 pb-6 pt-15 sm:pt-16">
   <h1 class="text-4xl font-bold text-pub-gold mb-2">Let's Go Quizzing</h1>
   <p class="text-pub-muted mb-8">The Markdown of Quiz Apps</p>
-  {#if $page.url.searchParams.get('migrated') === '1'}
-    <p class="mb-4 px-4 py-2 rounded-lg bg-green-900/50 border border-green-600 text-green-200 text-sm">
-      Setup complete. Your credentials have been saved to the config file.
-    </p>
-  {/if}
   {#if mode === 'choose'}
     <div class="flex flex-col gap-4 items-center">
       {#if needsSetup && hostPasswordRequired}
@@ -635,9 +632,6 @@
             emptyMessage="No room prize tiers configured."
           />
         </div>
-      {/if}
-      {#if prizeError}
-        <p class="text-sm text-red-400">{prizeError}</p>
       {/if}
       <button
         type="submit"

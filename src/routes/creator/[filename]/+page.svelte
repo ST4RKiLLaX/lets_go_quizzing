@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import QuizEditor from '$lib/components/QuizEditor.svelte';
   import { createEmptyQuiz } from '$lib/types/quiz.js';
+  import { toast } from '$lib/stores/toasts.js';
   import type { Quiz } from '$lib/types/quiz.js';
 
   const filename = $page.params.filename;
@@ -21,6 +22,7 @@
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? 'Failed to save');
+    toast.success(`Quiz "${q.meta?.name || filename}" saved.`);
   }
 </script>
 

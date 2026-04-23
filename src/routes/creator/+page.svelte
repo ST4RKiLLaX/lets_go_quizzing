@@ -2,14 +2,13 @@
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
   import CreatorDeleteQuizModal from '$lib/components/creator/CreatorDeleteQuizModal.svelte';
+  import { toast } from '$lib/stores/toasts.js';
   import type { QuizListItem } from '$lib/types/quiz-list.js';
 
   $: quizzes = ($page.data.quizzes ?? []) as QuizListItem[];
 
   let importInput: HTMLInputElement | null = null;
   let busy = false;
-  let message = '';
-  let error = '';
 
   async function onImportSelected(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -19,8 +18,6 @@
     const formData = new FormData();
     formData.set('file', file);
     busy = true;
-    message = '';
-    error = '';
     try {
       const res = await fetch('/api/quizzes/import', {
         method: 'POST',
@@ -31,10 +28,10 @@
       if (!res.ok) throw new Error(data.error ?? 'Import failed');
       const imported = Array.isArray(data.importedImages) ? data.importedImages.length : 0;
       const skipped = Array.isArray(data.skippedImages) ? data.skippedImages.length : 0;
-      message = `Imported ${data.filename} (${imported} images, ${skipped} skipped).`;
+      toast.success(`Imported ${data.filename} (${imported} images, ${skipped} skipped).`);
       await invalidateAll();
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       busy = false;
       input.value = '';
@@ -62,8 +59,6 @@
     if (!quiz) return;
     const filename = quiz.filename;
     busy = true;
-    message = '';
-    error = '';
     quizPendingDelete = null;
     try {
       const res = await fetch(`/api/quizzes/${encodeURIComponent(filename)}`, {
@@ -72,10 +67,10 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Delete failed');
-      message = `Deleted ${filename}.`;
+      toast.success(`Deleted ${filename}.`);
       await invalidateAll();
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       busy = false;
     }
@@ -164,13 +159,6 @@
         on:change={onImportSelected}
       />
     </div>
-    {#if message}
-      <p class="text-sm text-green-400 mb-4">{message}</p>
-    {/if}
-    {#if error}
-      <p class="text-sm text-red-400 mb-4">{error}</p>
-    {/if}
-
     <div class="bg-pub-darker rounded-lg p-6">
       <h2 class="text-lg font-semibold mb-4">Your quizzes</h2>
       {#if quizzes.length === 0}

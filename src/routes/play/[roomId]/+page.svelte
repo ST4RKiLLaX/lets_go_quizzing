@@ -22,6 +22,7 @@
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import { applyRoomPatch } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
+  import { toast } from '$lib/stores/toasts.js';
 
   const roomId = $page.params.roomId;
 
@@ -64,6 +65,14 @@
     void wakeManager.setAutoActive(false);
     void wakeManager.setUserEnabled(wakeRequested);
   }
+  // eslint-disable-next-line no-useless-assignment
+  let lastWakeErrorMessage: string | null = null;
+  $: if (wakeSnapshot.errorMessage !== lastWakeErrorMessage) {
+    lastWakeErrorMessage = wakeSnapshot.errorMessage;
+    if (wakeSnapshot.errorMessage) {
+      toast.warning(wakeSnapshot.errorMessage, { dedupeKey: 'wake-error' });
+    }
+  }
   $: if (import.meta.env.DEV && typeof window !== 'undefined') {
     (window as Window & { __lgqDebug?: unknown }).__lgqDebug = { socket, state };
   }
@@ -100,13 +109,10 @@
   let prizeStatusMessage = '';
   let prizeEligibilityLoading = false;
   let prizeClaiming = false;
-  let prizeClaimError = '';
   let claimedPrizes: ClaimedPrize[] = [];
   let claimedClaimId = '';
   let prizeEmail = '';
   let prizeEmailSending = false;
-  let prizeEmailMessage = '';
-  let prizeEmailMessageStatus: 'idle' | 'success' | 'error' = 'idle';
   let prizeAutoClaimedKey = '';
 
   import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
@@ -927,11 +933,9 @@
     prizeEligible = false;
     prizeOptions = [];
     prizeStatusMessage = '';
-    prizeClaimError = '';
     claimedPrizes = [];
     claimedClaimId = '';
     prizeEmail = '';
-    prizeEmailMessage = '';
     prizeAutoClaimedKey = '';
   }
   $: if (prizeEligibilityKey && prizeEligibilityKey !== prizeEligibilityCheckedKey && claimedPrizes.length === 0) {
@@ -953,7 +957,6 @@
   async function loadPrizeEligibility() {
     if (!state || state.type !== 'End' || !currentPlayer || !state.prizeClaimToken) return;
     prizeEligibilityLoading = true;
-    prizeClaimError = '';
     try {
       const res = await fetch(
         `/api/prizes/eligibility?roomId=${encodeURIComponent(state.roomId)}&playerId=${encodeURIComponent(currentPlayer.id)}&token=${encodeURIComponent(state.prizeClaimToken)}`
@@ -986,9 +989,6 @@
   async function claimPrize() {
     if (!state || state.type !== 'End' || !state.prizeClaimToken) return;
     prizeClaiming = true;
-    prizeClaimError = '';
-    prizeEmailMessage = '';
-    prizeEmailMessageStatus = 'idle';
     try {
       const res = await fetch('/api/prizes/claim', {
         method: 'POST',
@@ -997,7 +997,7 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        prizeClaimError = data.error ?? 'Prize claim failed';
+        toast.error(data.error ?? 'Prize claim failed');
         prizeAutoClaimedKey = '';
         return;
       }
@@ -1008,7 +1008,7 @@
       prizeOptions = [];
       prizeStatusMessage = '';
     } catch {
-      prizeClaimError = 'Prize claim failed';
+      toast.error('Prize claim failed');
       prizeAutoClaimedKey = '';
     } finally {
       prizeClaiming = false;
@@ -1018,8 +1018,6 @@
   async function sendPrizeEmailNow() {
     if (!claimedClaimId || !prizeEmail.trim()) return;
     prizeEmailSending = true;
-    prizeEmailMessage = '';
-    prizeEmailMessageStatus = 'idle';
     try {
       const res = await fetch('/api/prizes/send-email', {
         method: 'POST',
@@ -1027,11 +1025,13 @@
         body: JSON.stringify({ claimId: claimedClaimId, email: prizeEmail.trim() }),
       });
       const data = await res.json();
-      prizeEmailMessage = res.ok ? 'Prize email sent.' : (data.error ?? 'Unable to send prize email');
-      prizeEmailMessageStatus = res.ok ? 'success' : 'error';
+      if (res.ok) {
+        toast.success('Prize email sent.');
+      } else {
+        toast.error(data.error ?? 'Unable to send prize email');
+      }
     } catch {
-      prizeEmailMessage = 'Unable to send prize email';
-      prizeEmailMessageStatus = 'error';
+      toast.error('Unable to send prize email');
     } finally {
       prizeEmailSending = false;
     }
@@ -1242,11 +1242,6 @@
                   <div class="rounded-lg border border-pub-muted/50 bg-pub-dark px-3 py-2 text-xs text-pub-muted">
                     We use your email address only to send the prize link{claimedPrizes.length === 1 ? '' : 's'}. We do not retain it after the code is sent.
                   </div>
-                  {#if prizeEmailMessage}
-                    <p class="text-sm {prizeEmailMessageStatus === 'success' ? 'text-green-400' : 'text-red-400'}">
-                      {prizeEmailMessage}
-                    </p>
-                  {/if}
                 </div>
               {/if}
             {:else if prizeEligibilityLoading}
@@ -1270,9 +1265,6 @@
               </div>
             {:else}
               <p class="text-pub-muted">{prizeStatusMessage || 'No prizes are available for this player.'}</p>
-            {/if}
-            {#if prizeClaimError}
-              <p class="text-sm text-red-400">{prizeClaimError}</p>
             {/if}
           </div>
         {/if}
