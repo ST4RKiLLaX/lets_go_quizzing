@@ -14,6 +14,7 @@
   import type { SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import type { ClaimedPrize, PrizeOption } from '$lib/types/prizes.js';
   import type { Question } from '$lib/types/quiz.js';
+  import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
@@ -114,8 +115,6 @@
   let prizeEmail = '';
   let prizeEmailSending = false;
   let prizeAutoClaimedKey = '';
-
-  import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
 
   $: joinMode =
     (wasKickedFromRoom

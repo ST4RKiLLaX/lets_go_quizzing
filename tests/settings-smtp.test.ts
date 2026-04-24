@@ -1,13 +1,11 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import nodemailer from 'nodemailer';
-import { createSession } from '../src/lib/server/auth.js';
 import { createConfigAtomic, loadConfig } from '../src/lib/server/config.js';
 import { getPrizeEmailSmtpPassword, setPrizeEmailSmtpPassword } from '../src/lib/server/secrets.js';
 import { GET, PUT } from '../src/routes/api/settings/+server.js';
 import { POST as TEST_SMTP_POST } from '../src/routes/api/settings/prize-email-test/+server.js';
+import { makeAuthCookie } from './helpers/auth-cookie.js';
+import { createTempCwdHarness } from './helpers/fs-isolation.js';
 
 vi.mock('nodemailer', () => ({
   default: {
@@ -17,12 +15,10 @@ vi.mock('nodemailer', () => ({
   },
 }));
 
-const ORIGINAL_CWD = process.cwd();
-let tempDir: string | null = null;
+const fsHarness = createTempCwdHarness('lgq-settings-smtp-');
 
 function prepareTempDir() {
-  tempDir = mkdtempSync(join(tmpdir(), 'lgq-settings-smtp-'));
-  process.chdir(tempDir);
+  fsHarness.prepare();
   createConfigAtomic({
     adminUsername: 'admin',
     adminPasswordHash: 'salt:hash',
@@ -38,16 +34,12 @@ function prepareTempDir() {
 }
 
 function makeCookie(): string {
-  return createSession().cookie;
+  return makeAuthCookie();
 }
 
 afterEach(() => {
   vi.clearAllMocks();
-  process.chdir(ORIGINAL_CWD);
-  if (tempDir) {
-    rmSync(tempDir, { recursive: true, force: true });
-    tempDir = null;
-  }
+  fsHarness.cleanup();
 });
 
 test('settings GET returns readable SMTP config and masked password status only', async () => {

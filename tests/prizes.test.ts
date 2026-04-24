@@ -1,7 +1,4 @@
 import { afterEach, expect, test } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import type { AppConfig } from '../src/lib/server/config.js';
 import { createConfigAtomic } from '../src/lib/server/config.js';
 import type { GameState } from '../src/lib/server/game/state-machine.js';
@@ -21,9 +18,9 @@ import {
 import { setPrizeEmailSmtpPassword } from '../src/lib/server/secrets.js';
 import { savePrizeRedemptionStore, savePrizeStore } from '../src/lib/server/prizes/store.js';
 import type { Quiz } from '../src/lib/server/storage/parser.js';
+import { createTempCwdHarness } from './helpers/fs-isolation.js';
 
-const ORIGINAL_CWD = process.cwd();
-let tempDir: string | null = null;
+const fsHarness = createTempCwdHarness('lgq-prizes-');
 
 function makeConfig(): AppConfig {
   return {
@@ -87,8 +84,7 @@ function makeState(options?: {
 }
 
 function prepareTempData() {
-  tempDir = mkdtempSync(join(tmpdir(), 'lgq-prizes-'));
-  process.chdir(tempDir);
+  fsHarness.prepare();
   savePrizeStore([
     {
       id: 'course-pro',
@@ -128,11 +124,7 @@ function prepareTempData() {
 }
 
 afterEach(() => {
-  process.chdir(ORIGINAL_CWD);
-  if (tempDir) {
-    rmSync(tempDir, { recursive: true, force: true });
-    tempDir = null;
-  }
+  fsHarness.cleanup();
 });
 
 test('listPrizeOptions only returns active prize labels', () => {

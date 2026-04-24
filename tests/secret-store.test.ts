@@ -1,28 +1,20 @@
 import { afterEach, expect, test } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import {
   clearPrizeEmailSmtpPassword,
   getPrizeEmailSmtpPassword,
   hasPrizeEmailSmtpPassword,
   setPrizeEmailSmtpPassword,
 } from '../src/lib/server/secrets.js';
+import { createTempCwdHarness } from './helpers/fs-isolation.js';
 
-const ORIGINAL_CWD = process.cwd();
-let tempDir: string | null = null;
+const fsHarness = createTempCwdHarness('lgq-secrets-');
 
 function prepareTempDir() {
-  tempDir = mkdtempSync(join(tmpdir(), 'lgq-secrets-'));
-  process.chdir(tempDir);
+  fsHarness.prepare();
 }
 
 afterEach(() => {
-  process.chdir(ORIGINAL_CWD);
-  if (tempDir) {
-    rmSync(tempDir, { recursive: true, force: true });
-    tempDir = null;
-  }
+  fsHarness.cleanup();
 });
 
 test('secret store persists SMTP password and clear removes it', () => {

@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { jsonError, toErrorMessage } from '$lib/server/api-errors.js';
 import { loadConfig } from '$lib/server/config.js';
 import { isValidEmailAddress } from '$lib/server/prizes/email.js';
 import { getPrizeEmailPolicy, sendPrizeEmail } from '$lib/server/prizes/service.js';
@@ -22,6 +23,6 @@ export async function POST({ request }) {
     await sendPrizeEmail({ claimId, email });
     return json({ ok: true });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
+    return jsonError(400, toErrorMessage(error));
   }
 }

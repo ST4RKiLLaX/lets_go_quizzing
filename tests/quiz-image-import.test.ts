@@ -1,6 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const { lookupMock } = vi.hoisted(() => ({
@@ -11,17 +10,16 @@ vi.mock('node:dns/promises', () => ({
   lookup: lookupMock,
 }));
 
-import { createSession } from '../src/lib/server/auth.js';
 import { createConfigAtomic } from '../src/lib/server/config.js';
 import { POST } from '../src/routes/api/quizzes/images/import-url/+server.js';
+import { makeAuthCookie } from './helpers/auth-cookie.js';
+import { createTempCwdHarness } from './helpers/fs-isolation.js';
 
-const ORIGINAL_CWD = process.cwd();
 const ORIGINAL_FETCH = global.fetch;
-let tempDir: string | null = null;
+const fsHarness = createTempCwdHarness('lgq-image-import-');
 
 function prepareTempDir() {
-  tempDir = mkdtempSync(join(tmpdir(), 'lgq-image-import-'));
-  process.chdir(tempDir);
+  fsHarness.prepare();
   createConfigAtomic({
     adminUsername: 'admin',
     adminPasswordHash: 'salt:hash',
@@ -29,7 +27,7 @@ function prepareTempDir() {
 }
 
 function makeCookie(): string {
-  return createSession().cookie;
+  return makeAuthCookie();
 }
 
 function makeRequest(body: Record<string, unknown>, withCookie = true): Request {
@@ -50,11 +48,7 @@ afterEach(() => {
   vi.clearAllMocks();
   lookupMock.mockReset();
   global.fetch = ORIGINAL_FETCH;
-  process.chdir(ORIGINAL_CWD);
-  if (tempDir) {
-    rmSync(tempDir, { recursive: true, force: true });
-    tempDir = null;
-  }
+  fsHarness.cleanup();
 });
 
 test('quiz image import requires authentication', async () => {
@@ -202,7 +196,7 @@ test('quiz image import stores the fetched image locally', async () => {
   } as Parameters<typeof POST>[0]);
 
   const data = await response.json();
-  const storedPath = join(tempDir!, 'data', 'quizzes', 'images', 'sample', 'q1.png');
+  const storedPath = join(fsHarness.getTempDir()!, 'data', 'quizzes', 'images', 'sample', 'q1.png');
 
   expect(response.ok).toBe(true);
   expect(data).toEqual({ filename: 'q1.png' });

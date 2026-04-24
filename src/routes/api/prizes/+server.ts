@@ -1,26 +1,16 @@
 import { json } from '@sveltejs/kit';
-import { isAuthenticated } from '$lib/server/auth.js';
-import { loadConfig } from '$lib/server/config.js';
-import { createPrize, isPrizeFeatureEnabled, listPrizes } from '$lib/server/prizes/service.js';
-
-function ensureAuthorized(cookie: string | null): Response | null {
-  if (!isAuthenticated(cookie ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  if (!isPrizeFeatureEnabled(loadConfig())) {
-    return json({ error: 'Prize feature disabled' }, { status: 404 });
-  }
-  return null;
-}
+import { jsonError, toErrorMessage } from '$lib/server/api-errors.js';
+import { ensurePrizeAdminAuthorized } from '$lib/server/prizes/route-guards.js';
+import { createPrize, listPrizes } from '$lib/server/prizes/service.js';
 
 export async function GET({ request }) {
-  const unauthorized = ensureAuthorized(request.headers.get('cookie'));
+  const unauthorized = ensurePrizeAdminAuthorized(request.headers.get('cookie'));
   if (unauthorized) return unauthorized;
   return json({ prizes: listPrizes() });
 }
 
 export async function POST({ request }) {
-  const unauthorized = ensureAuthorized(request.headers.get('cookie'));
+  const unauthorized = ensurePrizeAdminAuthorized(request.headers.get('cookie'));
   if (unauthorized) return unauthorized;
 
   try {
@@ -34,6 +24,6 @@ export async function POST({ request }) {
     });
     return json({ ok: true, prize });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
+    return jsonError(400, toErrorMessage(error));
   }
 }
