@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { listQuizzes } from '$lib/server/storage/parser.js';
 import { saveQuiz, generateFilenameFromTitle } from '$lib/server/storage/quiz-storage.js';
 import { QuizSchema } from '$lib/server/storage/parser.js';
-import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
+import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { formatZodError } from '$lib/utils/format-zod-error.js';
 
 export async function GET() {
@@ -12,12 +12,8 @@ export async function GET() {
 }
 
 export async function POST({ request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
   try {
     const body = await request.json();
     const quiz = QuizSchema.parse(body.quiz);

@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 import { deleteQuizAndImages, loadQuizRaw, saveQuiz } from '$lib/server/storage/quiz-storage.js';
 import { QuizSchema, isValidQuizFilename } from '$lib/server/storage/parser.js';
-import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
+import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { formatZodError } from '$lib/utils/format-zod-error.js';
 
 export async function GET({ params }) {
@@ -19,12 +19,8 @@ export async function GET({ params }) {
 }
 
 export async function PUT({ params, request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
   const filename = params.filename;
   if (!filename || !isValidQuizFilename(filename)) {
     return json({ error: 'Invalid filename' }, { status: 400 });
@@ -41,12 +37,8 @@ export async function PUT({ params, request }) {
 }
 
 export async function DELETE({ params, request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
   const filename = params.filename;
   if (!filename || !isValidQuizFilename(filename)) {
     return json({ error: 'Invalid filename' }, { status: 400 });

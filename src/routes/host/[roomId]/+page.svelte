@@ -12,6 +12,11 @@
   import { createWakeManager } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import {
+    getClockOffsetMs,
+    getSerializedTimerEndsAt,
+    isSerializedActiveQuizPhase,
+  } from '$lib/utils/quiz-timer-derivations.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
@@ -65,11 +70,10 @@
   $: currentQuestion =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
   $: currentQuestionId = currentQuestion?.id;
-  $: clockOffsetMs = state?.serverNow != null ? state.serverNow - Date.now() : 0;
+  $: clockOffsetMs = getClockOffsetMs(state?.serverNow, Date.now());
 
-  $: timerEndsAt =
-    state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
-  $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
+  $: timerEndsAt = getSerializedTimerEndsAt(state);
+  $: isActiveQuizPhase = isSerializedActiveQuizPhase(state);
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);

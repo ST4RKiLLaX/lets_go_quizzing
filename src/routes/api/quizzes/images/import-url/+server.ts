@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
+import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { isValidQuizFilename } from '$lib/server/storage/parser.js';
 import {
   QUIZ_IMAGE_MAX_SIZE,
@@ -188,12 +188,8 @@ async function readRemoteImage(response: Response): Promise<{ buffer: Uint8Array
 }
 
 export async function POST({ request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
 
   let body: ImportBody;
   try {

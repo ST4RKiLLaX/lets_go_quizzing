@@ -19,6 +19,11 @@
   import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
+  import {
+    getClockOffsetMs,
+    getSerializedTimerEndsAt,
+    isSerializedActiveQuizPhase,
+  } from '$lib/utils/quiz-timer-derivations.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import { applyRoomPatch } from '$lib/utils/realtime-patches.js';
@@ -51,13 +56,12 @@
 
   function syncClockOffset(nextState: SerializedState | null | undefined) {
     if (nextState?.serverNow != null) {
-      clockOffsetMs = nextState.serverNow - Date.now();
+      clockOffsetMs = getClockOffsetMs(nextState.serverNow, Date.now());
     }
   }
 
-  $: timerEndsAt =
-    state?.type === 'Question' || state?.type === 'RevealAnswer' ? state.timerEndsAt : undefined;
-  $: isActiveQuizPhase = state?.type === 'Question' || state?.type === 'RevealAnswer';
+  $: timerEndsAt = getSerializedTimerEndsAt(state);
+  $: isActiveQuizPhase = isSerializedActiveQuizPhase(state);
   $: {
     countdown?.destroy?.();
     countdown = useCountdown(timerEndsAt, clockOffsetMs);

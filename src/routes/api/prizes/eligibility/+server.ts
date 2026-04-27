@@ -1,7 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { loadConfig } from '$lib/server/config.js';
-import { getRoom } from '$lib/server/game/rooms.js';
-import { getPrizeEligibility, getPrizeEmailPolicy, isPrizeFeatureEnabled, verifyPrizeClaimToken } from '$lib/server/prizes/service.js';
+import {
+  parsePrizeClaimIdsFromUrl,
+  resolveVerifiedPrizeClaimContext,
+} from '$lib/server/prizes/claim-context.js';
+import { getPrizeEligibility, getPrizeEmailPolicy, isPrizeFeatureEnabled } from '$lib/server/prizes/service.js';
 
 export async function GET({ url }) {
   const config = loadConfig();
@@ -10,27 +13,12 @@ export async function GET({ url }) {
     return json({ enabled: false, eligible: false, emailConfigured: false, emailAvailableNow: false });
   }
 
-  const roomId = url.searchParams.get('roomId')?.trim();
-  const playerId = url.searchParams.get('playerId')?.trim();
-  const token = url.searchParams.get('token')?.trim();
-  if (!roomId || !playerId || !token) {
+  const ids = parsePrizeClaimIdsFromUrl(url);
+  if (!ids) {
     return json({ error: 'roomId, playerId, and token are required' }, { status: 400 });
   }
-  const state = getRoom(roomId);
-  const player = state?.players.get(playerId);
-  if (
-    !state ||
-    !player ||
-    !verifyPrizeClaimToken({
-      token,
-      roomId,
-      playerId,
-      finalScore: player.score,
-      quizFilename: state.quizFilename,
-      startedAt: state.startedAt,
-      config,
-    })
-  ) {
+  const claimContext = resolveVerifiedPrizeClaimContext(config, ids);
+  if (!claimContext.ok) {
     return json({
       enabled: true,
       eligible: false,
@@ -40,7 +28,7 @@ export async function GET({ url }) {
     });
   }
 
-  const eligibility = getPrizeEligibility(state, playerId, config);
+  const eligibility = getPrizeEligibility(claimContext.state, claimContext.ids.playerId, config);
   return json({
     enabled: true,
     ...eligibility,

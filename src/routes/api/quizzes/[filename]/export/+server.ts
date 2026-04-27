@@ -1,16 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
+import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { isValidQuizFilename } from '$lib/server/storage/parser.js';
 import { loadQuizRaw, readQuizYamlRaw } from '$lib/server/storage/quiz-storage.js';
 import { buildQuizExportZip } from '$lib/server/storage/quiz-archive.js';
 
 export async function GET({ params, request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
 
   const filename = params.filename;
   if (!filename || !isValidQuizFilename(filename)) {

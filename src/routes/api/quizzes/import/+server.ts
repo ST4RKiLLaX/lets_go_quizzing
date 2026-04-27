@@ -1,15 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { isAuthenticated, requireHostPassword } from '$lib/server/auth.js';
+import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { generateFilenameFromTitle, resolveUniqueQuizFilename, saveQuiz } from '$lib/server/storage/quiz-storage.js';
 import { parseQuizImportZip, writeImportedQuizImages } from '$lib/server/storage/quiz-archive.js';
 
 export async function POST({ request }) {
-  if (!requireHostPassword()) {
-    return json({ error: 'Hosting disabled' }, { status: 503 });
-  }
-  if (!isAuthenticated(request.headers.get('cookie') ?? undefined)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
 
   let formData: FormData;
   try {
