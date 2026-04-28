@@ -2,9 +2,13 @@
   import { page } from '$app/stores';
   import PlayerConfetti from '$lib/components/PlayerConfetti.svelte';
   import PlayerJoinForm from '$lib/components/player/PlayerJoinForm.svelte';
+  import PlayerIdleLobbyPanel from '$lib/components/player/PlayerIdleLobbyPanel.svelte';
   import PlayerLobbyForm from '$lib/components/player/PlayerLobbyForm.svelte';
+  import PlayerPrizeEndSection from '$lib/components/player/PlayerPrizeEndSection.svelte';
+  import PlayerQuestionPreviewBanner from '$lib/components/player/PlayerQuestionPreviewBanner.svelte';
   import PlayerQuestionForm from '$lib/components/player/PlayerQuestionForm.svelte';
   import PlayerRevealView, { type RevealData } from '$lib/components/player/PlayerRevealView.svelte';
+  import PlayerWakeCta from '$lib/components/player/PlayerWakeCta.svelte';
   import SessionLeaderboardView from '$lib/components/shared/SessionLeaderboardView.svelte';
   import PlayerExitModal from '$lib/components/player/PlayerExitModal.svelte';
   import PlayerNav from '$lib/components/PlayerNav.svelte';
@@ -14,9 +18,17 @@
   import type { SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import type { ClaimedPrize, PrizeOption } from '$lib/types/prizes.js';
   import type { Question } from '$lib/types/quiz.js';
+  import type {
+    PlayerQuestionActions,
+    PlayerQuestionPendingUi,
+    PlayerQuestionPresentation,
+    PlayerQuestionTimer,
+  } from '$lib/types/player-question-form.js';
+  import type { PlayerQuestionSubmissionQueries } from '$lib/types/player-question-submission-queries.js';
   import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
+  import { buildRevealData, isPlayerCorrectOnReveal } from '$lib/player/reveal-derivations.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
-  import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
+  import { getQuestionOptions } from '$lib/player/question-helpers.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
   import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import {
@@ -772,57 +784,20 @@
       ? `${state.currentRoundIndex}-${state.currentQuestionIndex}-${revealQuestion.id}`
       : '';
   $: revealData = ((): RevealData => {
-    const q = state?.type === 'RevealAnswer' ? currentQuestion : null;
-    if (!q) return {};
-    const qId = q.id;
-    const sub = state?.submissions?.find(
-      (s) => s.playerId === getOrCreatePlayerId() && s.questionId === qId
-    );
-    const base: RevealData = {};
-    if (q.type === 'hotspot') {
-      if (sub?.answerX != null && sub?.answerY != null) {
-        base.submittedHotspot = { x: sub.answerX, y: sub.answerY };
-      } else if (hotspotDraftByQuestionId[qId]) {
-        const d = hotspotDraftByQuestionId[qId];
-        base.submittedHotspot = { x: d.x, y: d.y };
-      }
-    } else if (q.type === 'choice' || q.type === 'true_false' || q.type === 'poll') {
-      const idx = sub?.answerIndex ?? (selectedAnswer?.questionId === qId ? selectedAnswer.answerIndex : undefined);
-      if (idx != null) base.submittedAnswerIndex = idx;
-    } else if (
-      q.type === 'multi_select' ||
-      q.type === 'reorder' ||
-      q.type === 'click_to_match' ||
-      q.type === 'drag_and_drop'
-    ) {
-      const idxs =
-        (sub?.answerIndexes?.length ? sub.answerIndexes : undefined) ??
-        (selectedMultiSelect?.questionId === qId ? selectedMultiSelect.answerIndexes : undefined) ??
-        (selectedReorder?.questionId === qId ? selectedReorder.answerIndexes : undefined) ??
-        (selectedMatching?.questionId === qId ? selectedMatching.answerIndexes : undefined) ??
-        (q.type === 'reorder' && reorderDraft.length > 0 ? reorderDraft : undefined) ??
-        ((q.type === 'click_to_match' || q.type === 'drag_and_drop') &&
-        qId === currentQuestionId &&
-        matchingDraft.every((v) => v >= 0)
-          ? matchingDraft
-          : undefined);
-      if (idxs?.length) base.submittedAnswerIndexes = [...idxs];
-    } else if (q.type === 'slider') {
-      const num = sub?.answerNumber ?? (selectedSlider?.questionId === qId ? selectedSlider.answerNumber : undefined);
-      if (num != null) base.submittedAnswerNumber = num;
-    } else if (q.type === 'input' || q.type === 'open_ended' || q.type === 'word_cloud') {
-      if (sub?.answerText != null) base.submittedAnswerText = sub.answerText;
-    }
-    if (q.type === 'poll') {
-      const counts = getOptionCounts(state?.submissions ?? [], qId);
-      base.optionCounts = Object.fromEntries(counts);
-    }
-    const markedWrong =
-      state?.wrongAnswers?.some(
-        (w) => w.playerId === getOrCreatePlayerId() && w.questionId === qId
-      ) ?? false;
-    base.wasCorrect = sub != null && !markedWrong;
-    return base;
+    return buildRevealData({
+      state,
+      currentQuestion,
+      playerId: getOrCreatePlayerId(),
+      currentQuestionId,
+      selectedAnswer,
+      selectedMultiSelect,
+      selectedReorder,
+      selectedMatching,
+      selectedSlider,
+      reorderDraft,
+      matchingDraft,
+      hotspotDraftByQuestionId,
+    });
   })();
   $: {
     const currentType = state?.type ?? null;
@@ -831,24 +806,13 @@
       enteredReveal &&
       revealKey &&
       !celebratedRevealKeys.has(revealKey) &&
-      isCurrentPlayerCorrectOnReveal(revealQuestion?.id ?? '')
+      isPlayerCorrectOnReveal(state, getOrCreatePlayerId(), revealQuestion?.id ?? '')
     ) {
       celebratedRevealKeys.add(revealKey);
       triggerConfetti();
     }
     // eslint-disable-next-line no-useless-assignment -- state for next reactive run
     previousStateType = currentType;
-  }
-
-  function isCurrentPlayerCorrectOnReveal(questionId: string): boolean {
-    if (!questionId || state?.type !== 'RevealAnswer') return false;
-    const me = getOrCreatePlayerId();
-    const submitted =
-      state.submissions?.some((s) => s.playerId === me && s.questionId === questionId) ?? false;
-    if (!submitted) return false;
-    const markedWrong =
-      state.wrongAnswers?.some((w) => w.playerId === me && w.questionId === questionId) ?? false;
-    return !markedWrong;
   }
 
   function triggerConfetti() {
@@ -1040,6 +1004,57 @@
     }
   }
 
+  $: questionPresentation = {
+    question: currentQuestion as Question,
+    roundName: state?.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round',
+    roomId: roomId ?? '',
+    currentQuestionNumber,
+    currentRoundQuestionTotal,
+    quizFilename: state?.quizFilename,
+    optionLabelStyle,
+  } satisfies PlayerQuestionPresentation;
+
+  $: questionTimer = {
+    totalTimerSeconds,
+    countdown,
+    questionTimeExpired,
+  } satisfies PlayerQuestionTimer;
+
+  $: questionPendingUi = {
+    hasAnsweredCurrentQuestion,
+    showTimesUpMessage,
+    submitError,
+    selectedAnswer,
+    selectedMultiSelect,
+  } satisfies PlayerQuestionPendingUi;
+
+  $: questionSubmissionQueries = {
+    hasSubmitted,
+    getSubmittedAnswerIndex,
+    getSubmittedAnswerIndexes,
+    getSubmittedHotspot,
+    isHotspotSubmitted,
+    isMultiSelectSubmitted,
+    isReorderSubmitted,
+    isMatchingSubmitted,
+    isSliderSubmitted,
+    isInputSubmitted,
+    getSelectedOptionLabel,
+    getSelectedOptionLabels,
+    getSubmittedAnswerNumber,
+  } satisfies PlayerQuestionSubmissionQueries;
+
+  $: questionActions = {
+    submitChoice,
+    submitMultiSelect,
+    submitReorder,
+    submitMatching,
+    submitSlider,
+    submitHotspot,
+    submitInput,
+    toggleMultiSelectDraft,
+  } satisfies PlayerQuestionActions;
+
 </script>
 
 <div class="min-h-full flex flex-col">
@@ -1065,15 +1080,7 @@
         <span class="text-pub-gold font-bold truncate">{playerDisplayEmoji} {playerDisplayName}: {myScore}</span>
       </div>
       {#if wakeAutoAttempted && !wakeSnapshot.active}
-        <div class="mb-4 text-xs">
-          <button
-            type="button"
-            class="px-3 py-1 rounded-md border border-pub-muted bg-pub-dark hover:opacity-90 w-full sm:w-auto"
-            onclick={enableWakeFromTap}
-          >
-            Enable screen wake
-          </button>
-        </div>
+        <PlayerWakeCta onEnable={enableWakeFromTap} />
       {/if}
     {/if}
     {#if !state}
@@ -1113,48 +1120,18 @@
         onRegister={() => register()}
       />
     {:else if state?.type === 'Lobby'}
-      <div class="bg-pub-darker rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-4">Waiting for host to start</h2>
-        <p class="text-pub-muted">Room: <span class="text-pub-gold font-mono">{roomId}</span></p>
-        <p class="text-pub-muted mt-2">Players: {(state?.players ?? []).length}</p>
-      </div>
+      <PlayerIdleLobbyPanel roomId={roomId ?? ''} playersCount={(state?.players ?? []).length} />
     {:else if state?.type === 'QuestionPreview'}
-      <div class="bg-pub-darker rounded-lg p-6 text-center">
-        <h2 class="text-xl font-bold mb-2">Get Ready</h2>
-        <p class="text-pub-muted">Next question coming up</p>
-      </div>
+      <PlayerQuestionPreviewBanner />
     {:else if state?.type === 'Question'}
       {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}-${state?.quizFilename ?? ''}`}
       {#if currentQuestion}
       <PlayerQuestionForm
-        question={currentQuestion}
-        roundName={state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-        roomId={roomId ?? ''}
-        {currentQuestionNumber}
-        {currentRoundQuestionTotal}
-        {totalTimerSeconds}
-        {countdown}
-        quizFilename={state.quizFilename}
-        {optionLabelStyle}
-        {questionTimeExpired}
-        {hasAnsweredCurrentQuestion}
-        {showTimesUpMessage}
-        {submitError}
-        {hasSubmitted}
-        {getSubmittedAnswerIndex}
-        {getSubmittedAnswerIndexes}
-        {getSubmittedHotspot}
-        {isHotspotSubmitted}
-        {isMultiSelectSubmitted}
-        {isReorderSubmitted}
-        {isMatchingSubmitted}
-        {isSliderSubmitted}
-        {isInputSubmitted}
-        {getSelectedOptionLabel}
-        {getSelectedOptionLabels}
-        {getSubmittedAnswerNumber}
-        {selectedAnswer}
-        {selectedMultiSelect}
+        presentation={questionPresentation}
+        timer={questionTimer}
+        pendingUi={questionPendingUi}
+        submissionQueries={questionSubmissionQueries}
+        actions={questionActions}
         bind:multiSelectDraft
         bind:reorderDraft
         bind:sliderAnswer
@@ -1163,14 +1140,6 @@
         updateHotspotDraft={updateHotspotDraft}
         bind:matchingDraft
         emoji={playerDisplayEmoji}
-        {submitChoice}
-        {submitMultiSelect}
-        {submitReorder}
-        {submitMatching}
-        {submitSlider}
-        {submitHotspot}
-        {submitInput}
-        {toggleMultiSelectDraft}
       />
       {/if}
       {/key}
@@ -1197,79 +1166,18 @@
           players={sortPlayersByScore(state.players)}
         />
         {#if state.type === 'End' && prizeFeatureEnabled}
-          <div class="rounded-lg bg-pub-darker p-6 space-y-4">
-            <h2 class="text-xl font-bold text-pub-gold">Prizes</h2>
-            {#if claimedPrizes.length > 0}
-              <p class="text-pub-muted">
-                Your prize{claimedPrizes.length === 1 ? ' is' : 's are'} ready. Save {claimedPrizes.length === 1 ? 'it' : 'them'} now if you want to keep {claimedPrizes.length === 1 ? 'it' : 'them'}.
-              </p>
-              <div class="space-y-3">
-                {#each claimedPrizes as prize, index}
-                  <div class="rounded-lg border border-pub-gold/30 bg-pub-dark p-4 space-y-2">
-                    <p class="text-xs uppercase tracking-wide text-pub-muted">Prize {index + 1}</p>
-                    <p class="font-semibold text-pub-gold">{prize.prizeName}</p>
-                    <a
-                      href={prize.prizeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      class="inline-flex items-center justify-center rounded-lg bg-pub-accent px-4 py-3 font-medium text-white hover:opacity-90"
-                    >
-                      Open Prize Link
-                    </a>
-                    <p class="break-all text-sm text-pub-muted">{prize.prizeUrl}</p>
-                  </div>
-                {/each}
-              </div>
-              {#if prizeEmailAvailableNow}
-                <div class="space-y-2">
-                  <label class="block text-sm text-pub-muted" for="prize-email">
-                    Email {claimedPrizes.length === 1 ? 'this link' : 'these links'} now (optional)
-                  </label>
-                  <div class="flex flex-col sm:flex-row gap-2">
-                    <input
-                      id="prize-email"
-                      type="email"
-                      bind:value={prizeEmail}
-                      placeholder="you@example.com"
-                      class="flex-1 rounded-lg border border-pub-muted bg-pub-dark px-4 py-2"
-                    />
-                    <button
-                      type="button"
-                      class="rounded-lg bg-pub-accent px-4 py-2 font-medium hover:opacity-90 disabled:opacity-50"
-                      onclick={sendPrizeEmailNow}
-                      disabled={prizeEmailSending || !prizeEmail.trim()}
-                    >
-                      {prizeEmailSending ? 'Sending...' : 'Send email'}
-                    </button>
-                  </div>
-                  <div class="rounded-lg border border-pub-muted/50 bg-pub-dark px-3 py-2 text-xs text-pub-muted">
-                    We use your email address only to send the prize link{claimedPrizes.length === 1 ? '' : 's'}. We do not retain it after the code is sent.
-                  </div>
-                </div>
-              {/if}
-            {:else if prizeEligibilityLoading}
-              <p class="text-pub-muted">Checking prize eligibility...</p>
-            {:else if prizeClaiming}
-              <p class="text-pub-muted">
-                Unlocking your prize{prizeOptions.length === 1 ? '' : 's'}...
-              </p>
-            {:else if prizeEligible && prizeOptions.length > 0}
-              <div class="space-y-2">
-                <p class="text-pub-muted">
-                  Unlocking {prizeOptions.length === 1 ? 'your prize' : 'your prizes'} automatically:
-                </p>
-                <ul class="space-y-2">
-                  {#each prizeOptions as prize}
-                    <li class="rounded-lg border border-pub-muted/50 bg-pub-dark px-4 py-3 text-pub-gold">
-                      {prize.name}
-                    </li>
-                  {/each}
-                </ul>
-              </div>
-            {:else}
-              <p class="text-pub-muted">{prizeStatusMessage || 'No prizes are available for this player.'}</p>
-            {/if}
-          </div>
+          <PlayerPrizeEndSection
+            {claimedPrizes}
+            {prizeEmailAvailableNow}
+            bind:prizeEmail
+            {prizeEmailSending}
+            {prizeEligibilityLoading}
+            {prizeClaiming}
+            {prizeEligible}
+            {prizeOptions}
+            {prizeStatusMessage}
+            onSendEmailNow={sendPrizeEmailNow}
+          />
         {/if}
       </div>
     {:else}

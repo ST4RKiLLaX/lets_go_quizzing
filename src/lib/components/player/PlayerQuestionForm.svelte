@@ -8,56 +8,98 @@
   import { formatOptionLabel } from '$lib/utils/option-label.js';
   import { PLAYER_QUESTION_HINTS } from '$lib/constants/question-copy.js';
   import type { Question, HotspotQuestion, ClickToMatchQuestion, DragAndDropQuestion } from '$lib/types/quiz.js';
+  import type {
+    PlayerQuestionActions,
+    PlayerQuestionPendingUi,
+    PlayerQuestionPresentation,
+    PlayerQuestionTimer,
+  } from '$lib/types/player-question-form.js';
+  import type { PlayerQuestionSubmissionQueries } from '$lib/types/player-question-submission-queries.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
 
-  export let question: Question;
-  export let roundName: string;
-  export let currentQuestionNumber: number;
-  export let currentRoundQuestionTotal: number;
-  export let totalTimerSeconds: number;
-  export let countdown: Readable<number> | null = null;
-  export let roomId: string;
-  export let quizFilename: string | undefined = undefined;
-  export let optionLabelStyle: 'letters' | 'numbers';
-  export let questionTimeExpired: boolean;
-  export let hasAnsweredCurrentQuestion: boolean;
-  export let showTimesUpMessage: boolean;
-  export let submitError: string;
+  export let presentation: PlayerQuestionPresentation;
+  export let timer: PlayerQuestionTimer;
+  export let pendingUi: PlayerQuestionPendingUi;
+  export let submissionQueries: PlayerQuestionSubmissionQueries;
+  export let actions: PlayerQuestionActions;
 
-  export let hasSubmitted: (questionId: string) => boolean;
-  export let getSubmittedAnswerIndex: (questionId: string) => number | undefined;
-  export let getSubmittedAnswerIndexes: (questionId: string) => number[];
-  export let getSubmittedHotspot: (questionId: string) => { x: number; y: number } | undefined;
-  export let isHotspotSubmitted: (questionId: string) => boolean;
-  export let isMultiSelectSubmitted: (questionId: string) => boolean;
-  export let isReorderSubmitted: (questionId: string) => boolean;
-  export let isMatchingSubmitted: (questionId: string) => boolean;
-  export let isSliderSubmitted: (questionId: string) => boolean;
-  export let isInputSubmitted: (questionId: string) => boolean;
-  export let getSelectedOptionLabel: (q: Question) => string;
-  export let getSelectedOptionLabels: (q: Question) => string[];
-  export let getSubmittedAnswerNumber: (questionId: string) => number | undefined;
+  let question: Question | null = null;
+  let roundName = '';
+  let currentQuestionNumber = 0;
+  let currentRoundQuestionTotal = 0;
+  let totalTimerSeconds = 30;
+  let countdown: Readable<number> | null = null;
+  let roomId = '';
+  let quizFilename: string | undefined = undefined;
+  let optionLabelStyle: 'letters' | 'numbers' = 'letters';
+  let questionTimeExpired = false;
+  let hasAnsweredCurrentQuestion = false;
+  let showTimesUpMessage = false;
+  let submitError = '';
+  let selectedAnswer: { questionId: string; answerIndex: number } | null = null;
+  let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null = null;
 
-  export let selectedAnswer: { questionId: string; answerIndex: number } | null;
-  export let selectedMultiSelect: { questionId: string; answerIndexes: number[] } | null;
+  let hasSubmitted: (questionId: string) => boolean = () => false;
+  let getSubmittedAnswerIndex: (questionId: string) => number | undefined = () => undefined;
+  let getSubmittedAnswerIndexes: (questionId: string) => number[] = () => [];
+  let getSubmittedHotspot: (questionId: string) => { x: number; y: number } | undefined = () => undefined;
+  let isHotspotSubmitted: (questionId: string) => boolean = () => false;
+  let isMultiSelectSubmitted: (questionId: string) => boolean = () => false;
+  let isReorderSubmitted: (questionId: string) => boolean = () => false;
+  let isMatchingSubmitted: (questionId: string) => boolean = () => false;
+  let isSliderSubmitted: (questionId: string) => boolean = () => false;
+  let isInputSubmitted: (questionId: string) => boolean = () => false;
+  let getSelectedOptionLabel: (q: Question) => string = () => '';
+  let getSelectedOptionLabels: (q: Question) => string[] = () => [];
+  let getSubmittedAnswerNumber: (questionId: string) => number | undefined = () => undefined;
+
+  let submitChoice: (questionId: string, answerIndex: number) => void = () => {};
+  let submitMultiSelect: (questionId: string, answerIndexes: number[]) => void = () => {};
+  let submitReorder: (questionId: string, answerIndexes: number[]) => void = () => {};
+  let submitMatching: (questionId: string, answerIndexes: number[]) => void = () => {};
+  let submitSlider: (questionId: string, answerNumber: number) => void = () => {};
+  let submitHotspot: (questionId: string, x: number, y: number) => void = () => {};
+  let submitInput: (questionId: string, answerText: string) => void = () => {};
+  let toggleMultiSelectDraft: (optionIndex: number) => void = () => {};
 
   export let multiSelectDraft: number[] = [];
   export let reorderDraft: number[] = [];
   export let sliderAnswer: number | null = null;
   export let inputAnswer = '';
 
-  export let submitChoice: (questionId: string, answerIndex: number) => void;
-  export let submitMultiSelect: (questionId: string, answerIndexes: number[]) => void;
-  export let submitReorder: (questionId: string, answerIndexes: number[]) => void;
-  export let submitMatching: (questionId: string, answerIndexes: number[]) => void;
-  export let submitSlider: (questionId: string, answerNumber: number) => void;
-  export let submitHotspot: (questionId: string, x: number, y: number) => void;
-  export let submitInput: (questionId: string, answerText: string) => void;
-  export let toggleMultiSelectDraft: (optionIndex: number) => void;
   export let hotspotDraftByQuestionId: Record<string, { x: number; y: number }> = {};
   export let updateHotspotDraft: (questionId: string, x: number, y: number) => void = () => {};
   export let matchingDraft: number[] = [];
   export let emoji = '😀';
+
+  $: ({ question, roundName, currentQuestionNumber, currentRoundQuestionTotal, roomId, quizFilename, optionLabelStyle } = presentation);
+  $: ({ totalTimerSeconds, countdown, questionTimeExpired } = timer);
+  $: ({ hasAnsweredCurrentQuestion, showTimesUpMessage, submitError, selectedAnswer, selectedMultiSelect } = pendingUi);
+  $: ({
+    hasSubmitted,
+    getSubmittedAnswerIndex,
+    getSubmittedAnswerIndexes,
+    getSubmittedHotspot,
+    isHotspotSubmitted,
+    isMultiSelectSubmitted,
+    isReorderSubmitted,
+    isMatchingSubmitted,
+    isSliderSubmitted,
+    isInputSubmitted,
+    getSelectedOptionLabel,
+    getSelectedOptionLabels,
+    getSubmittedAnswerNumber,
+  } = submissionQueries);
+  $: ({
+    submitChoice,
+    submitMultiSelect,
+    submitReorder,
+    submitMatching,
+    submitSlider,
+    submitHotspot,
+    submitInput,
+    toggleMultiSelectDraft,
+  } = actions);
 
   let selectedMatchingOption: number | null = null;
 

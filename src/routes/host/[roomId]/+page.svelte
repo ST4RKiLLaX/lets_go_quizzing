@@ -1,24 +1,31 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import CountdownPie from '$lib/components/CountdownPie.svelte';
   import HostEndModal from '$lib/components/host/HostEndModal.svelte';
   import HostLeaderboardView from '$lib/components/host/HostLeaderboardView.svelte';
+  import HostLiveQuestionPanel from '$lib/components/host/HostLiveQuestionPanel.svelte';
+  import HostLobbyContent from '$lib/components/host/HostLobbyContent.svelte';
+  import HostQuestionPreviewContent from '$lib/components/host/HostQuestionPreviewContent.svelte';
+  import HostRejoinForm from '$lib/components/host/HostRejoinForm.svelte';
+  import HostRoomHeader from '$lib/components/host/HostRoomHeader.svelte';
+  import HostRoomPrizeConfigModal from '$lib/components/host/HostRoomPrizeConfigModal.svelte';
   import HostSidebar from '$lib/components/host/HostSidebar.svelte';
-  import HotspotEmojiMarker from '$lib/components/HotspotEmojiMarker.svelte';
   import { hostQuizLiveStore } from '$lib/stores/host-quiz-live.js';
   import { hostSessionStore } from '$lib/stores/host-session.js';
   import { socketStore } from '$lib/stores/socket.js';
   import type { SerializedQuestionPatch, SerializedRoomPatch, SerializedState } from '$lib/types/game.js';
   import { createWakeManager } from '$lib/utils/wake-manager.js';
-  import { getQuestionOptions, getOptionCounts } from '$lib/player/question-helpers.js';
-  import { getQuestionImageSrc } from '$lib/utils/image-url.js';
+  import {
+    getLiveHotspotSubmissions,
+    getLiveOptionCounts,
+    getLiveSubmittedCount,
+  } from '$lib/utils/host-live-question-derivations.js';
   import {
     getClockOffsetMs,
     getSerializedTimerEndsAt,
     isSerializedActiveQuizPhase,
   } from '$lib/utils/quiz-timer-derivations.js';
   import { getQuestionDisplayOptionIndices } from '$lib/utils/shuffle.js';
-  import { formatOptionLabel, getOptionLabelStyle } from '$lib/utils/option-label.js';
+  import { getOptionLabelStyle } from '$lib/utils/option-label.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import {
@@ -27,20 +34,8 @@
     isQuestionPatchForState,
   } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
-  import {
-    HOST_QUESTION_HINTS,
-    QUESTION_TYPE_LABELS,
-  } from '$lib/constants/question-copy.js';
-  import RevealChoiceTrueFalseList from '$lib/components/shared/question-display/RevealChoiceTrueFalseList.svelte';
-  import RevealMultiSelectList from '$lib/components/shared/question-display/RevealMultiSelectList.svelte';
-  import PollOptionsList from '$lib/components/shared/question-display/PollOptionsList.svelte';
-  import HostWrongAnswersStrip from '$lib/components/host/HostWrongAnswersStrip.svelte';
-  import HostOpenEndedRevealModeration from '$lib/components/host/HostOpenEndedRevealModeration.svelte';
-  import HostWordCloudRevealModeration from '$lib/components/host/HostWordCloudRevealModeration.svelte';
   import { findUnavailablePrizeId } from '$lib/prizes/config-validation.js';
   import { normalizePrizeTiers } from '$lib/prizes/tiers.js';
-  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-  import PrizeTierEditor from '$lib/components/prizes/PrizeTierEditor.svelte';
   import { toast } from '$lib/stores/toasts.js';
   import { ackToast } from '$lib/utils/socket-ack.js';
   import type { PrizeOption, PrizeTier } from '$lib/types/prizes.js';
@@ -257,6 +252,25 @@
     showPrizeConfigModal = false;
   }
 
+  async function copyJoinUrl() {
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/play/${roomId}` : '';
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    } catch {
+      // fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    }
+  }
+
   function getRoomPrizeTierDisabledReason(): string {
     if (prizeOptions.length === 0) {
       return 'No active, unexpired prizes are available. Update prize settings first.';
@@ -267,50 +281,23 @@
     return '';
   }
 
-  function getRevealHotspotSubmissions(questionId: string) {
-    return (state?.submissions ?? []).filter(
-      (submission) =>
-        submission.questionId === questionId &&
-        submission.answerX != null &&
-        submission.answerY != null &&
-        submission.visibility !== 'blocked' &&
-        !submission.projectorHiddenByHost
-    );
-  }
+  $: liveSubmittedCount = getLiveSubmittedCount({
+    state,
+    currentQuestionId,
+    questionPatch,
+  });
 
-  $: liveSubmittedCount =
-    !currentQuestionId
-      ? 0
-      : state?.type === 'Question' && questionPatch?.questionId === currentQuestionId
-        ? questionPatch.submittedCount
-        : (state?.submissions ?? []).filter((submission) => submission.questionId === currentQuestionId)
-            .length;
+  $: liveOptionCounts = getLiveOptionCounts({
+    state,
+    currentQuestionId,
+    questionPatch,
+  });
 
-  $: liveOptionCounts =
-    currentQuestionId &&
-    state?.type === 'Question' &&
-    questionPatch?.questionId === currentQuestionId &&
-    questionPatch.optionCounts
-      ? new Map(
-          Object.entries(questionPatch.optionCounts).map(([index, count]) => [Number(index), count])
-        )
-      : getOptionCounts(state?.submissions ?? [], currentQuestionId ?? '');
-
-  $: liveHotspotSubmissions =
-    currentQuestion?.type !== 'hotspot'
-      ? []
-      : state?.type === 'RevealAnswer'
-        ? getRevealHotspotSubmissions(currentQuestion.id)
-        : state?.type === 'Question' && questionPatch?.questionId === currentQuestion.id
-          ? (questionPatch.hotspotSubmissions ?? [])
-          : (state?.submissions ?? []).filter(
-              (submission) =>
-                submission.questionId === currentQuestion.id &&
-                submission.answerX != null &&
-                submission.answerY != null &&
-                submission.visibility !== 'blocked' &&
-                !submission.projectorHiddenByHost
-            );
+  $: liveHotspotSubmissions = getLiveHotspotSubmissions({
+    state,
+    currentQuestion,
+    questionPatch,
+  });
 
   function next() {
     if (state?.type === 'QuestionPreview') {
@@ -440,368 +427,59 @@
 <div class="min-h-full p-4 sm:p-6">
   <div class="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
     <div class="flex-1 min-w-0">
-    <div class="mb-4 sm:mb-6">
-      <p class="text-pub-gold text-lg sm:text-xl font-semibold mb-2 break-words">
-        {state?.quiz?.meta?.name ?? 'Loading...'}
-      </p>
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 class="text-xl sm:text-2xl font-bold text-pub-gold break-all">Host: {roomId}</h1>
-        <div class="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
-          {#if state && state.type !== 'End'}
-            <button
-              type="button"
-              class="px-4 py-2 bg-[#CF3030] rounded-lg font-medium hover:opacity-90"
-              onclick={openEndQuizModal}
-            >
-              End Quiz
-            </button>
-          {/if}
-        </div>
-      </div>
-    </div>
+    <HostRoomHeader
+      quizName={state?.quiz?.meta?.name ?? 'Loading...'}
+      roomId={roomId ?? ''}
+      showEndButton={!!state && state.type !== 'End'}
+      onEndQuiz={openEndQuizModal}
+    />
 
     {#if state?.type === 'Lobby'}
-      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        <h2 class="text-lg font-semibold mb-4">Waiting for players</h2>
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-          <p class="text-pub-muted">
-            Share this code: <span class="text-pub-gold font-mono text-lg sm:text-xl">{roomId}</span>
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <p class="text-pub-muted">
-            Players join at: <span class="text-sm break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/play/{roomId}</span>
-          </p>
-          <button
-            type="button"
-            class="px-3 py-1.5 text-sm bg-pub-dark hover:bg-pub-accent/30 rounded-lg font-medium text-pub-gold shrink-0"
-            onclick={async () => {
-              const url = typeof window !== 'undefined' ? `${window.location.origin}/play/${roomId}` : '';
-              try {
-                await navigator.clipboard.writeText(url);
-                copied = true;
-                setTimeout(() => (copied = false), 2000);
-              } catch {
-                // fallback for older browsers
-                const ta = document.createElement('textarea');
-                ta.value = url;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                copied = true;
-                setTimeout(() => (copied = false), 2000);
-              }
-            }}
-          >
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
-        <div class="flex flex-wrap gap-3 sm:gap-4">
-          <button
-            class="px-5 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90"
-            onclick={() => socket?.emit('host:start', {}, ackToast('Could not start game'))}
-          >
-            Start Game
-          </button>
-        </div>
-        {#if prizeFeatureEnabled}
-          <div class="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              class="px-4 py-2 bg-pub-dark border border-pub-muted rounded-lg font-medium text-pub-gold hover:bg-pub-accent/20"
-              onclick={openPrizeConfigModal}
-            >
-              Room Prizes
-            </button>
-            {#if state?.roomPrizeConfig?.enabled}
-              <span class="text-sm text-pub-muted">
-                {state.roomPrizeConfig.tiers.length} tier{state.roomPrizeConfig.tiers.length === 1 ? '' : 's'} configured
-              </span>
-            {:else}
-              <span class="text-sm text-pub-muted">No room prize tiers configured.</span>
-            {/if}
-          </div>
-        {/if}
-      </div>
+      <HostLobbyContent
+        roomId={roomId ?? ''}
+        {copied}
+        {state}
+        {prizeFeatureEnabled}
+        onCopyJoinUrl={copyJoinUrl}
+        onStartGame={() => socket?.emit('host:start', {}, ackToast('Could not start game'))}
+        onOpenPrizeConfig={openPrizeConfigModal}
+      />
     {:else if state?.type === 'QuestionPreview'}
       {#if currentQuestion}
-        {@const q = currentQuestion}
-        <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-          <div class="flex items-start justify-between gap-4 mb-2">
-            <p class="text-pub-gold text-base font-semibold">
-              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-            </p>
-            <span class="text-pub-muted text-sm tabular-nums">{Math.floor(previewElapsedSeconds / 60)}:{String(previewElapsedSeconds % 60).padStart(2, '0')}</span>
-          </div>
-          <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-pub-dark text-pub-muted mb-3">
-            {QUESTION_TYPE_LABELS[q.type] ?? q.type}
-          </span>
-          <p class="text-xl mb-4">{q.text}</p>
-          {#if q.type === 'hotspot' && q.image}
-            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
-            {#if src}
-              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
-            {/if}
-          {:else if q.image}
-            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
-            {#if src}
-              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
-            {/if}
-          {/if}
-          <p class="text-sm text-pub-muted mb-6">{HOST_QUESTION_HINTS[q.type] ?? ''}</p>
-          {#if currentRoundQuestionTotal > 0}
-            <p class="text-center text-sm font-medium text-pub-muted mb-4">
-              {currentQuestionNumber}/{currentRoundQuestionTotal}
-            </p>
-          {/if}
-          <div class="flex gap-4 mt-6 flex-wrap items-center">
-            <button
-              class="px-4 py-2 {hostActionClass} rounded-lg font-medium hover:opacity-90 ml-auto"
-              onclick={next}
-            >
-              {hostActionLabel}
-            </button>
-          </div>
-        </div>
+        <HostQuestionPreviewContent
+          {state}
+          question={currentQuestion}
+          {currentRoundQuestionTotal}
+          {currentQuestionNumber}
+          {previewElapsedSeconds}
+          {hostActionClass}
+          {hostActionLabel}
+          onNext={next}
+        />
       {/if}
     {:else if state?.type === 'Question' || state?.type === 'RevealAnswer'}
-      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        {#key `${state?.currentRoundIndex ?? 0}-${state?.currentQuestionIndex ?? 0}`}
-        {#if currentQuestion}
-        {@const q = currentQuestion}
-          <div class="flex items-start justify-between gap-4 mb-2">
-            <p class="text-pub-gold text-base font-semibold">
-              {state.quiz?.rounds?.[state.currentRoundIndex]?.name ?? 'Round'}
-            </p>
-            {#if countdown}
-              <CountdownPie secondsRemaining={$countdown ?? 0} totalSeconds={totalTimerSeconds} />
-            {/if}
-          </div>
-          <p class="text-xl mb-6">{q.text}</p>
-          {#if q.type === 'hotspot'}
-            {@const hq = q}
-            {@const src = getQuestionImageSrc(hq.image, state?.quizFilename)}
-            {@const ar = hq.imageAspectRatio ?? 1}
-            {@const rY = hq.answer.radiusY ?? hq.answer.radius}
-            {@const rot = hq.answer.rotation ?? 0}
-            {#if src}
-              <div class="relative inline-block max-w-full my-4">
-                <img src={src} alt="" class="max-w-full rounded-lg block" />
-                {#if state?.type === 'RevealAnswer'}
-                  <div
-                    class="absolute border-2 border-green-500 bg-green-500/30 pointer-events-none rounded-full origin-center"
-                    style="left: {((hq.answer.x - hq.answer.radius / ar) * 100)}%; top: {((hq.answer.y - rY) * 100)}%; width: {(hq.answer.radius * 2 / ar) * 100}%; height: {(rY * 2) * 100}%; transform: rotate({rot}deg);"
-                  ></div>
-                {/if}
-                {#each liveHotspotSubmissions as sub}
-                  {@const player = (state?.players ?? []).find((p) => p.id === sub.playerId)}
-                  {@const isWrong = state?.wrongAnswers?.some((w) => w.playerId === sub.playerId && w.questionId === q.id)}
-                  <HotspotEmojiMarker
-                    x={sub.answerX!}
-                    y={sub.answerY!}
-                    emoji={player?.emoji ?? '?'}
-                    name={player?.name ?? 'Unknown'}
-                    isWrong={isWrong}
-                    showCorrectness={state?.type === 'RevealAnswer'}
-                  />
-                {/each}
-              </div>
-            {/if}
-          {:else if q.image}
-            {@const src = getQuestionImageSrc(q.image, state?.quizFilename)}
-            {#if src}
-              <img src={src} alt="" class="max-w-full rounded-lg my-4" />
-            {/if}
-          {/if}
-          {#if HOST_QUESTION_HINTS[q.type]}
-            <p class="text-sm text-pub-muted mb-4">{HOST_QUESTION_HINTS[q.type]}</p>
-          {/if}
-          {#if q.type === 'choice' || q.type === 'true_false'}
-            {@const options = getQuestionOptions(q)}
-            {@const optionIndices = q.type === 'true_false' ? [0, 1] : getQuestionDisplayOptionIndices(q, roomId)}
-            {#if state?.type === 'RevealAnswer'}
-              {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
-              <RevealChoiceTrueFalseList {options} {correctIndex} {optionLabelStyle} {optionIndices} />
-            {:else}
-              <ul class="space-y-2">
-                {#each optionIndices as optIndex, i}
-                  {@const correctIndex = q.type === 'choice' ? q.answer : q.answer ? 0 : 1}
-                  <li
-                    class="px-4 py-2 bg-pub-dark rounded {correctIndex === optIndex
-                      ? 'ring-2 ring-green-500'
-                      : ''}"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none"
-                      >
-                        {formatOptionLabel(i, optionLabelStyle)}
-                      </span>
-                      <span class="flex-1 break-words">{options[optIndex]}</span>
-                    </div>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-          {:else if q.type === 'multi_select'}
-            {@const counts = liveOptionCounts}
-            {@const optionIndices = getQuestionDisplayOptionIndices(q, roomId)}
-            {#if state?.type === 'RevealAnswer'}
-              <RevealMultiSelectList
-                options={q.options}
-                correctIndices={q.answer}
-                {counts}
-                {optionLabelStyle}
-                {optionIndices}
-              />
-            {:else}
-              <ul class="space-y-2">
-                {#each optionIndices as optIndex, i}
-                  <li class="px-4 py-2 bg-pub-dark rounded">
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none"
-                      >
-                        {formatOptionLabel(i, optionLabelStyle)}
-                      </span>
-                      <span class="flex-1 break-words">{q.options[optIndex]}</span>
-                      <span class="text-pub-gold font-semibold">{counts.get(optIndex) ?? 0}</span>
-                    </div>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-          {:else if q.type === 'reorder'}
-            <div class="space-y-4">
-              <div>
-                {#if state?.type === 'RevealAnswer'}
-                  <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Order:</h3>
-                {/if}
-                <ul class="space-y-2 {state?.type !== 'RevealAnswer' ? 'opacity-60' : ''}">
-                  {#each (state?.type === 'RevealAnswer' ? q.answer : getQuestionDisplayOptionIndices(q, roomId)) as optIndex, i}
-                    <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
-                      <div class="flex items-center gap-2">
-                        <span class="w-7 h-7 rounded-full bg-pub-gold text-sm font-extrabold text-pub-darker shrink-0 flex items-center justify-center self-center leading-none">
-                          {state?.type === 'RevealAnswer' ? i + 1 : formatOptionLabel(i, optionLabelStyle)}
-                        </span>
-                        <span class="flex-1 break-words">{q.options[optIndex]}</span>
-                      </div>
-                    </li>
-                  {/each}
-                </ul>
-              </div>
-            </div>
-          {:else if q.type === 'click_to_match' || q.type === 'drag_and_drop'}
-            <div class="space-y-4">
-              {#if state?.type === 'RevealAnswer'}
-                <h3 class="text-sm font-semibold text-pub-muted mb-2">Correct Pairs:</h3>
-              {/if}
-              <div class="flex gap-4 flex-col sm:flex-row">
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-pub-muted mb-2">Items</p>
-                  <ul class="space-y-2">
-                    {#each q.items as item, i}
-                      <li class="px-4 py-2 bg-pub-dark rounded {state?.type === 'RevealAnswer' ? 'ring-2 ring-green-500' : ''}">
-                        <span class="font-medium">{item}</span>
-                        {#if state?.type === 'RevealAnswer'}
-                          <span class="block text-pub-gold text-sm mt-1">→ {q.options[q.answer[i]]}</span>
-                        {/if}
-                      </li>
-                    {/each}
-                  </ul>
-                </div>
-                {#if state?.type !== 'RevealAnswer'}
-                  <div class="flex-1">
-                    <p class="text-sm font-medium text-pub-muted mb-2">Options</p>
-                    <ul class="space-y-2 opacity-60">
-                      {#each getQuestionDisplayOptionIndices(q, roomId) as optIndex}
-                        <li class="px-4 py-2 bg-pub-dark rounded">
-                          <span class="break-words">{q.options[optIndex]}</span>
-                        </li>
-                      {/each}
-                    </ul>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {:else if q.type === 'poll'}
-            {@const counts = liveOptionCounts}
-            <PollOptionsList
-              options={q.options}
-              {optionLabelStyle}
-              showCounts={state?.type === 'RevealAnswer'}
-              {counts}
-              optionIndices={getQuestionDisplayOptionIndices(q, roomId)}
-              itemRoundedClass="rounded"
-            />
-          {:else if q.type === 'slider'}
-            <div class="space-y-3">
-              <p class="px-4 py-2 bg-pub-dark rounded text-pub-muted">
-                Range: {q.min} to {q.max} in steps of {q.step}
-              </p>
-              {#if state?.type === 'RevealAnswer'}
-                <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-green-500 text-pub-gold">
-                  Correct: {q.answer}
-                </p>
-              {/if}
-            </div>
-          {:else if q.type === 'hotspot'}
-            <!-- Hotspot: image with circle overlay shown above -->
-          {:else if q.type === 'input' && state?.type === 'RevealAnswer'}
-            <p class="px-4 py-2 bg-pub-dark rounded ring-2 ring-pub-gold text-pub-gold">
-              Correct: {q.answer.filter(Boolean).join(' / ')}
-            </p>
-          {:else if q.type === 'open_ended' && state?.type === 'RevealAnswer'}
-            <HostOpenEndedRevealModeration
-              {state}
-              questionId={q.id}
-              {visibilityPending}
-              onToggleSubmissionVisibility={setSubmissionVisibility}
-            />
-          {:else if q.type === 'word_cloud' && state?.type === 'RevealAnswer'}
-            <HostWordCloudRevealModeration
-              {state}
-              questionId={q.id}
-              {visibilityPending}
-              onToggleWordVisibility={setWordVisibility}
-            />
-          {/if}
-          {#if state?.type === 'RevealAnswer' && q.explanation?.trim()}
-            <p class="mt-4 px-4 py-3 bg-pub-dark rounded text-pub-muted">
-              {q.explanation}
-            </p>
-          {/if}
-          {#if currentRoundQuestionTotal > 0}
-            <p class="mt-4 text-center text-sm font-medium text-pub-muted">
-              {currentQuestionNumber}/{currentRoundQuestionTotal}
-            </p>
-          {/if}
-        {/if}
-        {/key}
-
-        {#if state?.type === 'Question' && state.submissions}
-          <p class="text-pub-muted text-sm mt-4">
-            {liveSubmittedCount} of {(state.players ?? []).length} submitted
-          </p>
-        {/if}
-
-        <div class="flex gap-4 mt-6 flex-wrap items-center">
-          <button
-            class="px-4 py-2 {hostActionClass} rounded-lg font-medium hover:opacity-90 ml-auto"
-            onclick={next}
-          >
-            {hostActionLabel}
-          </button>
-        </div>
-
-        <HostWrongAnswersStrip
-          {state}
-          currentQuestion={currentQuestion}
-          getDisplay={getWrongAnswerDisplay}
-          onOverride={override}
-        />
-      </div>
+      <HostLiveQuestionPanel
+        {state}
+        roomId={roomId ?? ''}
+        {currentQuestion}
+        {currentRoundQuestionTotal}
+        {currentQuestionNumber}
+        {liveSubmittedCount}
+        liveOptionCounts={liveOptionCounts}
+        liveHotspotSubmissions={liveHotspotSubmissions}
+        {optionLabelStyle}
+        {totalTimerSeconds}
+        showCountdown={!!countdown}
+        countdownSecondsRemaining={countdown ? $countdown ?? 0 : 0}
+        {hostActionClass}
+        {hostActionLabel}
+        {visibilityPending}
+        onNext={next}
+        onToggleSubmissionVisibility={setSubmissionVisibility}
+        onToggleWordVisibility={setWordVisibility}
+        onOverride={override}
+        getDisplay={getWrongAnswerDisplay}
+      />
     {:else if state?.type === 'Scoreboard'}
       <HostLeaderboardView
         title="Leaderboard"
@@ -817,33 +495,7 @@
         players={sortPlayersByScore(state.players)}
       />
     {:else if joinError === 'Invalid password'}
-      <div class="bg-pub-darker rounded-lg p-4 sm:p-6">
-        <p class="text-pub-muted mb-4">Re-enter username and password to join host view</p>
-        <form
-          class="flex flex-col gap-2"
-          onsubmit={(e) => { e.preventDefault(); doHostJoin(hostRejoinUsername, hostRejoinPassword); }}
-        >
-          <input
-            name="username"
-            type="text"
-            bind:value={hostRejoinUsername}
-            autocomplete="username"
-            placeholder="Username"
-            class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
-          />
-          <input
-            name="current-password"
-            type="password"
-            bind:value={hostRejoinPassword}
-            autocomplete="current-password"
-            placeholder="Password"
-            class="flex-1 bg-pub-dark border border-pub-muted rounded-lg px-4 py-2"
-          />
-          <button type="submit" class="px-4 py-2 bg-pub-accent rounded-lg font-medium hover:opacity-90">
-            Join
-          </button>
-        </form>
-      </div>
+      <HostRejoinForm bind:hostRejoinUsername bind:hostRejoinPassword onJoin={doHostJoin} />
     {:else if joinError}
       <p class="text-red-500">{joinError}</p>
       <a href="/" class="mt-4 text-pub-accent hover:underline block">Back to home</a>
@@ -869,25 +521,12 @@
   onConfirm={confirmEndQuiz}
 />
 
-<ConfirmModal
+<HostRoomPrizeConfigModal
   open={showPrizeConfigModal}
-  title="Room prizes"
-  titleId="host-room-prizes-modal-title"
-  cancelLabel="Close"
-  confirmLabel="Save Prize Config"
-  confirmButtonClass="bg-pub-accent text-white"
+  bind:prizeDraftEnabled
+  bind:prizeDraftTiers
+  {prizeOptions}
+  addTierDisabledReason={getRoomPrizeTierDisabledReason()}
   onClose={closePrizeConfigModal}
   onConfirm={saveRoomPrizeConfig}
->
-  <div class="mb-4 space-y-4">
-    <PrizeTierEditor
-      bind:enabled={prizeDraftEnabled}
-      bind:tiers={prizeDraftTiers}
-      availablePrizes={prizeOptions}
-      addTierDisabledReason={getRoomPrizeTierDisabledReason()}
-      title="Room prizes"
-      subtitle="Optional score or rank tiers for this room. Players can unlock prizes from every tier they match."
-      emptyMessage="No room prize tiers configured."
-    />
-  </div>
-</ConfirmModal>
+/>
