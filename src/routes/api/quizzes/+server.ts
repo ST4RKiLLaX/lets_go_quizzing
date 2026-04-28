@@ -6,7 +6,9 @@ import { QuizSchema } from '$lib/server/storage/parser.js';
 import { requireHostApiSession } from '$lib/server/require-host-api-session.js';
 import { formatZodError } from '$lib/utils/format-zod-error.js';
 
-export async function GET() {
+export async function GET({ request }) {
+  const unauthorized = requireHostApiSession(request);
+  if (unauthorized) return unauthorized;
   const quizzes = listQuizzes();
   return json(quizzes);
 }
