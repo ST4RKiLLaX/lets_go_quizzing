@@ -97,6 +97,12 @@
     countdown?.destroy?.();
     stopWakeSubscription?.();
     void wakeManager?.destroy();
+    try {
+      socket?.disconnect();
+    } catch {
+      /* ignore: socket teardown is best-effort */
+    }
+    socket = null;
   });
   let socket: ReturnType<typeof createSocket> | null = null;
   let name = '';
@@ -118,6 +124,7 @@
   let settingsDraftEmoji = '😀';
   let leavingQuiz = false;
   let wasKickedFromRoom: 'kicked' | 'banned' | null = null;
+  let sessionReplaced = false;
   let prizeFeatureEnabled = false;
   let prizeEmailAvailableNow = false;
   let prizeEligibilityCheckedKey = '';
@@ -192,6 +199,21 @@
     socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
       if (!payload?.patch) return;
       state = applyRoomPatch(state, payload.patch);
+    });
+    socket.on('player:session_replaced', () => {
+      sessionReplaced = true;
+      toast.warning('Session moved to a new tab. This tab will not reconnect.', {
+        dedupeKey: 'session-replaced',
+      });
+      try {
+        socket?.disconnect();
+      } catch {
+        /* ignore: socket already gone */
+      }
+    });
+    socket.io.on('reconnect', () => {
+      if (wasKickedFromRoom || sessionReplaced) return;
+      joinRoom(getOrCreatePlayerId(), joinPassword);
     });
 
     if (!wasKickedFromRoom) {
