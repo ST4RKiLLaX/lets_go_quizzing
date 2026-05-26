@@ -79,7 +79,7 @@
 </script>
 
 <div
-  class="toast-card flex items-start gap-3 rounded-lg border-l-4 bg-pub-darker border-pub-muted shadow-lg p-3 pr-2 {VARIANT_CLASSES[
+  class="toast-card flex items-start gap-3 rounded-lg border-l-4 border border-pub-muted/60 bg-pub-darker shadow-lg ring-1 ring-white/10 backdrop-blur-[2px] p-3 pr-2 {VARIANT_CLASSES[
     toast.variant
   ]}"
   role="group"
@@ -123,7 +123,10 @@
 
 <style>
   .toast-card {
-    /* Slight alpha overlay so the card reads above confetti and page content. */
-    background-color: rgb(22 33 62 / 0.97);
+    /* Keep site palette while improving separation from dark panels behind it. */
+    background-color: rgb(24 36 68 / 0.94);
+    box-shadow:
+      0 10px 28px rgb(2 6 23 / 0.32),
+      0 2px 8px rgb(2 6 23 / 0.24);
   }
 </style>
