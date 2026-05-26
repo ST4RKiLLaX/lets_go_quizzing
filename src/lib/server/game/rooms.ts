@@ -97,3 +97,19 @@ export function removePendingPlayerBySocketId(socketId: string): string | undefi
   }
   return undefined;
 }
+
+export function clearPendingPlayerSocketBySocketId(socketId: string): string | undefined {
+  for (const [roomId, state] of rooms) {
+    const pending = state.pendingPlayers ?? new Map();
+    if (pending.size === 0) continue;
+    for (const [playerId, p] of pending) {
+      if (p.socketId === socketId) {
+        const next = new Map(pending);
+        next.set(playerId, { ...p, socketId: undefined });
+        rooms.set(roomId, { ...state, pendingPlayers: next });
+        return roomId;
+      }
+    }
+  }
+  return undefined;
+}

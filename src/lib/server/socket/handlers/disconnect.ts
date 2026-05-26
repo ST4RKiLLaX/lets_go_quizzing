@@ -1,7 +1,7 @@
 import type { SocketHandlerContext } from '../context.js';
 
 export function registerDisconnectHandler(ctx: SocketHandlerContext): void {
-  const { io, socket, getRoom, setRoom, removePendingPlayerBySocketId, broadcastRoomPatchToRoom } = ctx;
+  const { io, socket, getRoom, setRoom, clearPendingPlayerSocketBySocketId, broadcastRoomPatchToRoom } = ctx;
 
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId;
@@ -18,7 +18,7 @@ export function registerDisconnectHandler(ctx: SocketHandlerContext): void {
         }
       }
     } else {
-      const pendingRoomId = removePendingPlayerBySocketId(socket.id);
+      const pendingRoomId = clearPendingPlayerSocketBySocketId(socket.id);
       if (pendingRoomId) {
         const state = getRoom(pendingRoomId);
         if (state) {

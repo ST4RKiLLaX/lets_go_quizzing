@@ -12,7 +12,7 @@ export interface SerializedPlayer {
 
 export interface SerializedPendingPlayer {
   playerId: string;
-  socketId: string;
+  socketId?: string;
   name: string;
   emoji: string;
   requestedAt: number;

@@ -14,7 +14,7 @@ export interface Player {
 
 export interface PendingPlayer {
   playerId: string;
-  socketId: string;
+  socketId?: string;
   name: string;
   emoji: string;
   requestedAt: number;

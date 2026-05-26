@@ -93,13 +93,15 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
     });
     const nextState = { ...state, players, pendingPlayers };
     setRoom(roomId, nextState);
-    const targetSocket = io.sockets.sockets.get(pending.socketId);
-    if (targetSocket) {
-      targetSocket.join(roomId);
-      targetSocket.data.roomId = roomId;
-      targetSocket.data.role = 'player';
-      targetSocket.data.playerId = playerId;
-      targetSocket.emit('player:admitted', { state: serializePlayerState(nextState, playerId) });
+    if (pending.socketId) {
+      const targetSocket = io.sockets.sockets.get(pending.socketId);
+      if (targetSocket) {
+        targetSocket.join(roomId);
+        targetSocket.data.roomId = roomId;
+        targetSocket.data.role = 'player';
+        targetSocket.data.playerId = playerId;
+        targetSocket.emit('player:admitted', { state: serializePlayerState(nextState, playerId) });
+      }
     }
     void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
@@ -136,9 +138,11 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
         .map((p) => p.emoji),
       ...Array.from(state.pendingPlayers?.values() ?? []).map((p) => p.emoji),
     ];
-    const targetSocket = io.sockets.sockets.get(pending.socketId);
-    if (targetSocket) {
-      targetSocket.emit('player:denied', { usedEmojis });
+    if (pending.socketId) {
+      const targetSocket = io.sockets.sockets.get(pending.socketId);
+      if (targetSocket) {
+        targetSocket.emit('player:denied', { usedEmojis });
+      }
     }
     void broadcastStateToRoom(io, roomId, nextState);
     ack?.({ ok: true });
@@ -167,16 +171,18 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
         .filter((p) => !!p.socketId)
         .map((p) => p.emoji)
     );
-    const toAdmit: Array<{ playerId: string; socketId: string; name: string; emoji: string }> = [];
+    const toAdmit: Array<{ playerId: string; socketId?: string; name: string; emoji: string }> = [];
     for (const [playerId, p] of pending) {
       pendingPlayers.delete(playerId);
       if (usedEmojis.has(p.emoji)) {
-        const targetSocket = io.sockets.sockets.get(p.socketId);
-        if (targetSocket) {
-          targetSocket.emit('player:denied', {
-            message: 'Your emoji was taken by another player. Please try again with a different emoji.',
-            usedEmojis: Array.from(usedEmojis),
-          });
+        if (p.socketId) {
+          const targetSocket = io.sockets.sockets.get(p.socketId);
+          if (targetSocket) {
+            targetSocket.emit('player:denied', {
+              message: 'Your emoji was taken by another player. Please try again with a different emoji.',
+              usedEmojis: Array.from(usedEmojis),
+            });
+          }
         }
         continue;
       }
@@ -195,6 +201,7 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
     setRoom(roomId, nextState);
     const serialized = serializePlayerState(nextState);
     for (const { playerId, socketId } of toAdmit) {
+      if (!socketId) continue;
       const targetSocket = io.sockets.sockets.get(socketId);
       if (targetSocket) {
         targetSocket.join(roomId);

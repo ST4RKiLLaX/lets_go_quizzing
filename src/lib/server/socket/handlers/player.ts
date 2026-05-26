@@ -35,9 +35,24 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
         return;
       }
       const existingPlayer = state.players.get(resolvedPlayerId);
-      if (existingPlayer?.socketId) {
-        ack?.({ error: 'That player is already in the room' });
-        return;
+      if (existingPlayer?.socketId && existingPlayer.socketId !== socket.id) {
+        const staleSocket = io.sockets.sockets.get(existingPlayer.socketId);
+        if (staleSocket) {
+          try {
+            staleSocket.emit('player:session_replaced', {
+              roomId,
+              playerId: resolvedPlayerId,
+              reason: 'Another tab took over this session',
+            });
+          } catch {
+            /* ignore: stale socket emit best-effort */
+          }
+          try {
+            staleSocket.disconnect(true);
+          } catch {
+            /* ignore: stale socket disconnect best-effort */
+          }
+        }
       }
       const isReturning = !!existingPlayer;
       const roomJoinPassword = state.playerJoinPassword;
@@ -53,6 +68,20 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       }
       const gameStarted = state.type !== 'Lobby';
       if (state.waitingRoomEnabled && !isReturning) {
+        const existingPending = state.pendingPlayers?.get(resolvedPlayerId);
+        if (existingPending) {
+          const pendingPlayers = new Map(state.pendingPlayers);
+          pendingPlayers.set(resolvedPlayerId, {
+            ...existingPending,
+            socketId: socket.id,
+            requestedAt: Date.now(),
+          });
+          const nextState = { ...state, pendingPlayers };
+          setRoom(roomId, nextState);
+          ack?.({ ok: false, code: 'ALREADY_WAITING', message: 'You are already waiting for approval' });
+          void broadcastRoomPatchToRoom(io, roomId, nextState);
+          return;
+        }
         if (gameStarted && !state.allowLateJoin) {
           ack?.({ ok: false, code: 'LATE_JOIN_DISABLED', message: 'This game has started. Late join is disabled.' });
           return;
@@ -99,10 +128,6 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
             ...Array.from(state.pendingPlayers?.values() ?? []).map((p) => p.emoji),
           ];
           ack?.({ error: 'Emoji unavailable', usedEmojis });
-          return;
-        }
-        if (state.pendingPlayers.has(resolvedPlayerId)) {
-          ack?.({ ok: false, code: 'ALREADY_WAITING', message: 'You are already waiting for approval' });
           return;
         }
         const inLobby = state.type === 'Lobby';

@@ -76,7 +76,7 @@ test('disconnect clears socketId for connected player in room', () => {
   expect(updated?.players.get(playerId)?.socketId).toBeUndefined();
 });
 
-test('disconnect removes matching pending player by socket id', () => {
+test('disconnect preserves pending player but clears their socket id', () => {
   const roomId = `ROOM_${randomUUID().slice(0, 8)}`;
   const state = makeBaseState(roomId);
   state.pendingPlayers = new Map([
@@ -100,5 +100,7 @@ test('disconnect removes matching pending player by socket id', () => {
   disconnect();
 
   const updated = getRoom(roomId);
-  expect(updated?.pendingPlayers.has('pending-1')).toBe(false);
+  expect(updated?.pendingPlayers.has('pending-1')).toBe(true);
+  expect(updated?.pendingPlayers.get('pending-1')?.socketId).toBeUndefined();
+  expect(updated?.pendingPlayers.get('pending-1')?.name).toBe('Pat');
 });

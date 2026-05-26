@@ -1,6 +1,13 @@
 import type { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
-import { createRoom, getRoom, setRoom, roomExists, removePendingPlayerBySocketId } from '../game/rooms.js';
+import {
+  createRoom,
+  getRoom,
+  setRoom,
+  roomExists,
+  removePendingPlayerBySocketId,
+  clearPendingPlayerSocketBySocketId,
+} from '../game/rooms.js';
 import { transition } from '../game/state-machine.js';
 import { scoreSubmissions } from '../game/scoring.js';
 import { serializeHostState, serializePlayerState, serializeProjectorState } from './serializers.js';
@@ -16,6 +23,7 @@ export interface SocketHandlerContext {
   roomExists: typeof roomExists;
   createRoom: typeof createRoom;
   removePendingPlayerBySocketId: typeof removePendingPlayerBySocketId;
+  clearPendingPlayerSocketBySocketId: typeof clearPendingPlayerSocketBySocketId;
   transition: typeof transition;
   scoreSubmissions: typeof scoreSubmissions;
   serializeHostState: typeof serializeHostState;
@@ -36,6 +44,7 @@ export function createSocketHandlerContext(io: Server, socket: Socket): SocketHa
     roomExists,
     createRoom,
     removePendingPlayerBySocketId,
+    clearPendingPlayerSocketBySocketId,
     transition,
     scoreSubmissions,
     serializeHostState,
