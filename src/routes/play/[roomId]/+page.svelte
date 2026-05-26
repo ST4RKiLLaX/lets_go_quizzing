@@ -26,6 +26,10 @@
   } from '$lib/types/player-question-form.js';
   import type { PlayerQuestionSubmissionQueries } from '$lib/types/player-question-submission-queries.js';
   import { EMOJI_OPTIONS } from '$lib/player/emoji-options.js';
+  import {
+    ALREADY_IN_ROOM_RETRY_DELAY_MS,
+    decideAlreadyInRoomRetry,
+  } from '$lib/player/already-in-room-retry.js';
   import { buildRevealData, isPlayerCorrectOnReveal } from '$lib/player/reveal-derivations.js';
   import { createWakeManager, type WakeSnapshot } from '$lib/utils/wake-manager.js';
   import { getQuestionOptions } from '$lib/player/question-helpers.js';
@@ -97,6 +101,10 @@
     countdown?.destroy?.();
     stopWakeSubscription?.();
     void wakeManager?.destroy();
+    if (alreadyInRoomRetryTimer != null) {
+      clearTimeout(alreadyInRoomRetryTimer);
+      alreadyInRoomRetryTimer = null;
+    }
     try {
       socket?.disconnect();
     } catch {
@@ -125,6 +133,9 @@
   let leavingQuiz = false;
   let wasKickedFromRoom: 'kicked' | 'banned' | null = null;
   let sessionReplaced = false;
+  let disconnected = false;
+  let alreadyInRoomRetryAttempted = false;
+  let alreadyInRoomRetryTimer: ReturnType<typeof setTimeout> | null = null;
   let prizeFeatureEnabled = false;
   let prizeEmailAvailableNow = false;
   let prizeEligibilityCheckedKey = '';
@@ -210,6 +221,12 @@
       } catch {
         /* ignore: socket already gone */
       }
+    });
+    socket.on('disconnect', () => {
+      disconnected = true;
+    });
+    socket.on('connect', () => {
+      disconnected = false;
     });
     socket.io.on('reconnect', () => {
       if (wasKickedFromRoom || sessionReplaced) return;
@@ -297,9 +314,26 @@
             joinError = ack.error;
             return;
           }
-          if (ack.error === 'That player is already in the room') {
-            joinError = ack.error;
-            return;
+          {
+            const decision = decideAlreadyInRoomRetry({
+              errorMessage: ack.error,
+              alreadyAttempted: alreadyInRoomRetryAttempted,
+              blocked: !!wasKickedFromRoom || sessionReplaced,
+            });
+            if (decision.shouldRetry) {
+              alreadyInRoomRetryAttempted = true;
+              if (alreadyInRoomRetryTimer != null) clearTimeout(alreadyInRoomRetryTimer);
+              alreadyInRoomRetryTimer = setTimeout(() => {
+                alreadyInRoomRetryTimer = null;
+                if (wasKickedFromRoom || sessionReplaced) return;
+                joinRoom(getOrCreatePlayerId(), joinPassword, requestName, requestEmoji);
+              }, ALREADY_IN_ROOM_RETRY_DELAY_MS);
+              return;
+            }
+            if (decision.shouldSurfaceError) {
+              joinError = ack.error ?? '';
+              return;
+            }
           }
           if (ack.error === 'Emoji unavailable') {
             joinError = 'That emoji was just taken. Please pick another.';
@@ -324,6 +358,7 @@
         needsRoomPassword = false;
         needsRequestForm = false;
         joinError = '';
+        alreadyInRoomRetryAttempted = false;
         if (ack?.state) {
           syncClockOffset(ack.state);
           state = ack.state;
@@ -1080,6 +1115,16 @@
 </script>
 
 <div class="min-h-full flex flex-col">
+  {#if disconnected && !wasKickedFromRoom && !sessionReplaced}
+    <div
+      class="bg-amber-500 text-black text-sm font-semibold px-4 py-1 text-center"
+      role="status"
+      aria-live="polite"
+      data-testid="reconnect-banner"
+    >
+      Reconnecting…
+    </div>
+  {/if}
   {#if state}
     <PlayerNav
       settingsDisabled={settingsDisabled}
