@@ -65,7 +65,13 @@
   $: currentQuestion =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
   $: currentQuestionId = currentQuestion?.id;
-  $: clockOffsetMs = getClockOffsetMs(state?.serverNow, Date.now());
+  let clockOffsetMs = 0;
+
+  function syncClockOffset(nextState: SerializedState | null | undefined) {
+    if (nextState?.serverNow != null) {
+      clockOffsetMs = getClockOffsetMs(nextState.serverNow, Date.now());
+    }
+  }
 
   $: timerEndsAt = getSerializedTimerEndsAt(state);
   $: isActiveQuizPhase = isSerializedActiveQuizPhase(state);
@@ -140,6 +146,7 @@
     joinError = '';
     socket?.emit('host:join', { roomId, username, password }, (ack: { state?: SerializedState; error?: string }) => {
       if (ack?.state) {
+        syncClockOffset(ack.state);
         state = ack.state;
         questionPatch = null;
         markHostSessionEstablished();
@@ -171,6 +178,7 @@
     const onStateUpdate = (payload: { state: SerializedState }) => {
       const nextState = payload.state;
       const previousPatch = questionPatch;
+      syncClockOffset(nextState);
       state = nextState;
       questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
       clearVisibilityPending();

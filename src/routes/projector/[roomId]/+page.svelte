@@ -37,7 +37,13 @@
   $: currentQuestionNumber = (state?.currentQuestionIndex ?? 0) + 1;
   $: currentQuestion =
     state?.quiz?.rounds?.[state.currentRoundIndex]?.questions?.[state.currentQuestionIndex] ?? null;
-  $: clockOffsetMs = getClockOffsetMs(state?.serverNow, Date.now());
+  let clockOffsetMs = 0;
+
+  function syncClockOffset(nextState: SerializedState | null | undefined) {
+    if (nextState?.serverNow != null) {
+      clockOffsetMs = getClockOffsetMs(nextState.serverNow, Date.now());
+    }
+  }
 
   $: timerEndsAt = getSerializedTimerEndsAt(state);
   $: isActiveQuizPhase = isSerializedActiveQuizPhase(state);
@@ -96,6 +102,7 @@
         needsRoomPassword = false;
         joinError = '';
         if (ack?.state) {
+          syncClockOffset(ack.state);
           state = ack.state;
           questionPatch = null;
         }
@@ -127,6 +134,7 @@
     socket.on('state:update', (payload: { state: SerializedState }) => {
       const nextState = payload.state;
       const previousPatch = questionPatch;
+      syncClockOffset(nextState);
       state = nextState;
       questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
     });
