@@ -25,10 +25,18 @@ function getPlayerQuizProjectionKey(state: GameState): string {
 }
 
 // Exported so broadcast.ts can decide whether to include the player quiz
-// projection in state:update payloads. Keyed such that any change to the set
-// of revealed answers produces a new key.
+// projection in state:update payloads. Returns the total number of answers
+// revealed across all rounds; because reveals are monotonic the count uniquely
+// identifies the projection contents, so the quiz is (re)sent only when the
+// revealed set actually grows.
 export function getPlayerQuizKey(state: GameState): string {
-  return getPlayerQuizProjectionKey(state);
+  const isReveal = state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End';
+  let count = 0;
+  for (let r = 0; r < state.currentRoundIndex; r++) {
+    count += state.quiz.rounds[r]?.questions.length ?? 0;
+  }
+  count += isReveal ? state.currentQuestionIndex + 1 : state.currentQuestionIndex;
+  return String(Math.max(0, count));
 }
 
 function serializePlayers(players: GameState['players']): SerializedPlayer[] {
