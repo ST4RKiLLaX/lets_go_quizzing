@@ -45,6 +45,7 @@ function registerDisconnectForSocket(socketLike: { id: string; data: Record<stri
     in: () => ({
       fetchSockets: async () => [],
     }),
+    to: () => ({ emit: () => {} }),
   };
   registerSocketHandlers(createSocketHandlerContext(fakeIo as never, fakeSocket as never));
   const disconnect = handlers.get('disconnect');

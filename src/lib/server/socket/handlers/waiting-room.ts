@@ -1,4 +1,5 @@
 import type { SocketHandlerContext } from '../context.js';
+import { playerRoom } from '../broadcast.js';
 
 export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
   const { io, socket, getRoom, setRoom, serializePlayerState, broadcastStateToRoom } = ctx;
@@ -97,6 +98,7 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
       const targetSocket = io.sockets.sockets.get(pending.socketId);
       if (targetSocket) {
         targetSocket.join(roomId);
+        targetSocket.join(playerRoom(roomId));
         targetSocket.data.roomId = roomId;
         targetSocket.data.role = 'player';
         targetSocket.data.playerId = playerId;
@@ -205,6 +207,7 @@ export function registerWaitingRoomHandlers(ctx: SocketHandlerContext): void {
       const targetSocket = io.sockets.sockets.get(socketId);
       if (targetSocket) {
         targetSocket.join(roomId);
+        targetSocket.join(playerRoom(roomId));
         targetSocket.data.roomId = roomId;
         targetSocket.data.role = 'player';
         targetSocket.data.playerId = playerId;

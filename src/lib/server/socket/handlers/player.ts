@@ -8,6 +8,7 @@ import { getClientAddressFromSocket } from '../../address.js';
 import { checkPlayerJoinRateLimit } from '../../rate-limit.js';
 import { normalizePlayerEmoji } from '../../../player/emoji-options.js';
 import { queueQuestionPatch } from '../question-patch.js';
+import { playerRoom } from '../broadcast.js';
 
 export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
   const { io, socket, getRoom, setRoom, roomExists, serializePlayerState, broadcastRoomPatchToRoom } = ctx;
@@ -145,6 +146,7 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
           const nextState = { ...state, players };
           setRoom(roomId, nextState);
           socket.join(roomId);
+          socket.join(playerRoom(roomId));
           socket.data.roomId = roomId;
           socket.data.role = 'player';
           socket.data.playerId = resolvedPlayerId;
@@ -179,6 +181,7 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
       const nextState = { ...state, players };
       setRoom(roomId, nextState);
       socket.join(roomId);
+      socket.join(playerRoom(roomId));
       socket.data.roomId = roomId;
       socket.data.role = 'player';
       socket.data.playerId = resolvedPlayerId;
@@ -250,6 +253,7 @@ export function registerPlayerHandlers(ctx: SocketHandlerContext): void {
     const next = { ...state, players };
     setRoom(roomId, next);
     socket.leave(roomId);
+    socket.leave(playerRoom(roomId));
     socket.data.roomId = undefined;
     socket.data.playerId = undefined;
     socket.data.role = undefined;

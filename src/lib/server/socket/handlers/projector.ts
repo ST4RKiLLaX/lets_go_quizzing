@@ -2,6 +2,7 @@ import type { SocketHandlerContext } from '../context.js';
 import { verifyPasswordConstantTime } from '../../auth.js';
 import { getClientAddressFromSocket } from '../../address.js';
 import { checkPlayerJoinRateLimit } from '../../rate-limit.js';
+import { projectorRoom } from '../broadcast.js';
 
 export function registerProjectorHandlers(ctx: SocketHandlerContext): void {
   const { socket, getRoom, roomExists, serializeProjectorState } = ctx;
@@ -33,6 +34,7 @@ export function registerProjectorHandlers(ctx: SocketHandlerContext): void {
       }
     }
     socket.join(roomId);
+    socket.join(projectorRoom(roomId));
     socket.data.role = 'projector';
     socket.data.roomId = roomId;
     ack?.({ state: serializeProjectorState(state) });

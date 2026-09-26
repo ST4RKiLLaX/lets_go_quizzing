@@ -5,6 +5,7 @@ import { loadConfig } from '../../config.js';
 import { getClientAddressFromSocket } from '../../address.js';
 import { checkHostCreateRateLimit, checkHostGetStateRateLimit, checkHostJoinRateLimit } from '../../rate-limit.js';
 import { createRoomPrizeConfig, isPrizeFeatureEnabled } from '../../prizes/service.js';
+import { hostRoom } from '../broadcast.js';
 
 export function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
   const { io, socket, createRoom, getRoom, roomExists, serializeHostState, broadcastStateToRoom, logHostAuthFailure } =
@@ -73,6 +74,7 @@ export function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
           prizeConfig
         );
         socket.join(roomId);
+        socket.join(hostRoom(roomId));
         socket.data.role = 'host';
         socket.data.roomId = roomId;
         const state = getRoom(roomId)!;
@@ -110,6 +112,7 @@ export function registerHostSessionHandlers(ctx: SocketHandlerContext): void {
       return;
     }
     socket.join(roomId);
+    socket.join(hostRoom(roomId));
     socket.data.role = 'host';
     socket.data.roomId = roomId;
     const state = getRoom(roomId)!;
