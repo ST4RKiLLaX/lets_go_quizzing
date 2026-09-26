@@ -1,6 +1,8 @@
 import type { Server } from 'socket.io';
 import type { GameState } from '../game/state-machine.js';
+import { loadConfig } from '../config.js';
 import {
+  getPlayerQuizKey,
   serializeHostState,
   serializePlayerState,
   serializeProjectorState,
@@ -27,11 +29,36 @@ function needsPerPlayerState(state: GameState): boolean {
   return state.type === 'End' && !!state.roomPrizeConfig?.enabled;
 }
 
+// Track the last-broadcast player quiz projection key per room. The player
+// quiz projection changes only when this key changes, so we include the quiz
+// payload in state:update only on those transitions. Host/projector quizzes
+// are immutable per room, so we always omit their quiz in state:update.
+const lastPlayerQuizKeyByRoom = new Map<string, string>();
+
+export function resetRoomBroadcastCache(roomId: string): void {
+  lastPlayerQuizKeyByRoom.delete(roomId);
+}
+
+function takeIncludePlayerQuiz(roomId: string, state: GameState): boolean {
+  const key = getPlayerQuizKey(state);
+  const previous = lastPlayerQuizKeyByRoom.get(roomId);
+  if (previous === key) return false;
+  lastPlayerQuizKeyByRoom.set(roomId, key);
+  return true;
+}
+
 export async function broadcastStateToRoom(io: Server, roomId: string, state: GameState) {
-  io.to(hostRoom(roomId)).emit('state:update', { state: serializeHostState(state) });
-  io.to(projectorRoom(roomId)).emit('state:update', { state: serializeProjectorState(state) });
+  // Host/projector quiz is immutable per room; they receive it via join ack.
+  io.to(hostRoom(roomId)).emit('state:update', { state: serializeHostState(state, { includeQuiz: false }) });
+  io.to(projectorRoom(roomId)).emit('state:update', {
+    state: serializeProjectorState(state, { includeQuiz: false }),
+  });
+
+  const includePlayerQuiz = takeIncludePlayerQuiz(roomId, state);
 
   if (needsPerPlayerState(state)) {
+    // Hoist config once: prizeClaimToken generation runs per unique playerId.
+    const config = loadConfig();
     const sockets = await io.in(playerRoom(roomId)).fetchSockets();
     const cache = new Map<string, ReturnType<typeof serializePlayerState>>();
     for (const s of sockets) {
@@ -39,7 +66,10 @@ export async function broadcastStateToRoom(io: Server, roomId: string, state: Ga
       const cacheKey = playerId || s.id;
       let payload = cache.get(cacheKey);
       if (!payload) {
-        payload = serializePlayerState(state, playerId || undefined);
+        payload = serializePlayerState(state, playerId || undefined, {
+          includeQuiz: includePlayerQuiz,
+          config,
+        });
         cache.set(cacheKey, payload);
       }
       s.emit('state:update', { state: payload });
@@ -47,7 +77,9 @@ export async function broadcastStateToRoom(io: Server, roomId: string, state: Ga
     return;
   }
 
-  io.to(playerRoom(roomId)).emit('state:update', { state: serializePlayerState(state) });
+  io.to(playerRoom(roomId)).emit('state:update', {
+    state: serializePlayerState(state, undefined, { includeQuiz: includePlayerQuiz }),
+  });
 }
 
 export async function broadcastRoomPatchToRoom(io: Server, roomId: string, state: GameState) {

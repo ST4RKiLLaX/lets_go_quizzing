@@ -13,6 +13,7 @@
   import { useCountdown } from '$lib/timer.js';
   import {
     applyRoomPatch,
+    applyStateUpdate,
     isQuestionPatchForCurrentQuestion,
     isQuestionPatchForState,
   } from '$lib/utils/realtime-patches.js';
@@ -132,11 +133,11 @@
     }
     joinRoom(initialPassword);
     socket.on('state:update', (payload: { state: SerializedState }) => {
-      const nextState = payload.state;
+      const merged = applyStateUpdate(state, payload.state);
       const previousPatch = questionPatch;
-      syncClockOffset(nextState);
-      state = nextState;
-      questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
+      syncClockOffset(merged);
+      state = merged;
+      questionPatch = isQuestionPatchForCurrentQuestion(merged, previousPatch) ? previousPatch : null;
     });
     socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
       if (!payload?.patch) return;

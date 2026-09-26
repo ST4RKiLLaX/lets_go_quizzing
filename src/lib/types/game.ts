@@ -41,7 +41,10 @@ export interface SerializedWrongAnswer {
 export interface SerializedState {
   type: string;
   roomId: string;
-  quiz: Quiz;
+  // Optional on the wire: server omits `quiz` from state:update broadcasts
+  // when the (role-specific) projection has not changed since the last one.
+  // Clients merge via applyStateUpdate() and retain the last-known quiz.
+  quiz?: Quiz;
   quizFilename?: string;
   serverNow?: number;
   players: SerializedPlayer[];

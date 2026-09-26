@@ -7,6 +7,7 @@ import type {
   SerializedSubmission,
 } from '../../types/game.js';
 import type { Quiz } from '../../types/quiz.js';
+import type { AppConfig } from '../config.js';
 import { loadConfig } from '../config.js';
 import { createPrizeClaimToken, isPrizeFeatureEnabled } from '../prizes/service.js';
 
@@ -21,6 +22,13 @@ const playerQuizProjectionCache = new WeakMap<GameState['quiz'], Map<string, Qui
 function getPlayerQuizProjectionKey(state: GameState): string {
   const isRevealPhase = state.type === 'RevealAnswer' || state.type === 'Scoreboard' || state.type === 'End';
   return `${state.type}:${state.currentRoundIndex}:${state.currentQuestionIndex}:${isRevealPhase ? '1' : '0'}`;
+}
+
+// Exported so broadcast.ts can decide whether to include the player quiz
+// projection in state:update payloads. Keyed such that any change to the set
+// of revealed answers produces a new key.
+export function getPlayerQuizKey(state: GameState): string {
+  return getPlayerQuizProjectionKey(state);
 }
 
 function serializePlayers(players: GameState['players']): SerializedPlayer[] {
@@ -148,7 +156,22 @@ export function serializeSubmissions(
   return serialized;
 }
 
-export function serializeState(state: GameState, submissions: SerializedSubmission[]) {
+export interface SerializeOptions {
+  // When false, omit `quiz` from the payload. Callers use this for state:update
+  // broadcasts where the client already has an up-to-date quiz. Defaults to true.
+  includeQuiz?: boolean;
+  // Precomputed AppConfig. When provided, the serializer skips loadConfig().
+  // Broadcast paths that call serializePlayerState() per socket set this to
+  // avoid N cache-lookups per broadcast.
+  config?: AppConfig | null;
+}
+
+export function serializeState(
+  state: GameState,
+  submissions: SerializedSubmission[],
+  options: SerializeOptions = {}
+) {
+  const { includeQuiz = true } = options;
   const {
     type,
     roomId,
@@ -165,7 +188,7 @@ export function serializeState(state: GameState, submissions: SerializedSubmissi
   return {
     type,
     roomId,
-    quiz,
+    ...(includeQuiz ? { quiz } : {}),
     quizFilename,
     currentRoundIndex,
     currentQuestionIndex,
@@ -178,8 +201,8 @@ export function serializeState(state: GameState, submissions: SerializedSubmissi
   };
 }
 
-export function serializeHostState(state: GameState) {
-  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: true }));
+export function serializeHostState(state: GameState, options: SerializeOptions = {}) {
+  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: true }), options);
   return {
     ...base,
     pendingPlayers: serializePendingPlayers(state.pendingPlayers),
@@ -192,13 +215,17 @@ export function serializeHostState(state: GameState) {
   };
 }
 
-export function serializePlayerState(state: GameState, playerId?: string) {
-  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: false }));
-  const quiz = serializePlayerQuizProjection(state);
+export function serializePlayerState(state: GameState, playerId?: string, options: SerializeOptions = {}) {
+  const { includeQuiz = true } = options;
+  const base = serializeState(state, serializeSubmissions(state.submissions, { forHost: false }), { includeQuiz: false });
   const player = playerId ? state.players.get(playerId) : undefined;
-  const config = loadConfig();
+  // Only load config when a claim token is potentially needed (End + prizes),
+  // and accept a precomputed config to avoid repeated cache lookups when
+  // callers serialize per-player in a loop.
+  const needsToken = state.type === 'End' && !!state.roomPrizeConfig?.enabled && !!player;
+  const config = needsToken ? options.config ?? loadConfig() : null;
   const prizeClaimToken =
-    state.type === 'End' && state.roomPrizeConfig?.enabled && player && isPrizeFeatureEnabled(config)
+    needsToken && isPrizeFeatureEnabled(config) && player
       ? createPrizeClaimToken({
           roomId: state.roomId,
           playerId: player.id,
@@ -208,12 +235,16 @@ export function serializePlayerState(state: GameState, playerId?: string) {
           config,
         })
       : undefined;
+  if (!includeQuiz) {
+    return { ...base, prizeClaimToken };
+  }
+  const quiz = serializePlayerQuizProjection(state);
   return { ...base, quiz, prizeClaimToken };
 }
 
-export function serializeProjectorState(state: GameState) {
+export function serializeProjectorState(state: GameState, options: SerializeOptions = {}) {
   const submissions = serializeSubmissions(state.submissions, { forHost: true, forProjector: true });
-  const base = serializeState(state, submissions);
+  const base = serializeState(state, submissions, options);
   return {
     ...base,
     hiddenWordsByQuestion: serializeHiddenWordsByQuestion(state.hiddenWordsByQuestion),

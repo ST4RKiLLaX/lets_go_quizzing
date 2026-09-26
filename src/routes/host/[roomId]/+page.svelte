@@ -30,6 +30,7 @@
   import { sortPlayersByScore } from '$lib/utils/players.js';
   import {
     applyRoomPatch,
+    applyStateUpdate,
     isQuestionPatchForCurrentQuestion,
     isQuestionPatchForState,
   } from '$lib/utils/realtime-patches.js';
@@ -176,11 +177,11 @@
     doHostJoin(username, pwd);
     void loadPrizeOptions();
     const onStateUpdate = (payload: { state: SerializedState }) => {
-      const nextState = payload.state;
+      const merged = applyStateUpdate(state, payload.state);
       const previousPatch = questionPatch;
-      syncClockOffset(nextState);
-      state = nextState;
-      questionPatch = isQuestionPatchForCurrentQuestion(nextState, previousPatch) ? previousPatch : null;
+      syncClockOffset(merged);
+      state = merged;
+      questionPatch = isQuestionPatchForCurrentQuestion(merged, previousPatch) ? previousPatch : null;
       clearVisibilityPending();
       if (payload?.state) markHostSessionEstablished();
     };

@@ -42,7 +42,7 @@
   } from '$lib/utils/quiz-timer-derivations.js';
   import { useCountdown } from '$lib/timer.js';
   import { sortPlayersByScore } from '$lib/utils/players.js';
-  import { applyRoomPatch } from '$lib/utils/realtime-patches.js';
+  import { applyRoomPatch, applyStateUpdate } from '$lib/utils/realtime-patches.js';
   import { onMount, onDestroy } from 'svelte';
   import { toast } from '$lib/stores/toasts.js';
 
@@ -191,8 +191,9 @@
     });
     socket.on('player:admitted', (payload: { state?: SerializedState }) => {
       if (payload?.state) {
-        syncClockOffset(payload.state);
-        state = payload.state;
+        const merged = applyStateUpdate(state, payload.state);
+        syncClockOffset(merged);
+        state = merged;
         registered = true;
         waitingForApproval = false;
       }
@@ -204,8 +205,9 @@
       if (payload?.message) joinError = payload.message;
     });
     socket.on('state:update', (payload: { state: SerializedState }) => {
-      syncClockOffset(payload.state);
-      state = payload.state;
+      const merged = applyStateUpdate(state, payload.state);
+      syncClockOffset(merged);
+      state = merged;
     });
     socket.on('room:patch', (payload: { patch?: SerializedRoomPatch }) => {
       if (!payload?.patch) return;

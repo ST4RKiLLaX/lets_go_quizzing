@@ -47,3 +47,17 @@ export function applyRoomPatch(
   }
   return nextState;
 }
+
+// Merges a state:update payload with the previous state, retaining the
+// previously known `quiz` when the server omits it. The server omits `quiz`
+// on state:update broadcasts where the (role-specific) quiz projection has
+// not changed since the last broadcast; the join ack always includes it.
+export function applyStateUpdate(
+  previous: SerializedState | null,
+  next: SerializedState
+): SerializedState {
+  if (next.quiz !== undefined) return next;
+  const previousQuiz = previous?.quiz;
+  if (previousQuiz === undefined) return next;
+  return { ...next, quiz: previousQuiz };
+}
