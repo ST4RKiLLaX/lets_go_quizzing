@@ -57,6 +57,8 @@ export interface GameState {
   timerEndsAt?: number;
   startedAt?: number;
   questionStartedAt?: number;
+  createdAt?: number;
+  endedAt?: number;
 }
 
 export type GameEvent =
@@ -77,7 +79,19 @@ function hasNextRound(state: GameState): boolean {
   return state.currentRoundIndex < state.quiz.rounds.length - 1;
 }
 
+function stampEnd(state: GameState, next: GameState): GameState {
+  // First transition into End records endedAt; subsequent End reprocessing is a no-op.
+  if (next.type === 'End' && state.type !== 'End') {
+    return { ...next, endedAt: Date.now() };
+  }
+  return next;
+}
+
 export function transition(state: GameState, event: GameEvent): GameState {
+  return stampEnd(state, transitionInternal(state, event));
+}
+
+function transitionInternal(state: GameState, event: GameEvent): GameState {
   const st = state.type;
   if (st === 'Lobby') {
     if (event.type === 'END_GAME') {
