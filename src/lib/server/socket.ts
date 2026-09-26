@@ -31,6 +31,21 @@ export function initSocket(httpServer: import('http').Server): Server {
     cors: {
       origin: getCorsOrigin(),
     },
+    // Prefer websocket; fall back to long-polling for restrictive networks.
+    transports: ['websocket', 'polling'],
+    // Compress payloads only above ~1KB. Full state:update on Question phase
+    // (with the quiz projection at join / reveal boundaries) benefits; small
+    // patches (room:patch, question:patch) skip compression to save CPU.
+    perMessageDeflate: {
+      threshold: 1024,
+    },
+    // Cap inbound payload at 1MB — well above any legitimate quiz answer and
+    // any authored quiz file. Blocks accidental / malicious oversized frames.
+    maxHttpBufferSize: 1_000_000,
+    // Slightly tighter than defaults (25s / 20s) so dead sockets are detected
+    // faster and player list "isActive" reflects reality within ~30s.
+    pingInterval: 20_000,
+    pingTimeout: 15_000,
   });
 
   io.on('connection', (socket) => {
